@@ -1,4 +1,4 @@
-import { env } from "../utils/constants";
+import { getEnv } from "../utils/constants";
 
 export interface ToolInvocation {
     toolName: string;
@@ -23,7 +23,7 @@ export interface Message {
 }
 
 export async function generateText(messages: Message[], tools: Tool[], token: string) {
-    const response = await fetch(`${env.SUPABASE_URL}/functions/v1/llm`, {
+    const response = await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm`, {
         method: 'POST',
         body: JSON.stringify({ messages, tools }),
         headers: { 'Authorization': `Bearer ${token}` }
@@ -36,7 +36,7 @@ export type OnLLMResponse = (id: string, response: string, finished: boolean, to
 
 export async function streamChatGPT(messages: Message[], tools: Tool[], onResponse: OnLLMResponse, token: string) {
     const messageId = Math.random().toString(36).substring(3);
-    const response = await fetch(`${env.SUPABASE_URL}/functions/v1/llm`, {
+    const response = await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm`, {
         method: 'POST',
         body: JSON.stringify({ messages, tools, stream: true }),
         headers: { 'Authorization': `Bearer ${token}` }

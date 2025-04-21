@@ -1,4 +1,4 @@
-import { env } from "../utils/constants";
+import { getEnv } from "../utils/constants";
 
 type PrimitiveType = 'string' | 'number' | 'boolean';
 
@@ -36,7 +36,7 @@ export interface ObjectRequest {
 }
 
 export async function generateObject(request: ObjectRequest, token: string) {
-    return await fetch(`${env.SUPABASE_URL}/functions/v1/llm-object`, {
+    return await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm-object`, {
         method: 'POST',
         body: JSON.stringify({
             stream: false,
@@ -53,7 +53,7 @@ export type OnLLMResponse = (id: string, response: string, finished: boolean, to
 
 export async function streamObject(request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
     const messageId = Math.random().toString(36).substring(3);
-    const response = await fetch(`${env.SUPABASE_URL}/functions/v1/llm-object`, {
+    const response = await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm-object`, {
         method: 'POST',
         body: JSON.stringify({
             stream: true,
