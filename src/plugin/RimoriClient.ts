@@ -146,13 +146,15 @@ export class RimoriClient {
     }
 
     public async getAIResponse(messages: Message[], tools?: Tool[]): Promise<string> {
+        const url = this.plugin.getSupabaseUrl();
         const token = await this.plugin.getToken();
-        return generateText(messages, tools || [], token).then(response => response.messages[0].content[0].text);
+        return generateText(url, messages, tools || [], token).then(response => response.messages[0].content[0].text);
     }
 
     public async getAIResponseStream(messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]) {
+        const url = this.plugin.getSupabaseUrl();
         const token = await this.plugin.getToken();
-        streamChatGPT(messages, tools || [], onMessage, token);
+        streamChatGPT(url, messages, tools || [], onMessage, token);
     }
 
     public async getVoiceResponse(text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> {
@@ -177,7 +179,7 @@ export class RimoriClient {
 
     public async generateObject(request: ObjectRequest): Promise<any> {
         const token = await this.plugin.getToken();
-        return generateObjectFunction(request, token);
+        return generateObjectFunction(this.plugin.getSupabaseUrl(), request, token);
     }
 
     /**

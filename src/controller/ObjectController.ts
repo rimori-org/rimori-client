@@ -1,5 +1,3 @@
-import { getEnv } from "../utils/constants";
-
 type PrimitiveType = 'string' | 'number' | 'boolean';
 
 // This is the type that can appear in the `type` property
@@ -35,8 +33,8 @@ export interface ObjectRequest {
     instructions: string;
 }
 
-export async function generateObject(request: ObjectRequest, token: string) {
-    return await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm-object`, {
+export async function generateObject(supabaseUrl: string, request: ObjectRequest, token: string) {
+    return await fetch(`${supabaseUrl}/functions/v1/llm-object`, {
         method: 'POST',
         body: JSON.stringify({
             stream: false,
@@ -51,9 +49,9 @@ export async function generateObject(request: ObjectRequest, token: string) {
 // TODO adjust stream to work with object
 export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: any[]) => void;
 
-export async function streamObject(request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
+export async function streamObject(supabaseUrl: string, request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
     const messageId = Math.random().toString(36).substring(3);
-    const response = await fetch(`${getEnv().SUPABASE_URL}/functions/v1/llm-object`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/llm-object`, {
         method: 'POST',
         body: JSON.stringify({
             stream: true,
