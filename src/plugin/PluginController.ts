@@ -22,7 +22,6 @@ export class PluginController {
     private constructor() {
         window.addEventListener("message", (event) => {
             // console.log("client: message received", event);
-
             const { topic, id, data } = event.data;
 
             this.onceListeners.get(topic)?.forEach((callback: any) => callback(id, data));

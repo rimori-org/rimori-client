@@ -1,3 +1,6 @@
+// Re-export everything
+export * from './core';
+export * from './components';
 export * from "./components/MarkdownEditor";
 export * from "./components/CRUDModal";
 export * from "./components/Spinner";
@@ -13,3 +16,4 @@ export * from "./providers/EventEmitterContext";
 export * from "./providers/PluginProvider";
 export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
+export * from "./plugin/PluginController";
