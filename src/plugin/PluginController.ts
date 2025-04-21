@@ -1,4 +1,3 @@
-import { Child } from "ibridge-flex";
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { RimoriClient } from "./RimoriClient";
 
@@ -14,23 +13,21 @@ interface SupabaseInfo {
 export class PluginController {
     private static instance: PluginController;
     private static client: RimoriClient;
-    private plugin: Child<null, null>;
     private onceListeners: Map<string, any[]> = new Map();
     private listeners: Map<string, any[]> = new Map();
     private communicationSecret: string | null = null;
-    private initialized = false;
     private supabase: SupabaseClient | null = null;
     private supabaseInfo: SupabaseInfo | null = null;
 
     private constructor() {
-        // localStorage.debug = "*";
-        this.plugin = new Child({
-            triggerChild: ({ topic, data, _id }: any) => {
-                // console.log("trigger child with topic:" + topic + " and data: ", data);
-                this.onceListeners.get(topic)?.forEach((callback: any) => callback(_id, data));
-                this.onceListeners.set(topic, []);
-                this.listeners.get(topic)?.forEach((callback: any) => callback(_id, data));
-            }
+        window.addEventListener("message", (event) => {
+            // console.log("client: message received", event);
+
+            const { topic, id, data } = event.data;
+
+            this.onceListeners.get(topic)?.forEach((callback: any) => callback(id, data));
+            this.onceListeners.set(topic, []);
+            this.listeners.get(topic)?.forEach((callback: any) => callback(id, data));
         });
 
         this.emit = this.emit.bind(this);
@@ -44,21 +41,11 @@ export class PluginController {
     public static async getInstance(): Promise<RimoriClient> {
         if (!PluginController.instance) {
             PluginController.instance = new PluginController();
-            await PluginController.instance.init();
             PluginController.client = await RimoriClient.getInstance(
                 PluginController.instance
             );
         }
         return PluginController.client;
-    }
-
-    async init() {
-        if (this.initialized) return;
-
-        // Wait for the plugin to be ready
-        await this.plugin.handshake().then(() => this.initialized = true).catch((error: any) => {
-            console.error("Failed to initialize the plugin communication:", error);
-        });
     }
 
     private getSecret() {
@@ -119,12 +106,12 @@ export class PluginController {
         this.internalEmit(eventName, 0, data);
     }
 
-    // the communication needs to have an id to be able to distinguish between different responses
-    private internalEmit(eventName: string, id: number, data?: any) {
-        this.init().then(() => this.plugin.emitToParent(eventName, { data, _id: id, secret: this.getSecret() }));
+    // every message between the parent and the plugin needs to have an id to be able to distinguish it from other messages. Otherwise a message having the same topic will be received in multiple places whenever the topic is emitted.
+    private async internalEmit(topic: string, id: number, data?: any, skipInit?: boolean) {
+        window.parent.postMessage({ id, data, topic, secret: this.getSecret() }, "*")
     }
 
-    public subscribe(eventName: string, callback: (_id: number, data: any) => void) {
+    public subscribe(eventName: string, callback: (id: number, data: any) => void) {
         if (!this.listeners.has(eventName)) {
             this.listeners.set(eventName, []);
         }
@@ -142,17 +129,16 @@ export class PluginController {
 
     async request<T>(topic: string, data: any = {}): Promise<T> {
         return await new Promise((resolve) => {
+            const messageId = Math.random();
             let triggered = false;
-            const id = Math.random();
 
-            this.internalEmit(topic, id, data);
-
-            this.subscribe(topic, (_id: number, data: any) => {
-                if (triggered || (_id !== id && _id !== 0)) return;
+            this.subscribe(topic, (id: number, data: any) => {
+                if (triggered || (id !== messageId && id !== 0)) return;
                 triggered = true;
 
                 resolve(data)
             })
+            this.internalEmit(topic, messageId, data)
         });
     }
 }

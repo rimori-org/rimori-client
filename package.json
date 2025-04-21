@@ -16,7 +16,6 @@
     "@supabase/supabase-js": "^2.48.1",
     "@tiptap/react": "2.10.3",
     "@tiptap/starter-kit": "2.10.3",
-    "ibridge-flex": "0.0.1",
     "uuid": "11.1.0",
     "react-icons": "^5.4.0",
     "tiptap-markdown": "^0.8.10",
