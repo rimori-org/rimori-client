@@ -24,7 +24,7 @@ export async function generateText(supabaseUrl: string, messages: Message[], too
     const response = await fetch(`${supabaseUrl}/functions/v1/llm`, {
         method: 'POST',
         body: JSON.stringify({ messages, tools }),
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
 
     return await response.json();
@@ -37,7 +37,7 @@ export async function streamChatGPT(supabaseUrl: string, messages: Message[], to
     const response = await fetch(`${supabaseUrl}/functions/v1/llm`, {
         method: 'POST',
         body: JSON.stringify({ messages, tools, stream: true }),
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
 
     if (!response.body) {
@@ -80,6 +80,8 @@ export async function streamChatGPT(supabaseUrl: string, messages: Message[], to
                 }
             }
         }
+        // Wait for 5ms to avoid blocking the main thread
+        await new Promise(resolve => setTimeout(resolve, 10));
     }
     onResponse(messageId, content.replace(/\\n/g, '\n'), true, toolInvocations);
 }
