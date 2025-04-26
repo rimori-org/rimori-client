@@ -11,7 +11,7 @@ interface SupabaseInfo {
 }
 type EventPayload = Record<string, any>;
 
-export interface EventBusMessage {
+export interface EventBusMessage<T = EventPayload> {
     //timestamp of the event
     timestamp: string;
     //unique ID of the event
@@ -21,8 +21,10 @@ export interface EventBusMessage {
     //the topic of the event consisting of the plugin id, key area and action e.g. "translator.word.triggerTranslation"
     topic: string;
     //any type of data to be transmitted
-    data: EventPayload;
+    data: T;
 }
+
+export type ListenerCallback<T> = (data: T, event: EventBusMessage) => void;
 
 export class PluginController {
     private static instance: PluginController;
@@ -32,37 +34,37 @@ export class PluginController {
     private communicationSecret: string | null = null;
     private supabase: SupabaseClient | null = null;
     private supabaseInfo: SupabaseInfo | null = null;
+    private uninitialzedSender: string;
 
     private constructor() {
+        this.uninitialzedSender = "uninitialized_plugin_" + Math.random();
         window.addEventListener("message", (event) => {
             // console.log("client: message received", event);
-            const { topic, eventId, data } = event.data.event as EventBusMessage;
+            const { topic, sender, data } = event.data.event as EventBusMessage;
 
-            // console.log("client listeners", {
-            //     onceListeners: this.onceListeners,
-            //     listeners: this.listeners
-            // });
+            if (sender === this.uninitialzedSender) {
+                // console.log("client: message received from own uninitialized plugin. Skipping.", event);
+                return;
+            }
 
-            this.onceListeners.get(topic)?.forEach((callback: any) => callback(eventId, data));
+            this.onceListeners.get(topic)?.forEach((callback: any) => callback(data, event.data.event));
             this.onceListeners.set(topic, []);
-            this.listeners.get(topic)?.forEach((callback: any) => callback(eventId, data));
+            this.listeners.get(topic)?.forEach((callback: any) => callback(data, event.data.event));
         });
 
         this.emit = this.emit.bind(this);
         this.onOnce = this.onOnce.bind(this);
+        this.request = this.request.bind(this);
         this.getClient = this.getClient.bind(this);
         this.subscribe = this.subscribe.bind(this);
         this.internalEmit = this.internalEmit.bind(this);
-        this.request = this.request.bind(this);
     }
 
     public static async getInstance(): Promise<RimoriClient> {
         if (!PluginController.instance) {
             PluginController.instance = new PluginController();
             // console.log('[PluginController] instance created', PluginController.instance);
-            PluginController.client = await RimoriClient.getInstance(
-                PluginController.instance
-            );
+            PluginController.client = await RimoriClient.getInstance(PluginController.instance);
             // console.log('[PluginController] RimoriClient instance created', PluginController.client);
         }
         // console.log('[PluginController] instance returned', PluginController.client);
@@ -128,13 +130,13 @@ export class PluginController {
     }
 
     // every message between the parent and the plugin needs to have an id to be able to distinguish it from other messages. Otherwise a message having the same topic will be received in multiple places whenever the topic is emitted.
-    private async internalEmit(topic: string, id: number, data?: any) {
+    private async internalEmit(topic: string, eventId: number, data?: any) {
         const event: EventBusMessage = {
-            eventId: id,
+            eventId,
             topic: this.getTopic(topic),
             timestamp: new Date().toISOString(),
-            sender: this.supabaseInfo?.pluginId ?? "uninitialized_plugin",
-            data: data,
+            sender: this.supabaseInfo?.pluginId ?? this.uninitialzedSender,
+            data,
         }
         window.parent.postMessage({ event, secret: this.getSecret() }, "*")
     }
@@ -155,7 +157,7 @@ export class PluginController {
         return `${topicRoot}.${preliminaryTopic}`;
     }
 
-    public subscribe(topic: string, callback: (id: number, data: any) => void) {
+    public subscribe<T = any>(topic: string, callback: ListenerCallback<T>) {
         const globalTopic = this.getTopic(topic);
 
         if (!this.listeners.has(globalTopic)) {
@@ -165,7 +167,7 @@ export class PluginController {
         this.listeners.get(globalTopic)?.push(callback);
     }
 
-    public onOnce(topic: string, callback: (id: number, data: any) => void) {
+    public onOnce<T = any>(topic: string, callback: ListenerCallback<T>) {
         const globalTopic = this.getTopic(topic);
 
         if (!this.onceListeners.has(globalTopic)) {
@@ -182,9 +184,9 @@ export class PluginController {
             const messageId = Math.random();
             let triggered = false;
 
-            this.subscribe(globalTopic, (id: number, data: any) => {
-                // console.log('[PluginController] request: received message', { id, data, globalTopic, messageId });
-                if (triggered || (id !== messageId && id !== 0)) return;
+            this.subscribe(globalTopic, (data: any, event) => {
+                // console.log('[PluginController] request: received message', { eventId: event.eventId, data, globalTopic, messageId });
+                if (triggered || (event.eventId !== messageId && event.eventId !== 0)) return;
                 triggered = true;
 
                 resolve(data)

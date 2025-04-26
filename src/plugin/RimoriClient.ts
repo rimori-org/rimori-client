@@ -1,4 +1,4 @@
-import { PluginController } from "./PluginController";
+import { EventBusMessage, ListenerCallback, PluginController } from "./PluginController";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { SettingsController } from "../controller/SettingsController";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
@@ -101,12 +101,12 @@ export class RimoriClient {
             this.pluginController.emit(topic, data, eventId);
         },
         request: <T>(topic: string, data?: any): Promise<T> => {
-            return this.pluginController.request(topic, data);
+            return this.pluginController.request<T>(topic, data);
         },
-        subscribe: (topic: string, callback: (_id: number, data: any) => void) => {
+        subscribe: <T = any>(topic: string, callback: ListenerCallback<T>) => {
             this.pluginController.subscribe(topic, callback);
         },
-        once: (topic: string, callback: (_id: number, data: any) => void) => {
+        once: <T = any>(topic: string, callback: ListenerCallback<T>) => {
             this.pluginController.onOnce(topic, callback);
         }
     }
