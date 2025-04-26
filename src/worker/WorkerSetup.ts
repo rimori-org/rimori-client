@@ -1,8 +1,9 @@
 import { PluginController } from "../plugin/PluginController";
 import { RimoriClient } from "../plugin/RimoriClient";
+import { EventBusMessage } from "../plugin/PluginController";
 
 let controller: RimoriClient | null = null;
-const listeners: ((event: MessageEvent) => void)[] = [];
+const listeners: ((event: { data: { event: EventBusMessage, secret: string } }) => void)[] = [];
 
 /**
  * Sets up the web worker for the plugin to be able receive and send messages to Rimori.
@@ -12,7 +13,11 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
   // Mock of the window object for the worker context to be able to use the PluginController.
   const mockWindow = {
     location: { search: '?secret=123' },
-    parent: { postMessage: (message: unknown) => self.postMessage(message) },
+    parent: { postMessage: (message: { event: EventBusMessage } ) => {
+      // console.log('[Worker] postMessage', message);
+      message.event.sender = "worker." + message.event.sender;
+      self.postMessage(message)
+    } },
     addEventListener: (_: string, listener: any) => {
       listeners.push(listener);
     },
@@ -26,18 +31,28 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
   Object.assign(globalThis, { window: mockWindow });
 
   // Handle init message from Rimori.
-  self.onmessage = async (event: MessageEvent) => {
-    // console.log('[Worker] message received', event.data);
+  self.onmessage = async (response: MessageEvent) => {
+    // console.log('[Worker] message received', response.data);
+    const event = response.data as EventBusMessage;
 
-    if (event.data.type === 'init') {
+    if (event.topic === 'global.worker.requestInit') {
       if (!controller) {
         mockWindow.APP_CONFIG.SUPABASE_URL = event.data.supabaseUrl;
         mockWindow.APP_CONFIG.SUPABASE_ANON_KEY = event.data.supabaseAnonKey;
         controller = await PluginController.getInstance();
+        // console.log('[Worker] controller initialized', controller);
         await init(controller);
       }
-      return self.postMessage({ type: 'init', success: true });
+      const initEvent: EventBusMessage = {
+        timestamp: new Date().toISOString(),
+        eventId: event.eventId,
+        sender: "worker." + event.sender,
+        topic: 'global.worker.requestInit',
+        data: { success: true }
+      };
+      return self.postMessage({ secret: "123", event: initEvent });
     }
-    listeners.forEach(listener => listener(event));
+    // console.log('[Worker] listeners', listeners);
+    listeners.forEach(listener => listener({ data: { event: response.data, secret: "123" } }));
   };
 }

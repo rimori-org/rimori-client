@@ -1,7 +1,6 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { PluginController } from '../plugin/PluginController';
 import { RimoriClient } from '../plugin/RimoriClient';
-import { UserSettings } from '../controller/SettingsController';
 
 interface PluginProviderProps {
     children: ReactNode;
@@ -22,7 +21,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             if (lastHash !== window.location.hash) {
                 lastHash = window.location.hash;
                 console.log('url changed:', lastHash);
-                plugin?.emit('urlChange', window.location.hash);
+                plugin?.event.emit('urlChange', window.location.hash);
             }
         }, 100);
         PluginController.getInstance().then(setPlugin);
@@ -31,12 +30,8 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
     //check if context menu opens on text selection
     useEffect(() => {
         if (!plugin) return;
-        plugin.getSettings<UserSettings>({
-            languageLevel: "A1",
-            motherTongue: "English",
-            contextMenuOnSelect: false,
-        }, "user").then((settings) => {
-            setContextMenuOnTextSelection(settings.contextMenuOnSelect);
+        plugin.plugin.getUserInfo().then((userInfo) => {
+            setContextMenuOnTextSelection(userInfo.contextMenuOnSelect);
         }).catch(error => {
             console.error('Error fetching settings:', error);
         });
@@ -45,7 +40,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
     //detect page height change
     useEffect(() => {
         const body = document.body;
-        const handleResize = () => plugin?.emit('heightAdjustment', body.clientHeight);
+        const handleResize = () => plugin?.event.emit('heightAdjustment', body.clientHeight);
         body.addEventListener('resize', handleResize);
         handleResize();
         return () => body.removeEventListener('resize', handleResize);
@@ -68,7 +63,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             if (selection) {
                 e.preventDefault();
                 // console.log('context menu handled', selection);
-                plugin?.emit('contextMenu', { text: selection, x: e.clientX, y: e.clientY, open: true });
+                plugin?.event.emit('contextMenu', { text: selection, x: e.clientX, y: e.clientY, open: true });
             }
         };
 
@@ -77,7 +72,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             const selection = window.getSelection()?.toString().trim();
             const open = !!selection && isSelecting;
             // console.log('Selection change, contextMenuOnSelect:', contextMenuOnSelect);
-            plugin?.emit('contextMenu', { text: selection, x: lastMouseX, y: lastMouseY, open });
+            plugin?.event.emit('contextMenu', { text: selection, x: lastMouseX, y: lastMouseY, open });
             // }
         };
         const handleMouseUpDown = (e: MouseEvent) => {

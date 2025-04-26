@@ -24,14 +24,14 @@ export class SharedContentController {
         filter?: { column: string, value: string | number | boolean },
     ): Promise<R[]> {
         const queryParameter = { filter_column: filter?.column || null, filter_value: filter?.value || null, unread: true }
-        const { data: newAssignments } = await this.rimoriClient.rpc(type + "_entries", queryParameter)
+        const { data: newAssignments } = await this.rimoriClient.db.rpc(type + "_entries", queryParameter)
         console.log('newAssignments:', newAssignments);
 
         if ((newAssignments as any[]).length > 0) {
             return newAssignments as R[];
         }
         // generate new assignments
-        const { data: oldAssignments } = await this.rimoriClient.rpc(type + "_entries", { ...queryParameter, unread: false })
+        const { data: oldAssignments } = await this.rimoriClient.db.rpc(type + "_entries", { ...queryParameter, unread: false })
         console.log('oldAssignments:', oldAssignments);
         const reservedTopics = this.getReservedTopics(oldAssignments as BasicAssignment[]);
 
@@ -39,7 +39,7 @@ export class SharedContentController {
         if (!request.tool.keywords || !request.tool.topic) {
             throw new Error("topic or keywords not found in the request schema");
         }
-        const instructions = await this.rimoriClient.generateObject(request);
+        const instructions = await this.rimoriClient.llm.getObject(request);
         console.log('instructions:', instructions);
 
         const preparedData = {
@@ -47,7 +47,7 @@ export class SharedContentController {
             ...instructions,
             keywords: this.purifyStringArray(instructions.keywords),
         };
-        return await this.rimoriClient.from(type).insert(preparedData).then(() => [preparedData] as R[]);
+        return await this.rimoriClient.db.from(type).insert(preparedData).then(() => [preparedData] as R[]);
     }
 
     private getReservedTopics(oldAssignments: BasicAssignment[]) {
@@ -62,10 +62,10 @@ export class SharedContentController {
     }
 
     public async getSharedContent<T extends BasicAssignment>(type: string, id: string): Promise<T> {
-        return await this.rimoriClient.from(type).select().eq('id', id).single() as unknown as T;
+        return await this.rimoriClient.db.from(type).select().eq('id', id).single() as unknown as T;
     }
 
     public async completeSharedContent(type: string, assignmentId: string) {
-        await this.rimoriClient.from(type + "_result").insert({ assignment_id: assignmentId });
+        await this.rimoriClient.db.from(type + "_result").insert({ assignment_id: assignmentId });
     }
 }

@@ -3,7 +3,7 @@ import { LanguageLevel } from "../utils/difficultyConverter";
 
 type SettingsType = "user" | "system" | "plugin";
 
-export interface UserSettings {
+export interface UserInfo {
     motherTongue: string;
     languageLevel: LanguageLevel;
     contextMenuOnSelect: boolean;
@@ -43,6 +43,14 @@ export class SettingsController {
         }
 
         await this.supabase.from("plugin_settings").upsert({ plugin_id: this.pluginId, settings });
+    }
+
+    public async getUserInfo(): Promise<UserInfo> {
+        return this.getSettings<UserInfo>({
+            motherTongue: "sv",
+            languageLevel: "A1",
+            contextMenuOnSelect: true,
+        }, "user");
     }
 
     /**

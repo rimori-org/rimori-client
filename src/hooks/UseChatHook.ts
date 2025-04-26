@@ -5,10 +5,10 @@ import { ToolInvocation, Tool, Message } from "../controller/AIController";
 export function useChat(tools?: Tool[]) {
     const [messages, setMessages] = React.useState<Message[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
-    const { getAIResponseStream } = usePlugin();
+    const { llm } = usePlugin();
 
     const append = (appendMessages: Message[]) => {
-        getAIResponseStream([...messages, ...appendMessages], (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
+        llm.getSteamedText([...messages, ...appendMessages], (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
             const lastMessage = messages[messages.length - 1];
             setIsLoading(!finished);
 
