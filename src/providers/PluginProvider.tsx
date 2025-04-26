@@ -4,12 +4,12 @@ import { RimoriClient } from '../plugin/RimoriClient';
 
 interface PluginProviderProps {
     children: ReactNode;
+    pluginId: string;
 }
 
 const PluginContext = createContext<RimoriClient | null>(null);
 
-
-export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
+export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId }) => {
     const [plugin, setPlugin] = useState<RimoriClient | null>(null);
     const [contextMenuOnSelect, setContextMenuOnTextSelection] = useState(false);
 
@@ -24,7 +24,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
                 plugin?.event.emit('session.triggerUrlChange', window.location.hash);
             }
         }, 100);
-        PluginController.getInstance().then(setPlugin);
+        PluginController.getInstance(pluginId).then(setPlugin);
     }, []);
 
     //check if context menu opens on text selection

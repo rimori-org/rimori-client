@@ -97,15 +97,41 @@ export class RimoriClient {
 
 
     public event = {
+        /**
+         * Emit an event to Rimori or a plugin. 
+         * The topic schema is:
+         * {pluginId}.{eventId}
+         * Check out the event bus documentation for more information.
+         * For triggering events from Rimori like context menu actions use the "global" keyword.
+         * @param topic The topic to emit the event on.
+         * @param data The data to emit.
+         * @param eventId The event id.
+         */
         emit: (topic: string, data: any, eventId?: number) => {
             this.pluginController.emit(topic, data, eventId);
         },
+        /**
+         * Request an event.
+         * @param topic The topic to request the event on.
+         * @param data The data to request.
+         * @returns The response from the event.
+         */
         request: <T>(topic: string, data?: any): Promise<T> => {
             return this.pluginController.request<T>(topic, data);
         },
+        /**
+         * Subscribe to an event.
+         * @param topic The topic to subscribe to.
+         * @param callback The callback to call when the event is emitted.
+         */
         subscribe: <T = any>(topic: string, callback: ListenerCallback<T>) => {
             this.pluginController.subscribe(topic, callback);
         },
+        /**
+         * Subscribe to an event once.
+         * @param topic The topic to subscribe to.
+         * @param callback The callback to call when the event is emitted.
+         */
         once: <T = any>(topic: string, callback: ListenerCallback<T>) => {
             this.pluginController.onOnce(topic, callback);
         }
@@ -113,12 +139,9 @@ export class RimoriClient {
 
     public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
         if (!RimoriClient.instance) {
-            // console.log('[RimoriClient] getInstance', pluginController);
             const { supabase, tablePrefix, pluginId } = await pluginController.getClient();
             RimoriClient.instance = new RimoriClient({ pluginController, supabase, tablePrefix, pluginId });
-            // console.log('[RimoriClient] instance created', RimoriClient.instance);
         }
-        // console.log('[RimoriClient] instance returned', RimoriClient.instance);
         return RimoriClient.instance;
     }
 

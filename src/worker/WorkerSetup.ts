@@ -39,7 +39,7 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
       if (!controller) {
         mockWindow.APP_CONFIG.SUPABASE_URL = event.data.supabaseUrl;
         mockWindow.APP_CONFIG.SUPABASE_ANON_KEY = event.data.supabaseAnonKey;
-        controller = await PluginController.getInstance();
+        controller = await PluginController.getInstance(event.data.pluginId);
         // console.log('[Worker] controller initialized', controller);
         await init(controller);
       }

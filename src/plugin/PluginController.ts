@@ -36,10 +36,10 @@ export class PluginController {
     private supabaseInfo: SupabaseInfo | null = null;
     private uninitialzedSender: string;
 
-    private constructor() {
-        this.uninitialzedSender = "uninitialized_plugin_" + Math.random();
+    private constructor(sender: string) {
+        this.uninitialzedSender = sender;
         window.addEventListener("message", (event) => {
-            // console.log("client: message received", event);
+            console.log("client: message received", event);
             const { topic, sender, data } = event.data.event as EventBusMessage;
 
             if (sender === this.uninitialzedSender) {
@@ -60,9 +60,9 @@ export class PluginController {
         this.internalEmit = this.internalEmit.bind(this);
     }
 
-    public static async getInstance(): Promise<RimoriClient> {
+    public static async getInstance(sender: string): Promise<RimoriClient> {
         if (!PluginController.instance) {
-            PluginController.instance = new PluginController();
+            PluginController.instance = new PluginController(sender);
             // console.log('[PluginController] instance created', PluginController.instance);
             PluginController.client = await RimoriClient.getInstance(PluginController.instance);
             // console.log('[PluginController] RimoriClient instance created', PluginController.client);
@@ -83,7 +83,6 @@ export class PluginController {
     }
 
     public async getClient(): Promise<{ supabase: SupabaseClient, tablePrefix: string, pluginId: string }> {
-        // console.log('[PluginController] getClient', this.supabase, this.supabaseInfo, this.supabaseInfo?.expiration > new Date());
         if (
             this.supabase &&
             this.supabaseInfo &&
