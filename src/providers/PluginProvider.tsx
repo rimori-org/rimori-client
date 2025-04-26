@@ -21,7 +21,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             if (lastHash !== window.location.hash) {
                 lastHash = window.location.hash;
                 console.log('url changed:', lastHash);
-                plugin?.event.emit('urlChange', window.location.hash);
+                plugin?.event.emit('session.triggerUrlChange', window.location.hash);
             }
         }, 100);
         PluginController.getInstance().then(setPlugin);
@@ -40,7 +40,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
     //detect page height change
     useEffect(() => {
         const body = document.body;
-        const handleResize = () => plugin?.event.emit('heightAdjustment', body.clientHeight);
+        const handleResize = () => plugin?.event.emit('session.triggerHeightChange', body.clientHeight);
         body.addEventListener('resize', handleResize);
         handleResize();
         return () => body.removeEventListener('resize', handleResize);
@@ -63,7 +63,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             if (selection) {
                 e.preventDefault();
                 // console.log('context menu handled', selection);
-                plugin?.event.emit('contextMenu', { text: selection, x: e.clientX, y: e.clientY, open: true });
+                plugin?.event.emit('global.contextMenu.trigger', { text: selection, x: e.clientX, y: e.clientY, open: true });
             }
         };
 
@@ -72,7 +72,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children }) => {
             const selection = window.getSelection()?.toString().trim();
             const open = !!selection && isSelecting;
             // console.log('Selection change, contextMenuOnSelect:', contextMenuOnSelect);
-            plugin?.event.emit('contextMenu', { text: selection, x: lastMouseX, y: lastMouseY, open });
+            plugin?.event.emit('global.contextMenu.trigger', { text: selection, x: lastMouseX, y: lastMouseY, open });
             // }
         };
         const handleMouseUpDown = (e: MouseEvent) => {
