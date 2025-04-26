@@ -11,8 +11,6 @@ export * from "./controller/SettingsController";
 export * from "./hooks/UseChatHook";
 export * from "./plugin/RimoriClient";
 export * from "./plugin/ThemeSetter";
-export * from "./providers/EventEmitter";
-export * from "./providers/EventEmitterContext";
 export * from "./providers/PluginProvider";
 export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";

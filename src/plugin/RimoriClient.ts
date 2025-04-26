@@ -1,5 +1,6 @@
-import { EventBusMessage, ListenerCallback, PluginController } from "./PluginController";
+import { PluginController } from "./PluginController";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { EventBusMessage, EventPayload } from "./fromRimori/EventBus";
 import { SettingsController } from "../controller/SettingsController";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
 import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
@@ -9,6 +10,7 @@ import { streamChatGPT, Message, Tool, OnLLMResponse, generateText } from "../co
 import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
 import { getPlugins, Plugin } from "../controller/SidePluginController";
 import { UserInfo } from "../controller/SettingsController";
+import { EventBus, EventHandler } from "./fromRimori/EventBus";
 
 interface RimoriClientOptions {
     pluginController: PluginController;
@@ -42,10 +44,10 @@ interface PluginInterface {
      * @returns The settings for the plugin. 
      */
     getSettings: <T extends object>(defaultSettings: T) => Promise<T>;
-     /**
-     * Fetches all installed plugins.
-     * @returns A promise that resolves to an array of plugins
-     */
+    /**
+    * Fetches all installed plugins.
+    * @returns A promise that resolves to an array of plugins
+    */
     getInstalled: () => Promise<Plugin[]>;
     getUserInfo: () => Promise<UserInfo>;
 }
@@ -94,8 +96,6 @@ export class RimoriClient {
         }
     }
 
-
-
     public event = {
         /**
          * Emit an event to Rimori or a plugin. 
@@ -108,7 +108,8 @@ export class RimoriClient {
          * @param eventId The event id.
          */
         emit: (topic: string, data: any, eventId?: number) => {
-            this.pluginController.emit(topic, data, eventId);
+            const globalTopic = this.pluginController.getGlobalEventTopic(topic);
+            EventBus.emit(this.plugin.pluginId, globalTopic, data, eventId);
         },
         /**
          * Request an event.
@@ -116,24 +117,33 @@ export class RimoriClient {
          * @param data The data to request.
          * @returns The response from the event.
          */
-        request: <T>(topic: string, data?: any): Promise<T> => {
-            return this.pluginController.request<T>(topic, data);
+        request: <T>(topic: string, data?: any): Promise<EventBusMessage<T>> => {
+            const globalTopic = this.pluginController.getGlobalEventTopic(topic);
+            return EventBus.request<T>(this.plugin.pluginId, globalTopic, data);
         },
         /**
          * Subscribe to an event.
          * @param topic The topic to subscribe to.
          * @param callback The callback to call when the event is emitted.
          */
-        subscribe: <T = any>(topic: string, callback: ListenerCallback<T>) => {
-            this.pluginController.subscribe(topic, callback);
+        on: <T = EventPayload>(topic: string, callback: EventHandler<T>) => {
+            EventBus.on<T>(this.pluginController.getGlobalEventTopic(topic), callback);
         },
         /**
          * Subscribe to an event once.
          * @param topic The topic to subscribe to.
          * @param callback The callback to call when the event is emitted.
          */
-        once: <T = any>(topic: string, callback: ListenerCallback<T>) => {
-            this.pluginController.onOnce(topic, callback);
+        once: <T = EventPayload>(topic: string, callback: EventHandler<T>) => {
+            EventBus.once<T>(this.pluginController.getGlobalEventTopic(topic), callback);
+        },
+        /**
+         * Respond to an event.
+         * @param topic The topic to respond to.
+         * @param data The data to respond with.
+         */
+        respond: <T = EventPayload>(topic: string, data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
+            EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic), data);
         }
     }
 
@@ -267,6 +277,6 @@ export class RimoriClient {
     }
 
     public triggerSidebarAction(pluginId: string, actionKey: string, text?: string) {
-        this.pluginController.emit("global.sidebar.triggerAction", { pluginId, actionKey, text });
+        this.event.emit("global.sidebar.triggerAction", { pluginId, actionKey, text });
     }
 }

@@ -1,6 +1,6 @@
 import { PluginController } from "../plugin/PluginController";
 import { RimoriClient } from "../plugin/RimoriClient";
-import { EventBusMessage } from "../plugin/PluginController";
+import { EventBusMessage } from "../plugin/fromRimori/EventBus";
 
 let controller: RimoriClient | null = null;
 const listeners: ((event: { data: { event: EventBusMessage, secret: string } }) => void)[] = [];

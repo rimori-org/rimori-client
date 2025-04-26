@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { RimoriClient } from "./RimoriClient";
+import { EventBus, EventBusMessage } from './fromRimori/EventBus';
 
 interface SupabaseInfo {
     url: string,
@@ -9,65 +10,41 @@ interface SupabaseInfo {
     tablePrefix: string,
     pluginId: string
 }
-type EventPayload = Record<string, any>;
-
-export interface EventBusMessage<T = EventPayload> {
-    //timestamp of the event
-    timestamp: string;
-    //unique ID of the event
-    eventId: number;
-    //plugin id or "global" for global events
-    sender: string;
-    //the topic of the event consisting of the plugin id, key area and action e.g. "translator.word.triggerTranslation"
-    topic: string;
-    //any type of data to be transmitted
-    data: T;
-}
-
-export type ListenerCallback<T> = (data: T, event: EventBusMessage) => void;
 
 export class PluginController {
-    private static instance: PluginController;
     private static client: RimoriClient;
-    private onceListeners: Map<string, any[]> = new Map();
-    private listeners: Map<string, any[]> = new Map();
+    private static instance: PluginController;
     private communicationSecret: string | null = null;
     private supabase: SupabaseClient | null = null;
     private supabaseInfo: SupabaseInfo | null = null;
-    private uninitialzedSender: string;
+    private pluginId: string;
 
-    private constructor(sender: string) {
-        this.uninitialzedSender = sender;
+    private constructor(pluginId: string) {
+        this.pluginId = pluginId;
+        this.getClient = this.getClient.bind(this);
+
         window.addEventListener("message", (event) => {
-            console.log("client: message received", event);
-            const { topic, sender, data } = event.data.event as EventBusMessage;
+            // console.log("client: message received", event);
+            const { topic, sender, data, eventId } = event.data.event as EventBusMessage;
 
-            if (sender === this.uninitialzedSender) {
-                // console.log("client: message received from own uninitialized plugin. Skipping.", event);
-                return;
-            }
+            // skip forwarding messages from own plugin
+            if (sender === pluginId) return;
 
-            this.onceListeners.get(topic)?.forEach((callback: any) => callback(data, event.data.event));
-            this.onceListeners.set(topic, []);
-            this.listeners.get(topic)?.forEach((callback: any) => callback(data, event.data.event));
+            EventBus.emit(sender, topic, data, eventId);
         });
 
-        this.emit = this.emit.bind(this);
-        this.onOnce = this.onOnce.bind(this);
-        this.request = this.request.bind(this);
-        this.getClient = this.getClient.bind(this);
-        this.subscribe = this.subscribe.bind(this);
-        this.internalEmit = this.internalEmit.bind(this);
+        EventBus.on("*", (event) => {
+            // skip messages which are not from the own plugin
+            if (event.sender !== this.pluginId) return;
+            window.parent.postMessage({ event, secret: this.getSecret() }, "*")
+        });
     }
 
     public static async getInstance(sender: string): Promise<RimoriClient> {
         if (!PluginController.instance) {
             PluginController.instance = new PluginController(sender);
-            // console.log('[PluginController] instance created', PluginController.instance);
             PluginController.client = await RimoriClient.getInstance(PluginController.instance);
-            // console.log('[PluginController] RimoriClient instance created', PluginController.client);
         }
-        // console.log('[PluginController] instance returned', PluginController.client);
         return PluginController.client;
     }
 
@@ -91,7 +68,8 @@ export class PluginController {
             return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId };
         }
 
-        this.supabaseInfo = await this.request<SupabaseInfo>("global.supabase.requestAccess");
+        const {data} = await EventBus.request<SupabaseInfo>(this.pluginId, "global.supabase.requestAccess");
+        this.supabaseInfo = data;
         this.supabase = createClient(this.supabaseInfo.url, this.supabaseInfo.key, {
             accessToken: () => Promise.resolve(this.getToken())
         });
@@ -104,14 +82,14 @@ export class PluginController {
             return this.supabaseInfo.token;
         }
 
-        const response = await this.request<{ token: string, expiration: Date }>("global.supabase.requestAccess");
+        const {data} = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
 
         if (!this.supabaseInfo) {
             throw new Error("Supabase info not found");
         }
 
-        this.supabaseInfo.token = response.token;
-        this.supabaseInfo.expiration = response.expiration;
+        this.supabaseInfo.token = data.token;
+        this.supabaseInfo.expiration = data.expiration;
 
         return this.supabaseInfo.token;
     }
@@ -124,23 +102,7 @@ export class PluginController {
         return this.supabaseInfo.url;
     }
 
-    public emit(topic: string, data?: any, eventId?: number) {
-        this.internalEmit(topic, eventId ?? 0, data);
-    }
-
-    // every message between the parent and the plugin needs to have an id to be able to distinguish it from other messages. Otherwise a message having the same topic will be received in multiple places whenever the topic is emitted.
-    private async internalEmit(topic: string, eventId: number, data?: any) {
-        const event: EventBusMessage = {
-            eventId,
-            topic: this.getTopic(topic),
-            timestamp: new Date().toISOString(),
-            sender: this.supabaseInfo?.pluginId ?? this.uninitialzedSender,
-            data,
-        }
-        window.parent.postMessage({ event, secret: this.getSecret() }, "*")
-    }
-
-    private getTopic(preliminaryTopic: string) {
+    public getGlobalEventTopic(preliminaryTopic: string) {
         if (preliminaryTopic.startsWith("global.")) {
             return preliminaryTopic;
         }
@@ -156,41 +118,4 @@ export class PluginController {
         return `${topicRoot}.${preliminaryTopic}`;
     }
 
-    public subscribe<T = any>(topic: string, callback: ListenerCallback<T>) {
-        const globalTopic = this.getTopic(topic);
-
-        if (!this.listeners.has(globalTopic)) {
-            this.listeners.set(globalTopic, []);
-        }
-
-        this.listeners.get(globalTopic)?.push(callback);
-    }
-
-    public onOnce<T = any>(topic: string, callback: ListenerCallback<T>) {
-        const globalTopic = this.getTopic(topic);
-
-        if (!this.onceListeners.has(globalTopic)) {
-            this.onceListeners.set(globalTopic, []);
-        }
-
-        this.onceListeners.get(globalTopic)?.push(callback);
-    }
-
-    async request<T>(topic: string, data: any = {}): Promise<T> {
-        const globalTopic = this.getTopic(topic);
-
-        return await new Promise((resolve) => {
-            const messageId = Math.random();
-            let triggered = false;
-
-            this.subscribe(globalTopic, (data: any, event) => {
-                // console.log('[PluginController] request: received message', { eventId: event.eventId, data, globalTopic, messageId });
-                if (triggered || (event.eventId !== messageId && event.eventId !== 0)) return;
-                triggered = true;
-
-                resolve(data)
-            })
-            this.internalEmit(globalTopic, messageId, data)
-        });
-    }
 }

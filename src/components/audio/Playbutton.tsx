@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPlayCircle, FaStopCircle } from "react-icons/fa";
 import { usePlugin } from "../../providers/PluginProvider";
 import { Spinner } from '../Spinner';
-import { EmitterSingleton } from '../../providers/EventEmitter';
+import { EventBus } from '../../plugin/fromRimori/EventBus';
 
 type AudioPlayerProps = {
     text: string;
@@ -35,11 +35,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const { llm } = usePlugin();
-    const emitter = EmitterSingleton;
 
     useEffect(() => {
         if (!playListenerEvent) return;
-        emitter.on(playListenerEvent, () => togglePlayback());
+        EventBus.on(playListenerEvent, () => togglePlayback());
     }, [playListenerEvent]);
 
     useEffect(() => {

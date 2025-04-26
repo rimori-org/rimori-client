@@ -4,7 +4,6 @@ export * from "./controller/SharedContentController";
 export * from "./controller/SettingsController";
 export * from "./plugin/RimoriClient";
 export * from "./plugin/PluginController";
-export * from "./providers/EventEmitter";
 export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
 export * from "./worker/WorkerSetup";
