@@ -1,6 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EventPayload = Record<string, any>;
 
+/**
+ * Interface representing a message sent through the EventBus
+ * 
+ * Debug capabilities:
+ * - System-wide debugging: Send an event to "global.system.requestDebug" 
+ *   Example: `EventBus.emit("yourPluginId", "global.system.requestDebug");`
+ */
 export interface EventBusMessage<T = EventPayload> {
   //timestamp of the event
   timestamp: string;
@@ -12,6 +19,8 @@ export interface EventBusMessage<T = EventPayload> {
   topic: string;
   //any type of data to be transmitted
   data: T;
+  //indicated if the debug mode is active
+  debug: boolean;
 }
 
 export type EventHandler<T = EventPayload> = (event: EventBusMessage<T>) => void | Promise<void>;
@@ -23,28 +32,41 @@ interface Listeners<T = EventPayload> {
 }
 
 export class EventBusHandler {
-  private listeners: Map<string, Set<Listeners<any>>> = new Map();
+  private listeners: Map<string, Set<Listeners<EventPayload>>> = new Map();
   private responseResolvers: Map<number, (value: EventBusMessage<unknown>) => void> = new Map();
   private static instance: EventBusHandler | null = null;
+  private debugEnabled: boolean = false;
+  private evName: string = "";
 
   private constructor() {
     //private constructor
   }
 
-  static getInstance() {
+  static getInstance(name?: string) {
     if (!EventBusHandler.instance) {
       EventBusHandler.instance = new EventBusHandler();
+
+      EventBusHandler.instance.on("global.system.requestDebug", () => {
+        EventBusHandler.instance!.debugEnabled = true;
+        console.log(`[${EventBusHandler.instance!.evName}] Debug mode enabled. Make sure debugging messages are enabled in the browser console.`);
+      });
+    }
+    if (name && EventBusHandler.instance.evName === "") {
+      EventBusHandler.instance.evName = name;
     }
     return EventBusHandler.instance;
   }
 
   private createEvent(sender: string, topic: string, data: EventPayload, eventId?: number): EventBusMessage {
+    const generatedEventId = eventId || Math.floor(Math.random() * 10000000000);
+
     return {
-      eventId: eventId || Math.random(),
+      eventId: generatedEventId,
       timestamp: new Date().toISOString(),
       sender,
       topic,
       data,
+      debug: this.debugEnabled,
     };
   }
 
@@ -72,7 +94,7 @@ export class EventBusHandler {
 
   private emitInternal(sender: string, topic: string, data: EventPayload, eventId?: number, skipResponseTrigger = false): void {
     if (!this.validateTopic(topic)) {
-      console.error("[Rimori] Invalid topic: " + topic);
+      this.logAndThrowError(false, `Invalid topic: ` + topic);
       return;
     }
 
@@ -86,10 +108,9 @@ export class EventBusHandler {
       }
       handler.handler(event);
     });
-
-    // console.log("[Rimori] Emitting event: " + topic, event);
+    this.logIfDebug(`Emitting event to ` + topic, event);
     if (handlers.size === 0) {
-      console.error("[Rimori] No handlers found for topic: " + topic);
+      this.logAndThrowError(false, `No handlers found for topic: ` + topic);
     }
 
     // If it's a response to a request
@@ -110,14 +131,20 @@ export class EventBusHandler {
   public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): string[] {
     return this.toArray(topics).map(topic => {
       if (!this.validateTopic(topic)) {
-        throw new Error("[Rimori] Invalid topic: " + topic);
+        this.logAndThrowError(true, `Invalid topic: ` + topic);
       }
 
       if (!this.listeners.has(topic)) {
         this.listeners.set(topic, new Set());
       }
-      const id = Math.random();
-      this.listeners.get(topic)!.add({ id, handler, ignoreSender });
+      const id = Math.floor(Math.random() * 10000000000);
+
+      // Type assertion to handle the generic type mismatch
+      const eventHandler = handler as unknown as EventHandler<EventPayload>;
+      this.listeners.get(topic)!.add({ id, handler: eventHandler, ignoreSender });
+
+      this.logIfDebug(`Subscribed to ` + topic, { listenerId: id, ignoreSender });
+
       return btoa(JSON.stringify({ topic, id }));
     });
   }
@@ -130,10 +157,13 @@ export class EventBusHandler {
    * @returns The ids of the listeners.
    */
   public respond(sender: string, topic: string, handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): string[] {
-    return this.on(topic, async (data: EventBusMessage) => {
+    const ids = this.on(topic, async (data: EventBusMessage) => {
       const response = typeof handler === "function" ? await handler(data) : handler;
       this.emit(sender, topic, response, data.eventId);
     }, [sender]);
+
+    this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listenerIds: ids, sender });
+    return ids;
   }
 
   /**
@@ -143,7 +173,7 @@ export class EventBusHandler {
    */
   public once<T = EventPayload>(topic: string, handler: EventHandler<T>): void {
     if (!this.validateTopic(topic)) {
-      console.error("[Rimori] Invalid topic: " + topic);
+      this.logAndThrowError(false, `Invalid topic: ` + topic);
       return;
     }
 
@@ -153,6 +183,8 @@ export class EventBusHandler {
       this.off(ids);
     };
     ids = this.on(topic, wrapper);
+
+    this.logIfDebug(`Added once listener ` + topic, { listenerIds: ids, topic });
   }
 
   /**
@@ -168,6 +200,7 @@ export class EventBusHandler {
       listeners.forEach(listener => {
         if (listener.id === Number(id)) {
           listeners.delete(listener);
+          this.logIfDebug(`Removed listener ` + fullId, { topic, listenerId: id });
         }
       });
     });
@@ -186,10 +219,12 @@ export class EventBusHandler {
    */
   public async request<T = EventPayload>(sender: string, topic: string, data?: EventPayload): Promise<EventBusMessage<T>> {
     if (!this.validateTopic(topic)) {
-      throw new Error("[Rimori] Invalid topic: " + topic);
+      this.logAndThrowError(true, `Invalid topic: ` + topic);
     }
 
     const event = this.createEvent(sender, topic, data || {});
+
+    this.logIfDebug(`Requesting data from ` + topic, { event });
 
     return new Promise<EventBusMessage<T>>(resolve => {
       this.responseResolvers.set(event.eventId, (value: EventBusMessage<unknown>) => resolve(value as EventBusMessage<T>));
@@ -204,6 +239,8 @@ export class EventBusHandler {
    */
   private getMatchingHandlers(topic: string): Set<Listeners<EventPayload>> {
     const exact = this.listeners.get(topic) || new Set();
+
+    // Find wildcard matches
     const wildcard = [...this.listeners.entries()]
       .filter(([key]) => key.endsWith("*") && topic.startsWith(key.slice(0, -1)))
       .flatMap(([_, handlers]) => [...handlers]);
@@ -227,7 +264,7 @@ export class EventBusHandler {
       if (parts.length === 2 && plugin !== "*" && area === "*") {
         return true;
       }
-      console.error("[Rimori] Event type must have 3 parts separated by dots. Received: " + topic);
+      this.logAndThrowError(false, `Event type must have 3 parts separated by dots. Received: ` + topic);
       return false;
     }
 
@@ -242,8 +279,22 @@ export class EventBusHandler {
       return true;
     }
 
-    console.error("[Rimori] Invalid event topic name. The action: " + action + ". Must be or start with one of: " + validActions.join(", "));
+    this.logAndThrowError(false, `Invalid event topic name. The action: ` + action + ". Must be or start with one of: " + validActions.join(", "));
     return false;
+  }
+
+  private logIfDebug(...args: (string | EventPayload)[]) {
+    if (this.debugEnabled) {
+      console.debug(`[${this.evName}] ` + args[0], ...args.slice(1));
+    }
+  }
+
+  private logAndThrowError(throwError: boolean, ...args: (string | EventPayload)[]) {
+    const message = `[${this.evName}] ` + args[0];
+    console.error(message, ...args.slice(1));
+    if (throwError) {
+      throw new Error(message);
+    }
   }
 }
 

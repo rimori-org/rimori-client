@@ -1,11 +1,14 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { PluginController } from '../plugin/PluginController';
 import { RimoriClient } from '../plugin/RimoriClient';
+import { EventBusHandler } from '../plugin/fromRimori/EventBus';
 
 interface PluginProviderProps {
     children: ReactNode;
     pluginId: string;
 }
+
+EventBusHandler.getInstance("Plugin EventBus");
 
 const PluginContext = createContext<RimoriClient | null>(null);
 
