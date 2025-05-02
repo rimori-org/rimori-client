@@ -6,3 +6,5 @@ export * from "./components/audio/Playbutton";
 export * from "./hooks/UseChatHook";
 export * from "./plugin/ThemeSetter";
 export * from "./providers/PluginProvider"; 
+export * from "./components/ai/Avatar";
+export * from "./components/ai/Assistant";

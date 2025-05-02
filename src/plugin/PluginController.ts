@@ -1,6 +1,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { RimoriClient } from "./RimoriClient";
 import { EventBus, EventBusMessage } from './fromRimori/EventBus';
+import { setTheme } from './ThemeSetter';
+
+setTheme();
 
 interface SupabaseInfo {
     url: string,
@@ -36,6 +39,7 @@ export class PluginController {
         EventBus.on("*", (event) => {
             // skip messages which are not from the own plugin
             if (event.sender !== this.pluginId) return;
+            if (event.topic.startsWith("self.")) return;
             window.parent.postMessage({ event, secret: this.getSecret() }, "*")
         });
     }
@@ -104,6 +108,9 @@ export class PluginController {
 
     public getGlobalEventTopic(preliminaryTopic: string) {
         if (preliminaryTopic.startsWith("global.")) {
+            return preliminaryTopic;
+        }
+        if (preliminaryTopic.startsWith("self.")) {
             return preliminaryTopic;
         }
         const topicParts = preliminaryTopic.split(".");

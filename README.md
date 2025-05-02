@@ -15,11 +15,10 @@ Then wrap your app the following way to get started:
 
 ```typescript
 import { lazy } from "react";
-import { PluginProvider, setTheme } from "@rimori/client";
+import { PluginProvider } from "@rimori/client";
 import { HashRouter, Route, Routes } from "react-router-dom";
 
 // adding the theme setter
-setTheme();
 
 const queryClient = new QueryClient();
 
@@ -29,7 +28,7 @@ const DiscussionsPage = lazy(() => import("./pages/discussions/page"));
 
 const App = () => (
     // this provides connectivity to Rimori
-    <PluginProvider>
+    <PluginProvider  pluginId="my-rimori-plugin-id">
         //allows using the routes set the plugin settings
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
