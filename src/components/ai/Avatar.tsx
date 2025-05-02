@@ -1,8 +1,8 @@
+import { Tool } from '../../core';
 import { useEffect, useMemo } from 'react';
 import { VoiceRecorder } from './EmbeddedAssistent/VoiceRecoder';
 import { MessageSender } from './EmbeddedAssistent/TTS/MessageSender';
 import { CircleAudioAvatar } from './EmbeddedAssistent/CircleAudioAvatar';
-import { Tool } from '../../core';
 import { useChat } from '../../hooks/UseChatHook';
 import { usePlugin } from '../../components';
 import { getFirstMessages } from './utils';
@@ -13,11 +13,10 @@ interface Props {
     voiceId: any;
     avatarImageUrl: string;
     agentTools: Tool[];
-    onComplete: (result: Record<string, string>) => void;
     autoStartConversation?: FirstMessages;
 }
 
-export function Avatar({ avatarImageUrl, voiceId, onComplete, title, agentTools, autoStartConversation }: Props) {
+export function Avatar({ avatarImageUrl, voiceId, title, agentTools, autoStartConversation }: Props) {
     const { llm, event } = usePlugin();
     const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);
     const { messages, append, isLoading, lastMessage, setMessages } = useChat(agentTools);
@@ -37,6 +36,8 @@ export function Avatar({ avatarImageUrl, voiceId, onComplete, title, agentTools,
         if (autoStartConversation.assistantMessage) {
             // console.log("autostartmessages", { autoStartConversation, isLoading });
             sender.handleNewText(autoStartConversation.assistantMessage, isLoading);
+        } else if (autoStartConversation.userMessage) {
+            append([{ role: 'user', content: autoStartConversation.userMessage, id: messages.length.toString() }]);
         }
     }, []);
 
@@ -45,12 +46,6 @@ export function Avatar({ avatarImageUrl, voiceId, onComplete, title, agentTools,
             sender.handleNewText(lastMessage.content, isLoading);
         }
     }, [lastMessage, isLoading]);
-
-    const invocation = lastMessage?.toolInvocations?.[0];
-
-    useEffect(() => {
-        if (invocation) onComplete(invocation.args);
-    }, [lastMessage]);
 
     return (
         <div className='pb-8'>
