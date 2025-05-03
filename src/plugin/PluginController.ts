@@ -3,7 +3,8 @@ import { RimoriClient } from "./RimoriClient";
 import { EventBus, EventBusMessage } from './fromRimori/EventBus';
 import { setTheme } from './ThemeSetter';
 
-setTheme();
+// Add declaration for WorkerGlobalScope
+declare const WorkerGlobalScope: any;
 
 interface SupabaseInfo {
     url: string,
@@ -25,6 +26,10 @@ export class PluginController {
     private constructor(pluginId: string) {
         this.pluginId = pluginId;
         this.getClient = this.getClient.bind(this);
+
+        if (typeof WorkerGlobalScope === 'undefined') {
+            setTheme();
+        }
 
         window.addEventListener("message", (event) => {
             // console.log("client: message received", event);
@@ -72,7 +77,7 @@ export class PluginController {
             return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId };
         }
 
-        const {data} = await EventBus.request<SupabaseInfo>(this.pluginId, "global.supabase.requestAccess");
+        const { data } = await EventBus.request<SupabaseInfo>(this.pluginId, "global.supabase.requestAccess");
         this.supabaseInfo = data;
         this.supabase = createClient(this.supabaseInfo.url, this.supabaseInfo.key, {
             accessToken: () => Promise.resolve(this.getToken())
@@ -86,7 +91,7 @@ export class PluginController {
             return this.supabaseInfo.token;
         }
 
-        const {data} = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
+        const { data } = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
 
         if (!this.supabaseInfo) {
             throw new Error("Supabase info not found");

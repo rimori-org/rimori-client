@@ -13,6 +13,7 @@ let debugEnabled = false;
 export function setupWorker(init: (controller: RimoriClient) => void | Promise<void>) {
   // Mock of the window object for the worker context to be able to use the PluginController.
   const mockWindow = {
+    isWorker: true,
     location: { search: '?secret=123' },
     parent: {
       postMessage: (message: { event: EventBusMessage }) => {
