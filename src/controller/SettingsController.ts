@@ -1,16 +1,23 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { LanguageLevel } from "../utils/difficultyConverter";
 
-type SettingsType = "user" | "system" | "plugin";
-
 export interface UserInfo {
     motherTongue: string;
-    languageLevel: LanguageLevel;
-    contextMenuOnSelect: boolean;
-}
-
-export interface SystemSettings {
-    // TODO: add system settings
+    xp: number;
+    listening_level: LanguageLevel;
+    reading_level: LanguageLevel;
+    speaking_level: LanguageLevel;
+    writing_level: LanguageLevel;
+    understanding_level: LanguageLevel;
+    grammar_level: LanguageLevel;
+    longterm_goal: string;
+    motivation_type: string;
+    study_buddy: string;
+    preferred_genre: string;
+    milestone: string;
+    settings: {
+        contextMenuOnSelect: boolean;
+    }
 }
 
 export class SettingsController {
@@ -22,13 +29,8 @@ export class SettingsController {
         this.pluginId = pluginId;
     }
 
-    private getSettingsType(genericSettings?: "user" | "system"): SettingsType {
-        return genericSettings || "plugin";
-    }
-
-    private async fetchSettings(type: SettingsType): Promise<any | null> {
-        const pluginId = type === "plugin" ? this.pluginId : type;
-        const { data } = await this.supabase.from("plugin_settings").select("*").eq("plugin_id", pluginId)
+    private async fetchSettings(): Promise<any | null> {
+        const { data } = await this.supabase.from("plugin_settings").select("*").eq("plugin_id", this.pluginId)
 
         if (!data || data.length === 0) {
             return null;
@@ -37,36 +39,47 @@ export class SettingsController {
         return data[0].settings;
     }
 
-    private async saveSettings(settings: any, type: SettingsType): Promise<void> {
-        if (type !== "plugin") {
-            throw new Error(`Cannot modify ${type} settings`);
-        }
-
+    public async setSettings(settings: any): Promise<void> {
         await this.supabase.from("plugin_settings").upsert({ plugin_id: this.pluginId, settings });
     }
 
     public async getUserInfo(): Promise<UserInfo> {
-        return this.getSettings<UserInfo>({
-            motherTongue: "sv",
-            languageLevel: "A1",
-            contextMenuOnSelect: true,
-        }, "user");
+        const { data } = await this.supabase.from("profiles").select("*");
+
+        if (!data || data.length === 0) {
+            return {
+                motherTongue: "en",
+                xp: 0,
+                listening_level: "Pre-A1",
+                reading_level: "Pre-A1",
+                speaking_level: "Pre-A1",
+                writing_level: "Pre-A1",
+                understanding_level: "Pre-A1",
+                grammar_level: "Pre-A1",
+                longterm_goal: "",
+                motivation_type: "self-motivated",
+                study_buddy: "clarence",
+                preferred_genre: "adventure",
+                milestone: "",
+                settings: {
+                    contextMenuOnSelect: false,
+                }
+            }
+        }
+
+        return data[0];
     }
 
     /**
      * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
      * @param defaultSettings The default settings to use if no settings are found.
-     * @param genericSettings The type of settings to get.
      * @returns The settings for the plugin. 
      */
-    public async getSettings<T extends object>(defaultSettings: T, genericSettings?: "user" | "system"): Promise<T> {
-        const type = this.getSettingsType(genericSettings);
-        const storedSettings = await this.fetchSettings(type) as T | null;
+    public async getSettings<T extends object>(defaultSettings: T): Promise<T> {
+        const storedSettings = await this.fetchSettings() as T | null;
 
         if (!storedSettings) {
-            if (type === "plugin") {
-                await this.saveSettings(defaultSettings, type);
-            }
+            await this.setSettings(defaultSettings);
             return defaultSettings;
         }
 
@@ -80,17 +93,10 @@ export class SettingsController {
             );
             const mergedSettings = { ...defaultSettings, ...validStoredSettings } as T;
 
-            if (type === "plugin") {
-                await this.saveSettings(mergedSettings, type);
-            }
+            await this.setSettings(mergedSettings);
             return mergedSettings;
         }
 
         return storedSettings;
-    }
-
-    public async setSettings(settings: any, genericSettings?: "user" | "system"): Promise<void> {
-        const type = this.getSettingsType(genericSettings);
-        await this.saveSettings(settings, type);
     }
 }
