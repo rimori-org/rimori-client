@@ -11,6 +11,7 @@ import { generateObject as generateObjectFunction, ObjectRequest } from "../cont
 import { getPlugins, Plugin } from "../controller/SidePluginController";
 import { UserInfo } from "../controller/SettingsController";
 import { EventBus, EventHandler } from "./fromRimori/EventBus";
+import { AccomplishmentHandler, AccomplishmentPayload } from "./fromRimori/AccomplishmentHandler";
 
 interface RimoriClientOptions {
     pluginController: PluginController;
@@ -58,6 +59,7 @@ export class RimoriClient {
     private pluginController: PluginController;
     private settingsController: SettingsController;
     private sharedContentController: SharedContentController;
+    private accomplishmentHandler: AccomplishmentHandler;
     private supabaseUrl: string;
     public db: Db;
     public plugin: PluginInterface;
@@ -68,6 +70,7 @@ export class RimoriClient {
         this.settingsController = new SettingsController(options.supabase, options.pluginId);
         this.sharedContentController = new SharedContentController(this);
         this.supabaseUrl = this.pluginController.getSupabaseUrl();
+        this.accomplishmentHandler = new AccomplishmentHandler(options.pluginId);
 
         this.rpc = this.rpc.bind(this);
         this.from = this.from.bind(this);
@@ -144,6 +147,21 @@ export class RimoriClient {
          */
         respond: <T = EventPayload>(topic: string, data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
             EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic), data);
+        },
+        /**
+         * Emit an accomplishment.
+         * @param payload The payload to emit.
+         */
+        emitAccomplishment: (payload: AccomplishmentPayload) => {
+            this.accomplishmentHandler.emitAccomplishment(payload);
+        },
+        /**
+         * Subscribe to an accomplishment.
+         * @param accomplishmentTopic The topic to subscribe to.
+         * @param callback The callback to call when the accomplishment is emitted.
+         */
+        onAccomplishment: (accomplishmentTopic: string, callback: (payload: AccomplishmentPayload) => void) => {
+            this.accomplishmentHandler.subscribe(accomplishmentTopic, callback);
         }
     }
 
