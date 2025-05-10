@@ -2,7 +2,7 @@ import { EventBus, EventBusMessage } from "./EventBus";
 
 export type AccomplishmentMessage = EventBusMessage<AccomplishmentPayload>;
 
-export const skillCategories = ["reading", "listening", "speaking", "writing", "vocabulary", "grammar", "community"] as const;
+export const skillCategories = ["reading", "listening", "speaking", "writing", "learning", "community"] as const;
 
 export interface AccomplishmentPayload {
   skillCategory: (typeof skillCategories)[number];
@@ -18,7 +18,7 @@ export interface AccomplishmentPayload {
     //the key of the meta data in snake_case
     key: string;
     //the value of the meta data
-    value: string;
+    value: string | number | boolean;
     //the human readable description of the meta data. Important for other plugin developers to understand the meta data.
     description: string;
   }[];
