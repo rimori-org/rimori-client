@@ -19,7 +19,7 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
       postMessage: (message: { event: EventBusMessage }) => {
         message.event.sender = "worker." + message.event.sender;
         checkDebugMode(message.event);
-        logIfDebug('[Worker] sending event to Rimori', message.event);
+        logIfDebug('sending event to Rimori', message.event);
         self.postMessage(message)
       }
     },
@@ -40,7 +40,7 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
   // Handle init message from Rimori.
   self.onmessage = async (response: MessageEvent) => {
     checkDebugMode(response.data);
-    logIfDebug('[Worker] message received', response.data);
+    logIfDebug('Message received', response.data);
 
     const event = response.data as EventBusMessage;
 
@@ -49,9 +49,9 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
         mockWindow.APP_CONFIG.SUPABASE_URL = event.data.supabaseUrl;
         mockWindow.APP_CONFIG.SUPABASE_ANON_KEY = event.data.supabaseAnonKey;
         controller = await PluginController.getInstance(event.data.pluginId);
-        logIfDebug('[Worker] Worker initialized.');
+        logIfDebug('Worker initialized.');
         await init(controller);
-        logIfDebug('[Worker] Plugin listeners initialized.');
+        logIfDebug('Plugin listeners initialized.');
       }
       const initEvent: EventBusMessage = {
         timestamp: new Date().toISOString(),

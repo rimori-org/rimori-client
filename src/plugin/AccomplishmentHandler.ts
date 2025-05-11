@@ -1,10 +1,11 @@
-import { EventBus, EventBusMessage } from "./EventBus";
+import { EventBus, EventBusMessage } from "./fromRimori/EventBus";
 
-export type AccomplishmentMessage = EventBusMessage<AccomplishmentPayload>;
+export type AccomplishmentMessage = EventBusMessage<MicroAccomplishmentPayload>;
 
 export const skillCategories = ["reading", "listening", "speaking", "writing", "learning", "community"] as const;
 
-export interface AccomplishmentPayload {
+interface BaseAccomplishmentPayload {
+  type: "micro" | "macro";
   skillCategory: (typeof skillCategories)[number];
   /*
   what is the accomplishment? e.g. chapter, flashcard, story, etc.
@@ -13,7 +14,6 @@ export interface AccomplishmentPayload {
   accomplishmentKeyword: string;
   // the human readable description of the accomplishment. Important for other plugin developers to understand the accomplishment.
   description: string;
-  durationMinutes?: number;
   meta?: {
     //the key of the meta data in snake_case
     key: string;
@@ -23,6 +23,18 @@ export interface AccomplishmentPayload {
     description: string;
   }[];
 }
+
+export interface MicroAccomplishmentPayload extends BaseAccomplishmentPayload {
+  type: "micro";
+}
+
+export interface MacroAccomplishmentPayload extends BaseAccomplishmentPayload {
+  type: "macro";
+  errorRatio: number;
+  durationMinutes: number;
+}
+
+export type AccomplishmentPayload = MicroAccomplishmentPayload | MacroAccomplishmentPayload;
 
 export class AccomplishmentHandler {
   private pluginId: string;
@@ -36,7 +48,9 @@ export class AccomplishmentHandler {
 
     const sanitizedPayload = this.sanitizeAccomplishment(payload);
 
-    EventBus.emit(this.pluginId, "global.accomplishment.triggerMicro", sanitizedPayload);
+    const topic = "global.accomplishment.trigger" + (payload.type === "macro" ? "Macro" : "Micro");
+
+    EventBus.emit(this.pluginId, topic, sanitizedPayload);
   }
 
   private validateAccomplishment(payload: AccomplishmentPayload) {
@@ -54,10 +68,19 @@ export class AccomplishmentHandler {
       throw new Error("Description is too short");
     }
 
+    //check that the type is valid
+    if (!["micro", "macro"].includes(payload.type)) {
+      throw new Error("Invalid accomplishment type " + payload.type);
+    }
 
     //durationMinutes is required
-    if (payload.durationMinutes && payload.durationMinutes < 0.5) {
-      throw new Error("The duration must be at least 0.5 minute");
+    if (payload.type === "macro" && payload.durationMinutes < 4) {
+      throw new Error("The duration must be at least 4 minutes");
+    }
+
+    //errorRatio is required
+    if (payload.type === "macro" && (payload.errorRatio < 0 || payload.errorRatio > 1)) {
+      throw new Error("The error ratio must be between 0 and 1");
     }
 
     //regex check meta data key
@@ -74,10 +97,6 @@ export class AccomplishmentHandler {
     });
 
     return payload;
-  }
-
-  private getAccomplishmentTopic(payload: AccomplishmentPayload) {
-    return `${this.pluginId}.${payload.skillCategory}.${payload.accomplishmentKeyword}`;
   }
 
   private getDecoupledTopic(topic: string) {
@@ -106,7 +125,7 @@ export class AccomplishmentHandler {
         throw new Error("Invalid accomplishment topic pattern. The pattern must be plugin.skillCategory.accomplishmentKeyword or an * as wildcard for any plugin, skill category or accomplishment keyword");
       }
 
-      EventBus.on<AccomplishmentPayload>("global.accomplishment.triggerMicro", (event) => {
+      EventBus.on<AccomplishmentPayload>(["global.accomplishment.triggerMicro", "global.accomplishment.triggerMacro"], (event) => {
         const { plugin, skillCategory, accomplishmentKeyword } = this.getDecoupledTopic(accomplishmentTopic);
 
         if (plugin !== "*" && event.sender !== plugin) return;

@@ -11,7 +11,7 @@ import { generateObject as generateObjectFunction, ObjectRequest } from "../cont
 import { getPlugins, Plugin } from "../controller/SidePluginController";
 import { UserInfo } from "../controller/SettingsController";
 import { EventBus, EventHandler } from "./fromRimori/EventBus";
-import { AccomplishmentHandler, AccomplishmentPayload } from "./fromRimori/AccomplishmentHandler";
+import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 
 interface RimoriClientOptions {
     pluginController: PluginController;
@@ -128,9 +128,11 @@ export class RimoriClient {
          * Subscribe to an event.
          * @param topic The topic to subscribe to.
          * @param callback The callback to call when the event is emitted.
+         * @returns The unsubscribe ids.
          */
-        on: <T = EventPayload>(topic: string, callback: EventHandler<T>) => {
-            EventBus.on<T>(this.pluginController.getGlobalEventTopic(topic), callback);
+        on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>) => {
+            const topics = Array.isArray(topic) ? topic : [topic];
+           return topics.map(topic => EventBus.on<T>(this.pluginController.getGlobalEventTopic(topic), callback));
         },
         /**
          * Subscribe to an event once.
@@ -146,7 +148,7 @@ export class RimoriClient {
          * @param data The data to respond with.
          */
         respond: <T = EventPayload>(topic: string, data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
-            EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic), data);
+            EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic)[0], data);
         },
         /**
          * Emit an accomplishment.
@@ -160,7 +162,7 @@ export class RimoriClient {
          * @param accomplishmentTopic The topic to subscribe to.
          * @param callback The callback to call when the accomplishment is emitted.
          */
-        onAccomplishment: (accomplishmentTopic: string, callback: (payload: AccomplishmentPayload) => void) => {
+        onAccomplishment: (accomplishmentTopic: string, callback: (payload: EventBusMessage<AccomplishmentPayload>) => void) => {
             this.accomplishmentHandler.subscribe(accomplishmentTopic, callback);
         }
     }

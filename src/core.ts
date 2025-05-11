@@ -8,3 +8,4 @@ export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
 export * from "./worker/WorkerSetup";
 export * from "./plugin/fromRimori/EventBus";
+export * from "./plugin/AccomplishmentHandler";

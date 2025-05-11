@@ -130,6 +130,7 @@ export class EventBusHandler {
    */
   public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): string[] {
     return this.toArray(topics).map(topic => {
+      this.logIfDebug(`Subscribing to ` + topic, { ignoreSender });
       if (!this.validateTopic(topic)) {
         this.logAndThrowError(true, `Invalid topic: ` + topic);
       }
