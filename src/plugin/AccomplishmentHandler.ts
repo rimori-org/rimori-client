@@ -59,8 +59,8 @@ export class AccomplishmentHandler {
     }
 
     //regex validate accomplishmentKeyword
-    if (!/^[a-z]+$/.test(payload.accomplishmentKeyword)) {
-      throw new Error(`Invalid accomplishment keyword: ${payload.accomplishmentKeyword}`);
+    if (!/^[a-z_-]+$/.test(payload.accomplishmentKeyword)) {
+      throw new Error(`The accomplishment keyword: ${payload.accomplishmentKeyword} is invalid. Only lowercase letters, minuses and underscores are allowed`);
     }
 
     //description is required
@@ -84,8 +84,12 @@ export class AccomplishmentHandler {
     }
 
     //regex check meta data key
-    if (payload.meta && payload.meta.some((meta) => !/^[a-z_]+$/.test(meta.key))) {
-      throw new Error("Invalid meta data key");
+    if (payload.meta) {
+      payload.meta.forEach(meta => {
+        if (!/^[a-z_]+$/.test(meta.key)) {
+          throw new Error("Invalid meta data key " + meta.key + ", only lowercase letters and underscores are allowed");
+        }
+      });
     }
   }
 

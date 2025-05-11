@@ -148,7 +148,7 @@ export class RimoriClient {
          * @param data The data to respond with.
          */
         respond: <T = EventPayload>(topic: string, data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
-            EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic)[0], data);
+            EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic), data);
         },
         /**
          * Emit an accomplishment.
@@ -239,7 +239,7 @@ export class RimoriClient {
     public llm = {
         getText: async (messages: Message[], tools?: Tool[]): Promise<string> => {
             const token = await this.pluginController.getToken();
-            return generateText(this.supabaseUrl, messages, tools || [], token).then(response => response.messages[0].content[0].text);
+            return generateText(this.supabaseUrl, messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);
         },
         getSteamedText: async (messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]) => {
             const token = await this.pluginController.getToken();
