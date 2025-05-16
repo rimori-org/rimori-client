@@ -34,7 +34,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
     useEffect(() => {
         if (!plugin) return;
         plugin.plugin.getUserInfo().then((userInfo) => {
-            setContextMenuOnTextSelection(userInfo.contextMenuOnSelect);
+            setContextMenuOnTextSelection(userInfo.context_menu_on_select);
         }).catch(error => {
             console.error('Error fetching settings:', error);
         });
