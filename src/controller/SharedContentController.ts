@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ObjectRequest } from "./ObjectController";
 import { RimoriClient } from "../plugin/RimoriClient";
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface BasicAssignment {
     id: string;
@@ -12,9 +13,11 @@ export interface BasicAssignment {
 }
 
 export class SharedContentController {
+    private supabase: SupabaseClient;
     private rimoriClient: RimoriClient;
 
-    constructor(rimoriClient: RimoriClient) {
+    constructor(supabase: SupabaseClient, rimoriClient: RimoriClient) {
+        this.supabase = supabase;
         this.rimoriClient = rimoriClient;
     }
 
@@ -24,14 +27,14 @@ export class SharedContentController {
         filter?: { column: string, value: string | number | boolean },
     ): Promise<R[]> {
         const queryParameter = { filter_column: filter?.column || null, filter_value: filter?.value || null, unread: true }
-        const { data: newAssignments } = await this.rimoriClient.db.rpc(type + "_entries", queryParameter)
+        const { data: newAssignments } = await this.supabase.rpc(type + "_entries", queryParameter)
         console.log('newAssignments:', newAssignments);
 
         if ((newAssignments as any[]).length > 0) {
             return newAssignments as R[];
         }
         // generate new assignments
-        const { data: oldAssignments } = await this.rimoriClient.db.rpc(type + "_entries", { ...queryParameter, unread: false })
+        const { data: oldAssignments } = await this.supabase.rpc(type + "_entries", { ...queryParameter, unread: false })
         console.log('oldAssignments:', oldAssignments);
         const reservedTopics = this.getReservedTopics(oldAssignments as BasicAssignment[]);
 
@@ -47,7 +50,7 @@ export class SharedContentController {
             ...instructions,
             keywords: this.purifyStringArray(instructions.keywords),
         };
-        return await this.rimoriClient.db.from(type).insert(preparedData).then(() => [preparedData] as R[]);
+        return await this.supabase.from(this.rimoriClient.db.getTableName(type)).insert(preparedData).then(() => [preparedData] as R[]);
     }
 
     private getReservedTopics(oldAssignments: BasicAssignment[]) {
@@ -62,10 +65,10 @@ export class SharedContentController {
     }
 
     public async getSharedContent<T extends BasicAssignment>(type: string, id: string): Promise<T> {
-        return await this.rimoriClient.db.from(type).select().eq('id', id).single() as unknown as T;
+        return await this.supabase.from(this.rimoriClient.db.getTableName(type)).select().eq('id', id).single() as unknown as T;
     }
 
     public async completeSharedContent(type: string, assignmentId: string) {
-        await this.rimoriClient.db.from(type + "_result").insert({ assignment_id: assignmentId });
+        await this.supabase.from(this.rimoriClient.db.getTableName(type + "_result")).insert({ assignment_id: assignmentId });
     }
 }

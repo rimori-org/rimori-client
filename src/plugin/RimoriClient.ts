@@ -25,18 +25,23 @@ interface Db {
         <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
         <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
     };
-    rpc: <Fn extends GenericSchema['Functions'][string], FnName extends string & keyof GenericSchema['Functions']>(functionName: FnName, args?: Fn["Args"], options?: {
-        head?: boolean;
-        get?: boolean;
-        count?: "exact" | "planned" | "estimated";
-    }) => PostgrestFilterBuilder<GenericSchema, Fn["Returns"] extends any[] ? Fn["Returns"][number] extends Record<string, unknown> ? Fn["Returns"][number] : never : never, Fn["Returns"], string, null>;
     functions: SupabaseClient["functions"];
     storage: SupabaseClient["storage"];
+    /**
+     * The table prefix for of database tables of the plugin.
+     */
+    tablePrefix: string;
+    /**
+     * Get the table name for a given plugin table.
+     * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
+     * @param table The plugin table name to get the full table name for.
+     * @returns The full table name.
+     */
+    getTableName: (table: string) => string;
 }
 
 interface PluginInterface {
     pluginId: string;
-    tablePrefix: string;
     setSettings: (settings: any) => Promise<void>;
     /**
      * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
@@ -68,22 +73,21 @@ export class RimoriClient {
         this.superbase = options.supabase;
         this.pluginController = options.pluginController;
         this.settingsController = new SettingsController(options.supabase, options.pluginId);
-        this.sharedContentController = new SharedContentController(this);
+        this.sharedContentController = new SharedContentController(this.superbase, this);
         this.supabaseUrl = this.pluginController.getSupabaseUrl();
         this.accomplishmentHandler = new AccomplishmentHandler(options.pluginId);
 
-        this.rpc = this.rpc.bind(this);
         this.from = this.from.bind(this);
 
         this.db = {
-            rpc: this.rpc,
             from: this.from,
             storage: this.superbase.storage,
             functions: this.superbase.functions,
+            tablePrefix: options.tablePrefix,
+            getTableName: this.getTableName.bind(this),
         }
         this.plugin = {
             pluginId: options.pluginId,
-            tablePrefix: options.tablePrefix,
             setSettings: async (settings: any) => {
                 await this.settingsController.setSettings(settings);
             },
@@ -187,53 +191,8 @@ export class RimoriClient {
         return this.superbase.from(this.getTableName(relation));
     }
 
-    /**
-    * Perform a function call.
-    *
-    * @param functionName - The function name to call
-    * @param args - The arguments to pass to the function call
-    * @param options - Named parameters
-    * @param options.head - When set to `true`, `data` will not be returned.
-    * Useful if you only need the count.
-    * @param options.get - When set to `true`, the function will be called with
-    * read-only access mode.
-    * @param options.count - Count algorithm to use to count rows returned by the
-    * function. Only applicable for [set-returning
-    * functions](https://www.postgresql.org/docs/current/functions-srf.html).
-    *
-    * `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the
-    * hood.
-    *
-    * `"planned"`: Approximated but fast count algorithm. Uses the Postgres
-    * statistics under the hood.
-    *
-    * `"estimated"`: Uses exact count for low numbers and planned count for high
-    * numbers.
-    */
-    private rpc<Fn extends GenericSchema['Functions'][string], FnName extends string & keyof GenericSchema['Functions']>(
-        functionName: FnName,
-        args: Fn['Args'] = {},
-        options: {
-            head?: boolean
-            get?: boolean
-            count?: 'exact' | 'planned' | 'estimated'
-        } = {}
-    ): PostgrestFilterBuilder<
-        GenericSchema,
-        Fn['Returns'] extends any[]
-        ? Fn['Returns'][number] extends Record<string, unknown>
-        ? Fn['Returns'][number]
-        : never
-        : never,
-        Fn['Returns'],
-        string,
-        null
-    > {
-        return this.superbase.rpc(this.getTableName(functionName), args, options)
-    }
-
     private getTableName(type: string) {
-        return this.plugin.tablePrefix + "_" + type;
+        return this.db.tablePrefix + "_" + type;
     }
 
     public llm = {
