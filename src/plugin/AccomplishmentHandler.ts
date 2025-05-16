@@ -43,12 +43,14 @@ export class AccomplishmentHandler {
     this.pluginId = pluginId;
   }
 
-  emitAccomplishment(payload: AccomplishmentPayload) {
-    this.validateAccomplishment(payload);
+  emitAccomplishment(payload: Omit<AccomplishmentPayload, "type">) {
+    const accomplishmentPayload = { ...payload, type: "durationMinutes" in payload ? "macro" : "micro" } as AccomplishmentPayload;
 
-    const sanitizedPayload = this.sanitizeAccomplishment(payload);
+    this.validateAccomplishment(accomplishmentPayload);
 
-    const topic = "global.accomplishment.trigger" + (payload.type === "macro" ? "Macro" : "Micro");
+    const sanitizedPayload = this.sanitizeAccomplishment(accomplishmentPayload);
+
+    const topic = "global.accomplishment.trigger" + (accomplishmentPayload.type === "macro" ? "Macro" : "Micro");
 
     EventBus.emit(this.pluginId, topic, sanitizedPayload);
   }
