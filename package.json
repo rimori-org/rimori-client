@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "tsc && sass src/style.scss:dist/style.css",
-    "dev": "tsc -w",
+    "dev": "tsc -w  --preserveWatchOutput",
     "css-dev": "sass --watch src/style.scss:dist/style.css"
   },
   "peerDependencies": {
