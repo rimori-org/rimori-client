@@ -8,13 +8,12 @@ interface PluginProviderProps {
   pluginId: string;
 }
 
-EventBusHandler.getInstance("Plugin EventBus");
-
 const PluginContext = createContext<RimoriClient | null>(null);
 
 export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId }) => {
   const [plugin, setPlugin] = useState<RimoriClient | null>(null);
   const [contextMenuOnSelect, setContextMenuOnTextSelection] = useState(false);
+  initEventBus(pluginId);
 
   useEffect(() => {
     PluginController.getInstance(pluginId).then(setPlugin);
@@ -134,3 +133,9 @@ export const usePlugin = () => {
   }
   return context;
 };
+
+function initEventBus(pluginId: string) {
+  const url = new URL(window.location.href);
+  const isSidebar = url.searchParams.get("applicationMode") === "sidebar";
+  EventBusHandler.getInstance("Plugin EventBus " + pluginId + " " + (isSidebar ? "sidebar" : "main"));
+}
