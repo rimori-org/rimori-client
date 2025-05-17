@@ -27,11 +27,9 @@ export function CircleAudioAvatar({ imageUrl, className, width = "150px" }: Circ
                 };
 
                 // Subscribe to loudness changes
-                const listenerId = EventBus.on('self.avatar.triggerLoudness', handleLoudness);
+                const listener = EventBus.on('self.avatar.triggerLoudness', handleLoudness);
 
-                return () => {
-                    EventBus.off(listenerId);
-                };
+                return () => listener.off();
             }
         }
     }, [imageUrl]);

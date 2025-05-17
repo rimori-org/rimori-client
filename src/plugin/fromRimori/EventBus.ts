@@ -31,11 +31,15 @@ interface Listeners<T = EventPayload> {
   ignoreSender?: string[];
 }
 
+export interface EventListener {
+  off: () => void;
+}
+
 export class EventBusHandler {
   private listeners: Map<string, Set<Listeners<EventPayload>>> = new Map();
   private responseResolvers: Map<number, (value: EventBusMessage<unknown>) => void> = new Map();
   private static instance: EventBusHandler | null = null;
-  private debugEnabled: boolean = false;
+  private debugEnabled: boolean = true;
   private evName: string = "";
 
   private constructor() {
@@ -128,8 +132,8 @@ export class EventBusHandler {
    * @param ignoreSender - The senders to ignore.
    * @returns The ids of the listeners.
    */
-  public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): string[] {
-    return this.toArray(topics).map(topic => {
+  public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): EventListener {
+    const ids = this.toArray(topics).map(topic => {
       this.logIfDebug(`Subscribing to ` + topic, { ignoreSender });
       if (!this.validateTopic(topic)) {
         this.logAndThrowError(true, `Invalid topic: ` + topic);
@@ -148,6 +152,10 @@ export class EventBusHandler {
 
       return btoa(JSON.stringify({ topic, id }));
     });
+
+    return {
+      off: () => this.off(ids)
+    };
   }
 
   /**
@@ -157,14 +165,16 @@ export class EventBusHandler {
    * @param handler - The handler to be called when the event is received. The handler returns the data to be emitted. Can be a static object or a function.
    * @returns The ids of the listeners.
    */
-  public respond(sender: string, topic: string, handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): string[] {
-    const ids = this.on(topic, async (data: EventBusMessage) => {
+  public respond(sender: string, topic: string, handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): EventListener {
+    const listener = this.on(topic, async (data: EventBusMessage) => {
       const response = typeof handler === "function" ? await handler(data) : handler;
       this.emit(sender, topic, response, data.eventId);
     }, [sender]);
 
-    this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listenerIds: ids, sender });
-    return ids;
+    this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listener, sender });
+    return {
+      off: () => listener.off()
+    };
   }
 
   /**
@@ -178,21 +188,21 @@ export class EventBusHandler {
       return;
     }
 
-    let ids: string[] = [];
+    let listener: EventListener | undefined;
     const wrapper = (event: EventBusMessage<T>) => {
       handler(event);
-      this.off(ids);
+      listener?.off();
     };
-    ids = this.on(topic, wrapper);
+    listener = this.on(topic, wrapper);
 
-    this.logIfDebug(`Added once listener ` + topic, { listenerIds: ids, topic });
+    this.logIfDebug(`Added once listener ` + topic, { listener, topic });
   }
 
   /**
    * Unsubscribes from an event on the event bus.
    * @param listenerIds - The ids of the listeners to unsubscribe from.
    */
-  public off(listenerIds: string | string[]): void {
+  private off(listenerIds: string | string[]): void {
     this.toArray(listenerIds).forEach(fullId => {
       const { topic, id } = JSON.parse(atob(fullId));
 
