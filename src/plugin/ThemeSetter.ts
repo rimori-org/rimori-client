@@ -6,11 +6,11 @@ export function setTheme() {
     theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
-  document.documentElement.classList.add("dark:text-gray-200", "bg-white");
+  document.documentElement.classList.add("dark:text-gray-200");
 
   if (theme === 'dark') {
     document.documentElement.setAttribute("data-theme", "dark");
-    document.documentElement.classList.add('dark', "bg-gray-950");
+    document.documentElement.classList.add('dark', "dark:bg-gray-950");
     document.documentElement.style.background = "hsl(var(--background))";
   }
 }
