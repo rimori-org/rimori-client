@@ -24,17 +24,21 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
   useEffect(() => {
     if (!plugin) return;
 
-    let lastHash = window.location.hash;
-    const emitUrlChange = () => plugin.event.emit('session.triggerUrlChange', { url: window.location.hash });
+    const url = new URL(window.location.href);
+    //sidebar pages should not report url changes
+    if (url.searchParams.get("applicationMode") === "sidebar") return;
+
+    let lastHash = url.hash;
+    const emitUrlChange = (url: string) => plugin.event.emit('session.triggerUrlChange', { url });
 
     const interval = setInterval(() => {
       if (lastHash === window.location.hash) return;
       lastHash = window.location.hash;
       // console.log('url changed:', lastHash);
-      emitUrlChange();
+      emitUrlChange(lastHash);
     }, 1000);
 
-    emitUrlChange();
+    emitUrlChange(lastHash);
     return () => clearInterval(interval);
   }, [plugin]);
 
