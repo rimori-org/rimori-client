@@ -8,3 +8,4 @@ export * from "./plugin/ThemeSetter";
 export * from "./providers/PluginProvider"; 
 export * from "./components/ai/Avatar";
 export * from "./components/ai/Assistant";
+export * from "./types/Actions";
