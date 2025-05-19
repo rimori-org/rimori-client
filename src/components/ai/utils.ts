@@ -1,6 +1,6 @@
 export interface FirstMessages {
   instructions?: string;
-  userMessage: string;
+  userMessage?: string;
   assistantMessage?: string;
 }
 
