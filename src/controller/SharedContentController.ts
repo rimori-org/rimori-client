@@ -1,7 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
-import { ObjectRequest } from "./ObjectController";
-import { RimoriClient } from "../plugin/RimoriClient";
 import { SupabaseClient } from '@supabase/supabase-js';
+import { RimoriClient } from "../plugin/RimoriClient";
+import { ObjectRequest } from "./ObjectController";
 
 export interface BasicAssignment<T> {
   id: string;
@@ -12,6 +11,12 @@ export interface BasicAssignment<T> {
   keywords: any;
   data: T;
 }
+
+export interface SharedContentObjectRequest extends ObjectRequest {
+  fixedProperties?: Record<string, string | number | boolean>
+}
+
+export type SharedContentFilter = Record<string, string | number | boolean>
 
 export class SharedContentController {
   private supabase: SupabaseClient;
@@ -27,13 +32,15 @@ export class SharedContentController {
    * @param contentType - The type of content to fetch.
    * @param generatorInstructions - The instructions for the generator. The object needs to have a tool property with a topic and keywords property to let a new unique topic be generated.
    * @param filter - An optional filter to apply to the query.
+   * @param privateTopic - An optional flag to indicate if the topic should be private and only be visible to the user.
    * @returns The new shared content.
    */
-  public async fetchNewSharedContent<T>(
+  public async getNewSharedContent<T>(
     contentType: string,
-    generatorInstructions: ObjectRequest,
+    generatorInstructions: SharedContentObjectRequest,
     //this filter is there if the content should be filtered additionally by a column and value
-    filter?: { column: string, value: string | number | boolean },
+    filter?: SharedContentFilter,
+    privateTopic?: boolean,
   ): Promise<BasicAssignment<T>> {
     const query = this.supabase.from("shared_content")
       .select("*, scc:shared_content_completed(id)")
@@ -42,7 +49,7 @@ export class SharedContentController {
       .limit(10);
 
     if (filter) {
-      query.eq(filter.column, filter.value);
+      query.contains('data', filter);
     }
 
     const { data: newAssignments, error } = await query;
@@ -60,7 +67,7 @@ export class SharedContentController {
     }
 
     // generate new assignments
-    const fullInstructions = await this.getGeneratorInstructions(contentType, generatorInstructions);
+    const fullInstructions = await this.getGeneratorInstructions(contentType, generatorInstructions, filter);
 
     console.log('fullInstructions:', fullInstructions);
 
@@ -69,10 +76,11 @@ export class SharedContentController {
     console.log('instructions:', instructions);
 
     const { data: newAssignment, error: insertError } = await this.supabase.from("shared_content").insert({
+      private: privateTopic,
       content_type: contentType,
       topic: instructions.topic,
       keywords: instructions.keywords.map(({ text }: { text: string }) => text),
-      data: { ...instructions, topic: undefined, keywords: undefined },
+      data: { ...instructions, topic: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
     }).select();
 
     if (insertError) {
@@ -83,8 +91,8 @@ export class SharedContentController {
     return newAssignment[0];
   }
 
-  private async getGeneratorInstructions(contentType: string, generatorInstructions: ObjectRequest): Promise<ObjectRequest> {
-    const completedTopics = await this.getCompletedTopics(contentType);
+  private async getGeneratorInstructions(contentType: string, generatorInstructions: ObjectRequest, filter?: SharedContentFilter): Promise<ObjectRequest> {
+    const completedTopics = await this.getCompletedTopics(contentType, filter);
 
     generatorInstructions.instructions += `
     The following topics are already taken: ${completedTopics.join(', ')}`;
@@ -97,15 +105,20 @@ export class SharedContentController {
       type: [{ text: { type: "string" } }],
       description: "Keywords around the topic of the assignment.",
     }
-
     return generatorInstructions;
   }
 
-  private async getCompletedTopics(contentType: string): Promise<string[]> {
-    const { data: oldAssignments, error } = await this.supabase.from("shared_content")
+  private async getCompletedTopics(contentType: string, filter?: SharedContentFilter): Promise<string[]> {
+    const query = this.supabase.from("shared_content")
       .select("topic, keywords, scc:shared_content_completed(id)")
       .eq('content_type', contentType)
       .not('scc.id', 'is', null)
+
+    if (filter) {
+      query.contains('data', filter);
+    }
+
+    const { data: oldAssignments, error } = await query;
 
     if (error) {
       console.error('error fetching old assignments:', error);

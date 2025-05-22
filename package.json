@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -30,7 +30,6 @@
     "@supabase/supabase-js": "^2.48.1",
     "@tiptap/react": "2.10.3",
     "@tiptap/starter-kit": "2.10.3",
-    "uuid": "11.1.0",
     "react-icons": "^5.4.0",
     "react-markdown": "^10.1.0",
     "tiptap-markdown": "^0.8.10",

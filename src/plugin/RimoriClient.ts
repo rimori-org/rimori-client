@@ -1,17 +1,15 @@
-import { PluginController } from "./PluginController";
+import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { EventBusMessage, EventPayload } from "./fromRimori/EventBus";
-import { SettingsController } from "../controller/SettingsController";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
-import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
-import { PostgrestQueryBuilder, PostgrestFilterBuilder } from "@supabase/postgrest-js";
-import { SharedContentController, BasicAssignment } from "../controller/SharedContentController";
-import { streamChatGPT, Message, Tool, OnLLMResponse, generateText } from "../controller/AIController";
+import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../controller/AIController";
 import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
+import { SettingsController, UserInfo } from "../controller/SettingsController";
+import { BasicAssignment, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
 import { getPlugins, Plugin } from "../controller/SidePluginController";
-import { UserInfo } from "../controller/SettingsController";
-import { EventBus, EventHandler } from "./fromRimori/EventBus";
+import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
+import { EventBus, EventBusMessage, EventHandler, EventPayload } from "./fromRimori/EventBus";
+import { PluginController } from "./PluginController";
 
 interface RimoriClientOptions {
   pluginController: PluginController;
@@ -251,14 +249,16 @@ export class RimoriClient {
        * @param contentType The type of shared content to fetch. E.g. assignments, exercises, etc.
        * @param generatorInstructions The instructions for the creation of new shared content. The object will automatically be extended with a tool property with a topic and keywords property to let a new unique topic be generated.
        * @param filter The optional additional filter for checking new shared content based on a column and value. This is useful if the aditional information stored on the shared content is used to further narrow down the kind of shared content wanted to be received. E.g. only adjective grammar exercises.
+       * @param privateTopic An optional flag to indicate if the topic should be private and only be visible to the user. This is useful if the topic is not meant to be shared with other users. Like for personal topics or if the content is based on the personal study goal.
        * @returns The new shared content.
        */
       getNew: async <T = any>(
         contentType: string,
-        generatorInstructions: ObjectRequest,
-        filter?: { column: string, value: string | number | boolean },
+        generatorInstructions: SharedContentObjectRequest,
+        filter?: SharedContentFilter,
+        privateTopic?: boolean,
       ): Promise<BasicAssignment<T>> => {
-        return await this.sharedContentController.fetchNewSharedContent(contentType, generatorInstructions, filter);
+        return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, privateTopic);
       },
       /**
         * Complete a shared content item.
