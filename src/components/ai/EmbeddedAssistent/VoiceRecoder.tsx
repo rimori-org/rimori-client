@@ -18,6 +18,12 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const { llm } = usePlugin();
 
+  // Ref for latest onVoiceRecorded callback
+  const onVoiceRecordedRef = useRef(onVoiceRecorded);
+  useEffect(() => {
+    onVoiceRecordedRef.current = onVoiceRecorded;
+  }, [onVoiceRecorded]);
+
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaStreamRef.current = stream;
@@ -32,7 +38,7 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
       const audioBlob = new Blob(audioChunksRef.current);
       audioChunksRef.current = [];
 
-      onVoiceRecorded(await llm.getTextFromVoice(audioBlob));
+      onVoiceRecordedRef.current(await llm.getTextFromVoice(audioBlob));
     };
 
     mediaRecorder.start();
@@ -56,6 +62,30 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
     startRecording,
     stopRecording,
   }));
+
+  // push to talk feature
+  const spacePressedRef = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = async (event: KeyboardEvent) => {
+      if (event.code === 'Space' && !spacePressedRef.current) {
+        spacePressedRef.current = true;
+        await startRecording();
+      }
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && spacePressedRef.current) {
+        spacePressedRef.current = false;
+        stopRecording();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   return (
     <button className={"w-16 h-16 flex text-4xl shadow-lg flex-row justify-center items-center rounded-full mx-auto bg-gray-400 dark:bg-gray-800 pl-[6px] disabled:opacity-50 " + className}
