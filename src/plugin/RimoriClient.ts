@@ -168,6 +168,15 @@ export class RimoriClient {
      */
     onAccomplishment: (accomplishmentTopic: string, callback: (payload: EventBusMessage<AccomplishmentPayload>) => void) => {
       this.accomplishmentHandler.subscribe(accomplishmentTopic, callback);
+    },
+    /**
+     * Trigger an action that opens the sidebar and triggers an action in the designated plugin.
+     * @param pluginId The id of the plugin to trigger the action for.
+     * @param actionKey The key of the action to trigger.
+     * @param text Optional text to be used for the action like for example text that the translator would look up.
+     */
+    emitSidebarAction: (pluginId: string, actionKey: string, text?: string) => {
+      this.event.emit("global.sidebar.triggerAction", { pluginId, actionKey, text });
     }
   }
 
@@ -221,41 +230,44 @@ export class RimoriClient {
     // getSteamedObject: this.generateObjectStream,
   }
 
-  /**
-   * Fetch new shared content.
-   * @param type The type of shared content to fetch. E.g. assignments, exercises, etc.
-   * @param generatorInstructions The instructions for the generator.
-   * @param filter The filter for the shared content.
-   * @returns The new shared content.
-   */
-  public async fetchNewSharedContent<T, R = T & BasicAssignment>(
-    type: string,
-    generatorInstructions: (reservedTopics: string[]) => Promise<ObjectRequest> | ObjectRequest,
-    filter?: { column: string, value: string | number | boolean },
-  ): Promise<R[]> {
-    return this.sharedContentController.fetchNewSharedContent(type, generatorInstructions, filter);
-  }
-
-  /**
-   * Get a shared content item by id.
-   * @param type The type of shared content to get. E.g. assignments, exercises, etc.
-   * @param id The id of the shared content item.
-   * @returns The shared content item.
-   */
-  public async getSharedContent<T extends BasicAssignment>(type: string, id: string): Promise<T> {
-    return this.sharedContentController.getSharedContent(type, id);
-  }
-
-  /**
-   * Complete a shared content item.
-   * @param type The type of shared content to complete. E.g. assignments, exercises, etc.
-   * @param assignmentId The id of the shared content item to complete.
-   */
-  public async completeSharedContent(type: string, assignmentId: string) {
-    return this.sharedContentController.completeSharedContent(type, assignmentId);
-  }
-
-  public triggerSidebarAction(pluginId: string, actionKey: string, text?: string) {
-    this.event.emit("global.sidebar.triggerAction", { pluginId, actionKey, text });
+  public community = {
+    /**
+     * Shared content is a way to share completable content with other users using this plugin.
+     * Typical examples are assignments, exercises, stories, etc.
+     * Users generate new shared content items and others can complete the content too.
+     */
+    sharedContent: {
+      /**
+       * Get one dedicated shared content item by id. It does not matter if it is completed or not.
+       * @param contentType The type of shared content to get. E.g. assignments, exercises, etc.
+       * @param id The id of the shared content item.
+       * @returns The shared content item.
+       */
+      get: async <T = any>(contentType: string, id: string): Promise<BasicAssignment<T>> => {
+        return await this.sharedContentController.getSharedContent(contentType, id);
+      },
+      /**
+       * Get new shared content.
+       * @param contentType The type of shared content to fetch. E.g. assignments, exercises, etc.
+       * @param generatorInstructions The instructions for the creation of new shared content. The object will automatically be extended with a tool property with a topic and keywords property to let a new unique topic be generated.
+       * @param filter The optional additional filter for checking new shared content based on a column and value. This is useful if the aditional information stored on the shared content is used to further narrow down the kind of shared content wanted to be received. E.g. only adjective grammar exercises.
+       * @returns The new shared content.
+       */
+      getNew: async <T = any>(
+        contentType: string,
+        generatorInstructions: ObjectRequest,
+        filter?: { column: string, value: string | number | boolean },
+      ): Promise<BasicAssignment<T>> => {
+        return await this.sharedContentController.fetchNewSharedContent(contentType, generatorInstructions, filter);
+      },
+      /**
+        * Complete a shared content item.
+        * @param contentType The type of shared content to complete. E.g. assignments, exercises, etc.
+        * @param assignmentId The id of the shared content item to complete.
+        */
+      complete: async (contentType: string, assignmentId: string) => {
+        return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
+      }
+    }
   }
 }
