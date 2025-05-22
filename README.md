@@ -49,3 +49,16 @@ Inside the pages simply use the `usePlugin` hook.
 ```typescript
 const { getSettings, ... } = usePlugin();
 ```
+
+If you use the components then you need to add the library to tailwind.config.js
+
+```javascript
+export default {
+  darkMode: ["class"],  // to detect the dark mode set by the plugin
+  content: [
+    ....
+    "node_modules/@rimori/client/dist/components/**/*.{js,jsx}",
+  ],
+  ....
+}
+```
