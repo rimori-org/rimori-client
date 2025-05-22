@@ -23,7 +23,7 @@ export function AssistantChat({ avatarImageUrl, voiceId, onComplete, autoStartCo
     const lastAssistantMessage = [...messages].filter((m) => m.role === 'assistant').pop()?.content;
 
     useEffect(() => {
-        sender.setOnLoudnessChange((value: number) => event.emit('self.avatar.triggerLoudness', value));
+        sender.setOnLoudnessChange((value: number) => event.emit('self.avatar.triggerLoudness', { loudness: value }));
 
         if (!autoStartConversation) {
             return;
