@@ -88,4 +88,8 @@ export class MessageSender {
             callback(loudness);
         });
     }
+
+    public setOnEndOfSpeech(callback: () => void) {
+        this.player.setOnEndOfSpeech(callback);
+    }
 }

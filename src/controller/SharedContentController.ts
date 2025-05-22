@@ -62,7 +62,11 @@ export class SharedContentController {
     // generate new assignments
     const fullInstructions = await this.getGeneratorInstructions(contentType, generatorInstructions);
 
+    console.log('fullInstructions:', fullInstructions);
+
     const instructions = await this.rimoriClient.llm.getObject(fullInstructions);
+
+    console.log('instructions:', instructions);
 
     const { data: newAssignment, error: insertError } = await this.supabase.from("shared_content").insert({
       content_type: contentType,

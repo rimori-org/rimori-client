@@ -1,5 +1,5 @@
 import { Tool } from '../../core';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { VoiceRecorder } from './EmbeddedAssistent/VoiceRecoder';
 import { MessageSender } from './EmbeddedAssistent/TTS/MessageSender';
 import { CircleAudioAvatar } from './EmbeddedAssistent/CircleAudioAvatar';
@@ -20,6 +20,8 @@ interface Props {
 
 export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversation, children, isDarkTheme = false, circleSize = "300px" }: Props) {
   const { llm, event } = usePlugin();
+  const [agentReplying, setAgentReplying] = useState(false);
+  const [isProcessingMessage, setIsProcessingMessage] = useState(false);
   const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);
   const { messages, append, isLoading, lastMessage, setMessages } = useChat(agentTools);
 
@@ -28,7 +30,12 @@ export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversat
   }, [messages]);
 
   useEffect(() => {
-    sender.setOnLoudnessChange((value: number) => event.emit('self.avatar.triggerLoudness', { loudness: value }));
+    if (!isLoading) setIsProcessingMessage(false);
+  }, [isLoading]);
+
+  useEffect(() => {
+    sender.setOnLoudnessChange((value) => event.emit('self.avatar.triggerLoudness', { loudness: value }));
+    sender.setOnEndOfSpeech(() => setAgentReplying(false));
 
     if (!autoStartConversation) return;
 
@@ -51,11 +58,21 @@ export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversat
 
   return (
     <div className='pb-8'>
-      <CircleAudioAvatar imageUrl={avatarImageUrl} width={circleSize} className='mx-auto' isDarkTheme={isDarkTheme} />
+      <CircleAudioAvatar
+        width={circleSize}
+        className='mx-auto'
+        imageUrl={avatarImageUrl}
+        isDarkTheme={isDarkTheme} />
       {children}
-      <VoiceRecorder className='' iconSize='300' onVoiceRecorded={(message) => {
-        append([{ role: 'user', content: "Message(" + Math.floor((messages.length + 1) / 2) + "): " + message, id: messages.length.toString() }]);
-      }} />
+      <VoiceRecorder
+        iconSize='300'
+        disabled={agentReplying}
+        loading={isProcessingMessage}
+        onVoiceRecorded={(message) => {
+          setAgentReplying(true);
+          append([{ role: 'user', content: "Message(" + Math.floor((messages.length + 1) / 2) + "): " + message, id: messages.length.toString() }]);
+        }}
+        onRecordingStatusChange={(running) => !running && setIsProcessingMessage(true)} />
     </div>
   );
 };

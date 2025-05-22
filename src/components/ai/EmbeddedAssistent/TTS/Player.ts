@@ -12,6 +12,7 @@ export class ChunkedAudioPlayer {
     private loudnessCallback: (value: number) => void = () => { };
     private currentIndex = 0;
     private startedPlaying = false;
+    private onEndOfSpeech: () => void = () => { };
 
     constructor() {
         this.init();
@@ -139,6 +140,7 @@ export class ChunkedAudioPlayer {
             // console.log('Loudness monitoring stopped.');
             cancelAnimationFrame(this.handle);
             this.loudnessCallback(0);
+            this.onEndOfSpeech();
             return;
         }
 
@@ -188,5 +190,9 @@ export class ChunkedAudioPlayer {
         this.isMonitoring = false;
         this.isPlaying = false;
         this.init();
+    }
+
+    public setOnEndOfSpeech(callback: () => void) {
+        this.onEndOfSpeech = callback;
     }
 }
