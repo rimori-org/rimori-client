@@ -5,10 +5,14 @@ interface CircleAudioAvatarProps {
   width?: string;
   imageUrl: string;
   className?: string;
+  isDarkTheme?: boolean;
 }
 
-export function CircleAudioAvatar({ imageUrl, className, width = "150px" }: CircleAudioAvatarProps) {
+export function CircleAudioAvatar({ imageUrl, className, isDarkTheme = false, width = "150px" }: CircleAudioAvatarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const currentLoudnessRef = useRef(0);
+  const targetLoudnessRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -17,40 +21,62 @@ export function CircleAudioAvatar({ imageUrl, className, width = "150px" }: Circ
       if (ctx) {
         const image = new Image();
         image.src = imageUrl;
+        let isMounted = true;
+
         image.onload = () => {
+          if (!isMounted) return;
           draw(ctx, canvas, image, 0);
+          const animate = () => {
+            const decayRate = 0.06;
+            if (currentLoudnessRef.current > targetLoudnessRef.current) {
+              currentLoudnessRef.current = Math.max(
+                targetLoudnessRef.current,
+                currentLoudnessRef.current - decayRate * currentLoudnessRef.current
+              );
+            } else {
+              currentLoudnessRef.current = targetLoudnessRef.current;
+            }
+            draw(ctx, canvas, image, currentLoudnessRef.current);
+            animationFrameRef.current = requestAnimationFrame(animate);
+          };
+          animationFrameRef.current = requestAnimationFrame(animate);
         };
 
-        const handleLoudness = (event: EventBusMessage) => {
-          console.log('handleLoudness', event);
-          draw(ctx, canvas, image, event.data.loudness);
+        const handleLoudness = ({ data }: EventBusMessage) => {
+          const newLoudness = data.loudness;
+          if (newLoudness > currentLoudnessRef.current) {
+            currentLoudnessRef.current = newLoudness;
+          }
+          targetLoudnessRef.current = newLoudness;
         };
 
-        // Subscribe to loudness changes
         const listener = EventBus.on('self.avatar.triggerLoudness', handleLoudness);
 
-        return () => listener.off();
+        return () => {
+          isMounted = false;
+          listener.off();
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        };
       }
     }
   }, [imageUrl]);
 
-  // Function to draw on the canvas
   const draw = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, image: HTMLImageElement, loudness: number) => {
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw pulsing circle
       const radius = Math.min(canvas.width, canvas.height) / 3;
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const pulseRadius = radius + loudness / 2.5; // Adjust the divisor for sensitivity
+      const pulseRadius = radius + loudness / 2.5;
       ctx.beginPath();
       ctx.arc(centerX, centerY, pulseRadius, 0, Math.PI * 2, true);
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.strokeStyle = isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)';
       ctx.lineWidth = 5;
       ctx.stroke();
 
-      // Draw image circle
       ctx.save();
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
@@ -59,11 +85,10 @@ export function CircleAudioAvatar({ imageUrl, className, width = "150px" }: Circ
       ctx.drawImage(image, centerX - radius, centerY - radius, radius * 2, radius * 2);
       ctx.restore();
 
-      // Draw circular frame around the image
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
-      ctx.strokeStyle = 'rgba(20,20, 20, 0.9)';
-      ctx.lineWidth = 5; // Adjust the width of the frame as needed
+      ctx.strokeStyle = isDarkTheme ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)';
+      ctx.lineWidth = 5;
       ctx.stroke();
     }
   };

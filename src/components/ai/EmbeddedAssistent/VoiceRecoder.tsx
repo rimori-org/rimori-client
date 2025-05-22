@@ -47,10 +47,9 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className 
   }));
 
   return (
-    <div className={className}>
-      <button onClick={isRecording ? stopRecording : startRecording}>
-        <FaMicrophone size={iconSize} className={"h-7 w-7 mr-2 " + (isRecording ? "text-red-600" : "")} />
-      </button>
-    </div>
+    <button className={"w-16 h-16 flex text-4xl shadow-lg flex-row justify-center items-center rounded-full mx-auto bg-gray-400 dark:bg-gray-800 pl-[6px] " + className}
+      onClick={isRecording ? stopRecording : startRecording}>
+      <FaMicrophone size={iconSize} className={"h-7 w-7 mr-2 " + (isRecording ? "text-red-600" : "")} />
+    </button>
   );
 });
