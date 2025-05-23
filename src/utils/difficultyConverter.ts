@@ -9,3 +9,7 @@ export function getDifficultyLevel(difficulty: LanguageLevel): number {
 export function getDifficultyLabel(difficulty: number): LanguageLevel {
     return codes[difficulty] as LanguageLevel;
 }
+
+export function getNeighborDifficultyLevel(difficulty: LanguageLevel, difficultyAdjustment: number): LanguageLevel {
+    return getDifficultyLabel(getDifficultyLevel(difficulty) + difficultyAdjustment);
+}
