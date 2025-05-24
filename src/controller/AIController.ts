@@ -69,7 +69,8 @@ export async function streamChatGPT(supabaseUrl: string, messages: Message[], to
           // console.log("AI response:", content);
 
           //content \n\n should be real line break when message is displayed
-          onResponse(messageId, content.replace(/\\n/g, '\n'), false);
+          //content \"\" should be real double quote when message is displayed
+          onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"|"\\+/g, '"'), false);
         } else if (command === 'd') {
           // console.log("AI usage:", JSON.parse(line.substring(2)));
           done = true;
