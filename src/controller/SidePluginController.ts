@@ -1,17 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-
-export interface Plugin {
-    id: string;
-    title: string;
-    icon_url: string;
-    website: string;
-    context_menu_actions: string;
-    plugin_pages: string;
-    sidebar_pages: string;
-    settings_page: string;
-    version: string;
-    external_hosted_url: string;
-}
+import { Plugin } from '../plugin/fromRimori/PluginTypes';
 
 export async function getPlugins(supabase: SupabaseClient): Promise<Plugin[]> {
     let { data, error } = await supabase.from('plugins').select('*');
