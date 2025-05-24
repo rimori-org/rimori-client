@@ -48,7 +48,6 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
 
       // Prevent context menu on textarea or text input selection
       const target = e.target as HTMLElement;
-      console.log("target", target);
       const isTextInput = target && (
         (target.tagName === 'TEXTAREA') ||
         (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'text')

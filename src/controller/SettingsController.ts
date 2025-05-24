@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { LanguageLevel } from "../utils/difficultyConverter";
+import { Language } from "../utils/Language";
 
 export interface UserInfo {
   skill_level_reading: LanguageLevel;
@@ -13,7 +14,7 @@ export interface UserInfo {
   study_buddy: string;
   story_genre: string;
   study_duration: number;
-  mother_tongue: string;
+  mother_tongue: Language;
   motivation_type: string;
   onboarding_completed: boolean;
   context_menu_on_select: boolean;

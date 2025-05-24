@@ -5,11 +5,12 @@ import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../co
 import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
 import { SettingsController, UserInfo } from "../controller/SettingsController";
 import { BasicAssignment, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
-import { getPlugins, Plugin } from "../controller/SidePluginController";
+import { getPlugins } from "../controller/SidePluginController";
 import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "./fromRimori/EventBus";
 import { PluginController } from "./PluginController";
+import { Plugin } from "./fromRimori/PluginTypes";
 
 interface RimoriClientOptions {
   pluginController: PluginController;
