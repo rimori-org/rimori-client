@@ -857,6 +857,27 @@ interface MyPluginData extends SharedContent<any> {
 }
 ```
 
+The SharedContent has this type definition:
+
+````
+export interface SharedContent<T> {
+  /** The type/category of the content (e.g. 'grammar_exercises', 'flashcards', etc.) */
+  contentType: string;
+
+  /** The human readable title/topic of the content */
+  topic: string;
+
+  /** Array of keywords/tags associated with the content for search and categorization */
+  keywords: string[];
+
+  /** The actual content data of type T */
+  data: T;
+
+  /** Whether this content should only be visible to the creator. Defaults to false if not specified */
+  privateTopic?: boolean;
+}
+```
+
 ## Examples
 
 ### Complete Plugin Example
