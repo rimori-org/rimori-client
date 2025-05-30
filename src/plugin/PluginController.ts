@@ -1,7 +1,8 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { RimoriClient } from "./RimoriClient";
+import { AuthSessionMissingError, createClient, SupabaseClient } from '@supabase/supabase-js';
 import { EventBus, EventBusMessage } from './fromRimori/EventBus';
+import { RimoriClient } from "./RimoriClient";
 import { setTheme } from './ThemeSetter';
+import { StandaloneClient } from './StandaloneClient';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
@@ -23,7 +24,7 @@ export class PluginController {
   private supabaseInfo: SupabaseInfo | null = null;
   private pluginId: string;
 
-  private constructor(pluginId: string) {
+  private constructor(pluginId: string, standalone: boolean) {
     this.pluginId = pluginId;
     this.getClient = this.getClient.bind(this);
 
@@ -31,6 +32,9 @@ export class PluginController {
       setTheme();
     }
 
+    //no need to forward messages to parent in standalone mode
+    if (standalone) return;
+    
     window.addEventListener("message", (event) => {
       // console.log("client: message received", event);
       const { topic, sender, data, eventId } = event.data.event as EventBusMessage;
@@ -41,27 +45,33 @@ export class PluginController {
       EventBus.emit(sender, topic, data, eventId);
     });
 
+    const secret = this.getSecret();
+
     EventBus.on("*", (event) => {
       // skip messages which are not from the own plugin
       if (event.sender !== this.pluginId) return;
       if (event.topic.startsWith("self.")) return;
-      window.parent.postMessage({ event, secret: this.getSecret() }, "*")
+      // console.log("sending event to parent", event);
+      window.parent.postMessage({ event, secret }, "*")
     });
   }
 
-  public static async getInstance(sender: string): Promise<RimoriClient> {
+  public static async getInstance(pluginId: string, standalone = false): Promise<RimoriClient> {
     if (!PluginController.instance) {
-      PluginController.instance = new PluginController(sender);
+      if (standalone) {
+        await StandaloneClient.initListeners(pluginId);
+      }
+      PluginController.instance = new PluginController(pluginId, standalone);
       PluginController.client = await RimoriClient.getInstance(PluginController.instance);
     }
     return PluginController.client;
   }
 
-  private getSecret() {
+  private getSecret(): string | null {
     if (!this.communicationSecret) {
       const secret = new URLSearchParams(window.location.search).get("secret");
       if (!secret) {
-        throw new Error("Communication secret not found in URL as query parameter");
+        console.info("Communication secret not found in URL as query parameter");
       }
       this.communicationSecret = secret;
     }

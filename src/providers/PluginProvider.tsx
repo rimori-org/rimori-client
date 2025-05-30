@@ -3,6 +3,7 @@ import { PluginController } from '../plugin/PluginController';
 import { RimoriClient } from '../plugin/RimoriClient';
 import { EventBusHandler } from '../plugin/fromRimori/EventBus';
 import ContextMenu from '../core/components/ContextMenu';
+import { StandaloneClient } from '../plugin/StandaloneClient';
 
 interface PluginProviderProps {
   children: ReactNode;
@@ -13,11 +14,21 @@ const PluginContext = createContext<RimoriClient | null>(null);
 
 export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId }) => {
   const [plugin, setPlugin] = useState<RimoriClient | null>(null);
-  initEventBus(pluginId);
+  const [standaloneClient, setStandaloneClient] = useState<StandaloneClient | boolean>(false);
 
   useEffect(() => {
-    PluginController.getInstance(pluginId).then(setPlugin);
-  }, [pluginId]);
+    initEventBus(pluginId);
+    const standaloneDetected = new URLSearchParams(window.location.search).get("secret") === null;
+    if (standaloneDetected && !standaloneClient) {
+      StandaloneClient.getInstance().then(client => {
+        client.needsLogin().then((needLogin) => setStandaloneClient(needLogin ? client : true));
+      });
+    }
+
+    if ((!standaloneDetected && !plugin) || (standaloneDetected && standaloneClient === true)) {
+      PluginController.getInstance(pluginId, standaloneDetected).then(setPlugin);
+    }
+  }, [pluginId, standaloneClient]);
 
   //route change
   useEffect(() => {
@@ -50,6 +61,12 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
     return () => body.removeEventListener('resize', handleResize);
   }, [plugin]);
 
+  if (standaloneClient instanceof StandaloneClient) {
+    return <StandaloneAuth onLogin={async (email, password) => {
+      if (await standaloneClient.login(email, password)) setStandaloneClient(true);
+    }} />
+  }
+
   if (!plugin) {
     return ""
   }
@@ -74,4 +91,32 @@ function initEventBus(pluginId: string) {
   const url = new URL(window.location.href);
   const isSidebar = url.searchParams.get("applicationMode") === "sidebar";
   EventBusHandler.getInstance("Plugin EventBus " + pluginId + " " + (isSidebar ? "sidebar" : "main"));
+}
+
+function StandaloneAuth({ onLogin }: { onLogin: (user: string, password: string) => void }) {
+  const [user, setUser] = useState("");
+  const [password, setPassword] = useState("");
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    }}>
+      <div style={{ backgroundColor: '#343534', padding: '1rem', borderRadius: '0.5rem', width: '500px', flexDirection: 'column', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem', textAlign: 'center' }}>Rimori Login</p>
+        <p style={{ marginBottom: '1rem', textAlign: 'center' }}>
+          Please login with your Rimori developer account for this plugin to be able to access the Rimori platform the same it will operate in the Rimori platform.
+        </p>
+        {/* email and password input */}
+        <input style={{ marginBottom: '1rem', width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#444444' }} type="email" placeholder="Email" onChange={(e) => setUser(e.target.value)} />
+        <input style={{ marginBottom: '1rem', width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#444444' }} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <button style={{ marginBottom: '1rem', width: '100%', padding: '0.5rem', borderRadius: '0.5rem', border: 'none', backgroundColor: '#928358' }} onClick={() => {
+          onLogin(user, password);
+        }}>Login</button>
+      </div>
+    </div>
+  )
 }
