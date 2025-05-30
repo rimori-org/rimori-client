@@ -4,13 +4,13 @@ import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
 import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../controller/AIController";
 import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
 import { SettingsController, UserInfo } from "../controller/SettingsController";
-import { BasicAssignment, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
+import { BasicAssignment, SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
 import { getPlugins } from "../controller/SidePluginController";
 import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "./fromRimori/EventBus";
-import { PluginController } from "./PluginController";
 import { Plugin } from "./fromRimori/PluginTypes";
+import { PluginController } from "./PluginController";
 
 interface RimoriClientOptions {
   pluginController: PluginController;
@@ -24,8 +24,8 @@ interface Db {
     <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
     <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
   };
-  functions: SupabaseClient["functions"];
   storage: SupabaseClient["storage"];
+  functions: SupabaseClient["functions"];
   /**
    * The table prefix for of database tables of the plugin.
    */
@@ -213,18 +213,15 @@ export class RimoriClient {
       streamChatGPT(this.supabaseUrl, messages, tools || [], onMessage, token);
     },
     getVoice: async (text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> => {
-      return getTTSResponse(
-        this.pluginController.getSupabaseUrl(),
-        { input: text, voice, speed, language },
-        await this.pluginController.getToken()
-      );
+      const token = await this.pluginController.getToken();
+      return getTTSResponse(this.supabaseUrl, { input: text, voice, speed, language }, token);
     },
     getTextFromVoice: (file: Blob): Promise<string> => {
       return getSTTResponse(this.superbase, file);
     },
     getObject: async (request: ObjectRequest): Promise<any> => {
       const token = await this.pluginController.getToken();
-      return generateObjectFunction(this.pluginController.getSupabaseUrl(), request, token);
+      return generateObjectFunction(this.supabaseUrl, request, token);
     },
     // getSteamedObject: this.generateObjectStream,
   }
@@ -246,6 +243,16 @@ export class RimoriClient {
         return await this.sharedContentController.getSharedContent(contentType, id);
       },
       /**
+       * Get a list of shared content items.
+       * @param contentType The type of shared content to get. E.g. assignments, exercises, etc.
+       * @param filter The optional additional filter for checking new shared content based on a column and value. This is useful if the aditional information stored on the shared content is used to further narrow down the kind of shared content wanted to be received. E.g. only adjective grammar exercises.
+       * @param limit The optional limit for the number of results.
+       * @returns The list of shared content items.
+       */
+      getList: async <T = any>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<BasicAssignment<T>[]> => {
+        return await this.sharedContentController.getSharedContentList(contentType, filter, limit);
+      },
+      /**
        * Get new shared content.
        * @param contentType The type of shared content to fetch. E.g. assignments, exercises, etc.
        * @param generatorInstructions The instructions for the creation of new shared content. The object will automatically be extended with a tool property with a topic and keywords property to let a new unique topic be generated.
@@ -260,6 +267,23 @@ export class RimoriClient {
         privateTopic?: boolean,
       ): Promise<BasicAssignment<T>> => {
         return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, privateTopic);
+      },
+      /**
+       * Create a new shared content item.
+       * @param content The content to create.
+       * @returns The new shared content item.
+       */
+      create: async <T = any>(content: SharedContent<T>): Promise<BasicAssignment<T>> => {
+        return await this.sharedContentController.createSharedContent(content);
+      },
+      /**
+       * Update a shared content item.
+       * @param id The id of the shared content item to update.
+       * @param content The content to update.
+       * @returns The updated shared content item.
+       */
+      update: async <T = any>(id: string, content: Partial<SharedContent<T>>): Promise<BasicAssignment<T>> => {
+        return await this.sharedContentController.updateSharedContent(id, content);
       },
       /**
         * Complete a shared content item.
