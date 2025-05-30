@@ -25,7 +25,8 @@ interface Db {
     <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
   };
   storage: SupabaseClient["storage"];
-  functions: SupabaseClient["functions"];
+  
+  // functions: SupabaseClient["functions"];
   /**
    * The table prefix for of database tables of the plugin.
    */
@@ -81,7 +82,7 @@ export class RimoriClient {
     this.db = {
       from: this.from,
       storage: this.superbase.storage,
-      functions: this.superbase.functions,
+      // functions: this.superbase.functions,
       tablePrefix: options.tablePrefix,
       getTableName: this.getTableName.bind(this),
     }
