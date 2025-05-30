@@ -12,8 +12,9 @@ export async function getPlugins(supabase: SupabaseClient): Promise<Plugin[]> {
     return (data || []).map((plugin: any) => ({
         id: plugin.id,
         title: plugin.title,
+        description: plugin.description,
         icon_url: plugin.icon_url,
-        website: plugin.website,
+        endpoint: plugin.endpoint,
         context_menu_actions: plugin.context_menu_actions,
         plugin_pages: plugin.plugin_pages,
         sidebar_pages: plugin.sidebar_pages,

@@ -43,7 +43,7 @@ export function AudioInputField({ onSubmit, onAudioControl, blockSubmission = fa
                 className="cursor-default">
                 {audioEnabled ? <HiMiniSpeakerWave className='w-9 h-9 cursor-pointer' /> : <HiMiniSpeakerXMark className='w-9 h-9 cursor-pointer' />}
             </button>}
-            <VoiceRecorder onVoiceRecorded={(m: string) => {
+            <VoiceRecorder onRecordingStatusChange={() => {}} onVoiceRecorded={(m: string) => {
                 console.log('onVoiceRecorded', m);
                 handleSubmit(m);
             }}

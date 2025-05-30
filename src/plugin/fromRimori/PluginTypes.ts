@@ -5,11 +5,8 @@ export interface Plugin {
   id: string;
   title: string;
   description: string;
-  git_repository: string;
-  website: string;
   icon_url: string;
   version: string;
-  author: string;
   endpoint: string;
   context_menu_actions: MenuEntry[];
   plugin_pages: PluginPage[];

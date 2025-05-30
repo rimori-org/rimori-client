@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { EventBus, EventBusMessage } from '../../../core';
+import { EventBus, EventBusMessage } from '../../../plugin/fromRimori/EventBus';
 
 interface CircleAudioAvatarProps {
   width?: string;
