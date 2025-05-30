@@ -293,6 +293,14 @@ export class RimoriClient {
         */
       complete: async (contentType: string, assignmentId: string) => {
         return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
+      },
+      /**
+       * Delete a shared content item.
+       * @param id The id of the shared content item to delete.
+       * @returns The deleted shared content item.
+       */
+      delete: async (id: string): Promise<BasicAssignment<any>> => {
+        return await this.sharedContentController.deleteSharedContent(id);
       }
     }
   }

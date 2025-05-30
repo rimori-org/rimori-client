@@ -46,6 +46,7 @@ export class SharedContentController {
       .select("*, scc:shared_content_completed(id)")
       .eq('content_type', contentType)
       .is('scc.id', null)
+      .is('deleted_at', null)
       .limit(10);
 
     if (filter) {
@@ -113,6 +114,7 @@ export class SharedContentController {
       .select("topic, keywords, scc:shared_content_completed(id)")
       .eq('content_type', contentType)
       .not('scc.id', 'is', null)
+      .is('deleted_at', null)
 
     if (filter) {
       query.contains('data', filter);
@@ -128,7 +130,7 @@ export class SharedContentController {
   }
 
   public async getSharedContent<T>(contentType: string, id: string): Promise<BasicAssignment<T>> {
-    const { data, error } = await this.supabase.from("shared_content").select().eq('content_type', contentType).eq('id', id).single();
+    const { data, error } = await this.supabase.from("shared_content").select().eq('content_type', contentType).eq('id', id).is('deleted_at', null).single();
     if (error) {
       console.error('error fetching shared content:', error);
       throw new Error('error fetching shared content');
@@ -148,7 +150,7 @@ export class SharedContentController {
    * @returns Array of shared content matching the criteria.
    */
   public async getSharedContentList<T>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<BasicAssignment<T>[]> {
-    const query = this.supabase.from("shared_content").select("*").eq('content_type', contentType).limit(limit ?? 30);
+    const query = this.supabase.from("shared_content").select("*").eq('content_type', contentType).is('deleted_at', null).limit(limit ?? 30);
 
     if (filter) {
       query.contains('data', filter);
@@ -220,6 +222,31 @@ export class SharedContentController {
     }
 
     return updatedContent[0];
+  }
+
+  /**
+   * Soft delete shared content by setting the deleted_at timestamp.
+   * @param id - The ID of the content to delete.
+   * @returns The deleted shared content record.
+   * @throws {Error} if deletion fails or content not found.
+   */
+  public async deleteSharedContent(id: string): Promise<BasicAssignment<any>> {
+    const { data: deletedContent, error } = await this.supabase
+      .from("shared_content")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      console.error('error deleting shared content:', error);
+      throw new Error('error deleting shared content');
+    }
+
+    if (!deletedContent || deletedContent.length === 0) {
+      throw new Error('shared content not found or already deleted');
+    }
+
+    return deletedContent[0];
   }
 }
 
