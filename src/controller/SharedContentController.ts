@@ -177,7 +177,7 @@ export class SharedContentController {
    * @returns The inserted shared content.
    * @throws {Error} if insertion fails.
    */
-  public async createSharedContent<T>({ contentType, topic, keywords, data, privateTopic }: SharedContent<T>): Promise<BasicAssignment<T>> {
+  public async createSharedContent<T>({ contentType, topic, keywords, data, privateTopic }: Omit<SharedContent<T>, 'id'>): Promise<BasicAssignment<T>> {
     const { data: newContent, error } = await this.supabase.from("shared_content").insert({
       private: privateTopic,
       content_type: contentType,
@@ -255,6 +255,9 @@ export class SharedContentController {
  * @template T The type of data stored in the content
  */
 export interface SharedContent<T> {
+  /** The id of the content */
+  id: string;
+
   /** The type/category of the content (e.g. 'grammar_exercises', 'flashcards', etc.) */
   contentType: string;
 

@@ -274,7 +274,7 @@ export class RimoriClient {
        * @param content The content to create.
        * @returns The new shared content item.
        */
-      create: async <T = any>(content: SharedContent<T>): Promise<BasicAssignment<T>> => {
+      create: async <T = any>(content: Omit<SharedContent<T>, 'id'>): Promise<BasicAssignment<T>> => {
         return await this.sharedContentController.createSharedContent(content);
       },
       /**
