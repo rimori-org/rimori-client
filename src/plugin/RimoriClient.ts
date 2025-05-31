@@ -4,7 +4,7 @@ import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
 import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../controller/AIController";
 import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
 import { SettingsController, UserInfo } from "../controller/SettingsController";
-import { BasicAssignment, SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
+import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
 import { getPlugins } from "../controller/SidePluginController";
 import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
@@ -240,7 +240,7 @@ export class RimoriClient {
        * @param id The id of the shared content item.
        * @returns The shared content item.
        */
-      get: async <T = any>(contentType: string, id: string): Promise<BasicAssignment<T>> => {
+      get: async <T = any>(contentType: string, id: string): Promise<SharedContent<T>> => {
         return await this.sharedContentController.getSharedContent(contentType, id);
       },
       /**
@@ -250,7 +250,7 @@ export class RimoriClient {
        * @param limit The optional limit for the number of results.
        * @returns The list of shared content items.
        */
-      getList: async <T = any>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<BasicAssignment<T>[]> => {
+      getList: async <T = any>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<SharedContent<T>[]> => {
         return await this.sharedContentController.getSharedContentList(contentType, filter, limit);
       },
       /**
@@ -266,7 +266,7 @@ export class RimoriClient {
         generatorInstructions: SharedContentObjectRequest,
         filter?: SharedContentFilter,
         privateTopic?: boolean,
-      ): Promise<BasicAssignment<T>> => {
+      ): Promise<SharedContent<T>> => {
         return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, privateTopic);
       },
       /**
@@ -274,7 +274,7 @@ export class RimoriClient {
        * @param content The content to create.
        * @returns The new shared content item.
        */
-      create: async <T = any>(content: Omit<SharedContent<T>, 'id'>): Promise<BasicAssignment<T>> => {
+      create: async <T = any>(content: Omit<SharedContent<T>, 'id'>): Promise<SharedContent<T>> => {
         return await this.sharedContentController.createSharedContent(content);
       },
       /**
@@ -283,7 +283,7 @@ export class RimoriClient {
        * @param content The content to update.
        * @returns The updated shared content item.
        */
-      update: async <T = any>(id: string, content: Partial<SharedContent<T>>): Promise<BasicAssignment<T>> => {
+      update: async <T = any>(id: string, content: Partial<SharedContent<T>>): Promise<SharedContent<T>> => {
         return await this.sharedContentController.updateSharedContent(id, content);
       },
       /**
@@ -299,7 +299,7 @@ export class RimoriClient {
        * @param id The id of the shared content item to remove.
        * @returns The removed shared content item.
        */
-      remove: async (id: string): Promise<BasicAssignment<any>> => {
+      remove: async (id: string): Promise<SharedContent<any>> => {
         return await this.sharedContentController.removeSharedContent(id);
       }
     }
