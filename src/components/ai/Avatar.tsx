@@ -65,9 +65,11 @@ export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversat
         isDarkTheme={isDarkTheme} />
       {children}
       <VoiceRecorder
-        iconSize='300'
+        iconSize='30'
+        className='w-16 h-16 shadow-lg rounded-full bg-gray-400 dark:bg-gray-800'
         disabled={agentReplying}
         loading={isProcessingMessage}
+        enablePushToTalk={true}
         onVoiceRecorded={(message) => {
           setAgentReplying(true);
           append([{ role: 'user', content: "Message(" + Math.floor((messages.length + 1) / 2) + "): " + message, id: messages.length.toString() }]);

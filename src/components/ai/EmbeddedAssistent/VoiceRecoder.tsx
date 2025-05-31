@@ -7,12 +7,14 @@ interface Props {
   className?: string;
   disabled?: boolean;
   loading?: boolean;
+  enablePushToTalk?: boolean;
   onRecordingStatusChange: (running: boolean) => void;
   onVoiceRecorded: (message: string) => void;
 }
 
-export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className, disabled, loading, onRecordingStatusChange }: Props, ref) => {
+export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className, disabled, loading, onRecordingStatusChange, enablePushToTalk = false }: Props, ref) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [internalIsProcessing, setInternalIsProcessing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -38,7 +40,11 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
       const audioBlob = new Blob(audioChunksRef.current);
       audioChunksRef.current = [];
 
-      onVoiceRecordedRef.current(await llm.getTextFromVoice(audioBlob));
+
+      setInternalIsProcessing(true);
+      const text = await llm.getTextFromVoice(audioBlob);
+      setInternalIsProcessing(false);
+      onVoiceRecordedRef.current(text);
     };
 
     mediaRecorder.start();
@@ -67,6 +73,8 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
   const spacePressedRef = useRef(false);
 
   useEffect(() => {
+    if (!enablePushToTalk) return;
+
     const handleKeyDown = async (event: KeyboardEvent) => {
       if (event.code === 'Space' && !spacePressedRef.current) {
         spacePressedRef.current = true;
@@ -85,14 +93,14 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [enablePushToTalk]);
 
   return (
-    <button className={"w-16 h-16 flex text-4xl shadow-lg flex-row justify-center items-center rounded-full mx-auto bg-gray-400 dark:bg-gray-800 pl-[6px] disabled:opacity-50 " + className}
+    <button className={"flex flex-row justify-center items-center rounded-full mx-auto pl-[6px] disabled:opacity-50 " + className}
       onClick={isRecording ? stopRecording : startRecording}
-      disabled={disabled || loading}>
-      {loading ? <FaSpinner className="animate-spin mr-[6px]" /> :
-        <FaMicrophone size={iconSize} className={"h-7 w-7 mr-2 " + (isRecording ? "text-red-600" : "")} />
+      disabled={disabled || loading || internalIsProcessing}>
+      {loading || internalIsProcessing ? <FaSpinner className="animate-spin mr-[6px]" /> :
+        <FaMicrophone size={iconSize} className={"mr-2 " + (isRecording ? "text-red-600" : "")} />
       }
     </button>
   );
