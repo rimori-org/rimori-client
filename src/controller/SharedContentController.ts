@@ -69,9 +69,9 @@ export class SharedContentController {
     const { data: newAssignment, error: insertError } = await this.supabase.from("shared_content").insert({
       private: privateTopic,
       content_type: contentType,
-      topic: instructions.topic,
+      title: instructions.title,
       keywords: instructions.keywords.map(({ text }: { text: string }) => text),
-      data: { ...instructions, topic: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
+      data: { ...instructions, title: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
     }).select();
 
     if (insertError) {
@@ -88,7 +88,7 @@ export class SharedContentController {
     generatorInstructions.instructions += `
     The following topics are already taken: ${completedTopics.join(', ')}`;
 
-    generatorInstructions.tool.topic = {
+    generatorInstructions.tool.title = {
       type: "string",
       description: "What the topic is about. Short. ",
     }
