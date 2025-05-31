@@ -25,7 +25,7 @@ interface Db {
     <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
   };
   storage: SupabaseClient["storage"];
-  
+
   // functions: SupabaseClient["functions"];
   /**
    * The table prefix for of database tables of the plugin.
@@ -295,12 +295,12 @@ export class RimoriClient {
         return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
       },
       /**
-       * Delete a shared content item.
-       * @param id The id of the shared content item to delete.
-       * @returns The deleted shared content item.
+       * Remove a shared content item.
+       * @param id The id of the shared content item to remove.
+       * @returns The removed shared content item.
        */
-      delete: async (id: string): Promise<BasicAssignment<any>> => {
-        return await this.sharedContentController.deleteSharedContent(id);
+      remove: async (id: string): Promise<BasicAssignment<any>> => {
+        return await this.sharedContentController.removeSharedContent(id);
       }
     }
   }

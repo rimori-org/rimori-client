@@ -230,7 +230,7 @@ export class SharedContentController {
    * @returns The deleted shared content record.
    * @throws {Error} if deletion fails or content not found.
    */
-  public async deleteSharedContent(id: string): Promise<BasicAssignment<any>> {
+  public async removeSharedContent(id: string): Promise<BasicAssignment<any>> {
     const { data: deletedContent, error } = await this.supabase
       .from("shared_content")
       .update({ deleted_at: new Date().toISOString() })
