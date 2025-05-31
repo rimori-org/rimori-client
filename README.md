@@ -67,6 +67,24 @@ export default {
 }
 ```
 
+### Vite Configuration
+
+Add the following to your `vite.config.ts`:
+
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  base: './', // Set base path for proper asset loading
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets'
+  }
+})
+```
+
 ## Core API - usePlugin Hook
 
 The `usePlugin()` hook is the main interface for accessing Rimori platform features:
@@ -558,6 +576,7 @@ community.sharedContent.getList<T>(contentType: string, filter?: SharedContentFi
 community.sharedContent.getNew<T>(contentType: string, instructions: SharedContentObjectRequest, filter?: SharedContentFilter, privateTopic?: boolean): Promise<BasicAssignment<T>>
 community.sharedContent.create<T>(content: SharedContent<T>): Promise<BasicAssignment<T>>
 community.sharedContent.update<T>(id: string, content: Partial<SharedContent<T>>): Promise<BasicAssignment<T>>
+community.sharedContent.remove(id: string): Promise<BasicAssignment<any>>
 community.sharedContent.complete(contentType: string, assignmentId: string): Promise<void>
 ```
 
@@ -859,7 +878,7 @@ interface MyPluginData extends SharedContent<any> {
 
 The SharedContent has this type definition:
 
-````
+```
 export interface SharedContent<T> {
   /** The type/category of the content (e.g. 'grammar_exercises', 'flashcards', etc.) */
   contentType: string;
@@ -996,4 +1015,3 @@ export default App;
 
 ## License
 
-MIT License - see LICENSE file for details.
