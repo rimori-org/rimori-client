@@ -1,3 +1,5 @@
+import { DEFAULT_ENDPOINT } from "../utils/endpoint";
+import { DEFAULT_ANON_KEY } from "../utils/endpoint";
 import { EventBus } from "./fromRimori/EventBus";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
@@ -20,12 +22,11 @@ export class StandaloneClient {
     if (!StandaloneClient.instance) {
       const config = await fetch("http://localhost:3000/config.json").then(res => res.json()).catch(err => {
         console.warn("Error fetching config.json, using default values", err);
-        return {
-          SUPABASE_URL: "https://pheptqdoqsdnadgoihvr.supabase.co",
-          SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoZXB0cWRvcXNkbmFkZ29paHZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE2OTY2ODcsImV4cCI6MjA0NzI3MjY4N30.4GPFAXTF8685FaXISdAPNCIM-H3RGLo8GbyhQpu1mP0",
-        }
       });
-      StandaloneClient.instance = new StandaloneClient({ url: config.SUPABASE_URL, key: config.SUPABASE_ANON_KEY });
+      StandaloneClient.instance = new StandaloneClient({
+        url: config.SUPABASE_URL || DEFAULT_ENDPOINT,
+        key: config.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
+      });
     }
     return StandaloneClient.instance;
   }

@@ -8,6 +8,7 @@ export interface Plugin {
   icon_url: string;
   version: string;
   endpoint: string;
+  release_stage: "alpha" | "beta" | "stable";
   context_menu_actions: MenuEntry[];
   plugin_pages: PluginPage[];
   sidebar_pages: SidebarPage[];
