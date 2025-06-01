@@ -132,11 +132,11 @@ export class RimoriClient {
      * Subscribe to an event.
      * @param topic The topic to subscribe to.
      * @param callback The callback to call when the event is emitted.
-     * @returns The unsubscribe ids.
+     * @returns An EventListener object containing an off() method to unsubscribe the listeners.
      */
     on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>) => {
       const topics = Array.isArray(topic) ? topic : [topic];
-      return topics.map(topic => EventBus.on<T>(this.pluginController.getGlobalEventTopic(topic), callback));
+      return EventBus.on<T>(topics.map(t => this.pluginController.getGlobalEventTopic(t)), callback);
     },
     /**
      * Subscribe to an event once.

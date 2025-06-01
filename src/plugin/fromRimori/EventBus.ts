@@ -130,7 +130,7 @@ export class EventBusHandler {
    * @param topics - The topic of the event.
    * @param handler - The handler to be called when the event is emitted.
    * @param ignoreSender - The senders to ignore.
-   * @returns The ids of the listeners.
+   * @returns An EventListener object containing an off() method to unsubscribe the listeners.
    */
   public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): EventListener {
     const ids = this.toArray(topics).map(topic => {
@@ -163,7 +163,7 @@ export class EventBusHandler {
    * @param sender - The sender of the event.
    * @param topic - The topic of the event.
    * @param handler - The handler to be called when the event is received. The handler returns the data to be emitted. Can be a static object or a function.
-   * @returns The ids of the listeners.
+   * @returns An EventListener object containing an off() method to unsubscribe the listeners.
    */
   public respond(sender: string, topic: string, handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): EventListener {
     const listener = this.on(topic, async (data: EventBusMessage) => {
