@@ -5,6 +5,7 @@ The **@rimori/client** package is a comprehensive React library that enables plu
 ## Table of Contents
 
 - [Installation](#installation)
+- [Releasing Your Plugin to Rimori](#releasing-your-plugin-to-rimori)
 - [Quick Start](#quick-start)
 - [Core API - usePlugin Hook](#core-api---useplugin-hook)
 - [Database Integration](#database-integration)
@@ -24,6 +25,43 @@ npm install @rimori/client
 # or
 yarn add @rimori/client
 ```
+
+## Releasing Your Plugin to Rimori
+
+To publish a new version of your plugin to the Rimori platform, use the CLI script at `rimori-release`. This script uploads your plugin's build output to the Rimori platform.
+
+### Prerequisites
+
+1. **Build your plugin**
+   - Ensure your plugin is built and the output is in the `dist/` directory.
+2. **Set required environment variables**
+   - `RIMORI_TOKEN`: Your Rimori authentication token.
+   - `RIMORI_PLUGIN`: The unique ID of your plugin.
+   - You can set these in your shell or a `.env` file.
+
+### Usage
+
+Run the release script using Node.js:
+
+```bash
+RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release <version> <release_channel>
+```
+- `<version>`: The version number to release (e.g., `1.0.0`).
+- `<release_channel>`: The release channel (e.g., `stable`, `beta`, `alpha`).
+
+**Example:**
+```bash
+RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release 1.0.0 stable
+```
+
+### What the Script Does
+- Scans the `dist/` directory and subdirectories for files to upload.
+- Sends the files to the Rimori release endpoint.
+- Prints the result of the upload (success or error).
+
+### Notes
+- Ensure your `dist/` directory contains all files needed for your plugin to run.
+- If you encounter errors about missing environment variables or unsupported file types, check your setup and file extensions.
 
 ## Quick Start
 

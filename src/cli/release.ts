@@ -6,7 +6,7 @@
  *
  * Environment variables required:
  *   RIMORI_TOKEN      - Your Rimori token
- *   RIMORI_PLUGIN_ID  - Your plugin ID
+ *   RIMORI_PLUGIN  - Your plugin ID
  *
  * Make sure to install dependencies:
  *   npm install node-fetch form-data
@@ -21,8 +21,8 @@ import { DEFAULT_ENDPOINT } from '../utils/endpoint.js';
 
 const RIMORI_TOKEN = process.env.RIMORI_TOKEN;
 if (!RIMORI_TOKEN) throw new Error('RIMORI_TOKEN is not set');
-const PLUGIN_ID = process.env.RIMORI_PLUGIN;
-if (!PLUGIN_ID) throw new Error('RIMORI_PLUGIN_ID is not set');
+const RIMORI_PLUGIN = process.env.RIMORI_PLUGIN;
+if (!RIMORI_PLUGIN) throw new Error('RIMORI_PLUGIN is not set');
 
 /**
  * Upload all files from a directory and its subdirectories to the release function
@@ -49,7 +49,7 @@ async function uploadDirectory(version: string, releaseChannel: string): Promise
     const formData = new FormData();
     formData.append('version', version);
     formData.append('release_channel', releaseChannel);
-    formData.append('plugin_id', PLUGIN_ID);
+    formData.append('plugin_id', RIMORI_PLUGIN);
     formData.append('token', RIMORI_TOKEN);
 
     let fileCount = 0;
@@ -82,7 +82,7 @@ async function uploadDirectory(version: string, releaseChannel: string): Promise
     }
 
     console.log(`🚀 Uploading ${fileCount} files...`);
-    console.log(`Plugin ID: ${PLUGIN_ID}`);
+    console.log(`Plugin ID: ${RIMORI_PLUGIN}`);
     console.log(`Release Channel: ${releaseChannel}`);
     console.log(`Version: ${version}`);
 
