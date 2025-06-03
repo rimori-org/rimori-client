@@ -21,6 +21,7 @@ export interface Plugin {
 
 // browsable page of a plugin
 export interface PluginPage {
+  id: number;
   name: string;
   url: string;
   // Whether the page should be shown in the navbar
@@ -36,6 +37,7 @@ export interface PluginPage {
 
 // a sidebar page of a plugin
 export interface SidebarPage {
+  id: number;
   name: string;
   url: string;
   iconUrl: string;
