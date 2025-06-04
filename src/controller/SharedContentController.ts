@@ -62,7 +62,7 @@ export class SharedContentController {
 
     console.log('fullInstructions:', fullInstructions);
 
-    const instructions = await this.rimoriClient.llm.getObject(fullInstructions);
+    const instructions = await this.rimoriClient.ai.getObject(fullInstructions);
 
     console.log('instructions:', instructions);
 

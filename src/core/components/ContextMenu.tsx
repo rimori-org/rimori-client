@@ -105,7 +105,7 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
         <MenuEntryItem key={index} icon={action.icon} text={action.text} onClick={() => {
           setIsOpen(false);
           window.getSelection()?.removeAllRanges();
-          client.event.emitSidebarAction(action.pluginId, action.actionKey, position.text);
+          client.event.emitSidebarAction(action.plugin_id, action.id, position.text);
         }} />
       ))}
     </div>

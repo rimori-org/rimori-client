@@ -9,4 +9,3 @@ export * from "./components/Spinner";
 export * from "./hooks/UseChatHook";
 export * from "./plugin/ThemeSetter";
 export * from "./providers/PluginProvider";
-export * from "./types/Actions";

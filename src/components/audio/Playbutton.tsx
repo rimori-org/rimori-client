@@ -34,7 +34,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const [speed, setSpeed] = useState(initialSpeed);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { llm } = usePlugin();
+    const { ai } = usePlugin();
 
     useEffect(() => {
         if (!playListenerEvent) return;
@@ -52,7 +52,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const generateAudio = async () => {
         setIsLoading(true);
 
-        const blob = await llm.getVoice(text, voice || (language ? "aws_default" : "openai_alloy"), 1, language);
+        const blob = await ai.getVoice(text, voice || (language ? "aws_default" : "openai_alloy"), 1, language);
         setAudioUrl(URL.createObjectURL(blob));
         setIsLoading(false);
     };

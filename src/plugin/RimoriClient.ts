@@ -204,7 +204,7 @@ export class RimoriClient {
     return this.db.tablePrefix + "_" + type;
   }
 
-  public llm = {
+  public ai = {
     getText: async (messages: Message[], tools?: Tool[]): Promise<string> => {
       const token = await this.pluginController.getToken();
       return generateText(this.supabaseUrl, messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);

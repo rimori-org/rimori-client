@@ -5,5 +5,6 @@ export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
 export * from "./worker/WorkerSetup";
 export * from "./utils/Language";
+export * from "./plugin/fromRimori/PluginTypes";
 export { SharedContent } from "./controller/SharedContentController";
 export { Tool, Message, ToolInvocation, OnLLMResponse } from "./controller/AIController";

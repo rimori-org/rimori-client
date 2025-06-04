@@ -5,10 +5,10 @@ import { usePlugin } from "../providers/PluginProvider";
 export function useChat(tools?: Tool[]) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const { llm } = usePlugin();
+  const { ai } = usePlugin();
 
   const append = (appendMessages: Message[]) => {
-    llm.getSteamedText([...messages, ...appendMessages], (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
+    ai.getSteamedText([...messages, ...appendMessages], (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
       const lastMessage = messages[messages.length - 1];
       setIsLoading(!finished);
 

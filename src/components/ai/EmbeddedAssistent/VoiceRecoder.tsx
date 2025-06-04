@@ -18,7 +18,7 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const { llm } = usePlugin();
+  const { ai: llm } = usePlugin();
 
   // Ref for latest onVoiceRecorded callback
   const onVoiceRecordedRef = useRef(onVoiceRecorded);

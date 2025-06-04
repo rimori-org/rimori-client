@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversation, children, isDarkTheme = false, circleSize = "300px" }: Props) {
-  const { llm, event } = usePlugin();
+  const { ai: llm, event } = usePlugin();
   const [agentReplying, setAgentReplying] = useState(false);
   const [isProcessingMessage, setIsProcessingMessage] = useState(false);
   const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);

@@ -16,7 +16,7 @@ interface Props {
 
 export function AssistantChat({ avatarImageUrl, voiceId, onComplete, autoStartConversation }: Props) {
     const [oralCommunication, setOralCommunication] = React.useState(true);
-    const { llm, event } = usePlugin();
+    const { ai: llm, event } = usePlugin();
     const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);
     const { messages, append, isLoading, setMessages } = useChat();
 
