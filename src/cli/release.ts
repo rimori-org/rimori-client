@@ -2,14 +2,14 @@
 
 /**
  * Usage:
- *   rimori-release <version> <release_channel>
+ *   rimori-release <release_channel>
  *
  * Environment variables required:
  *   RIMORI_TOKEN      - Your Rimori token
  *   RIMORI_PLUGIN  - Your plugin ID
  *
  * Make sure to install dependencies:
- *   npm install node-fetch form-data
+ *   npm install node-fetch form-data ts-node typescript
  */
 
 import 'dotenv/config';
@@ -19,6 +19,15 @@ import fetch from 'node-fetch';
 import path from 'path';
 import { DEFAULT_ENDPOINT } from '../utils/endpoint.js';
 
+// Read version from package.json
+const packageJsonPath = path.resolve('./package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const VERSION = packageJson.version;
+
+if (!VERSION) {
+  throw new Error('Version not found in package.json');
+}
+
 const RIMORI_TOKEN = process.env.RIMORI_TOKEN;
 if (!RIMORI_TOKEN) throw new Error('RIMORI_TOKEN is not set');
 const RIMORI_PLUGIN = process.env.RIMORI_PLUGIN;
@@ -26,10 +35,9 @@ if (!RIMORI_PLUGIN) throw new Error('RIMORI_PLUGIN is not set');
 
 /**
  * Upload all files from a directory and its subdirectories to the release function
- * @param version - Version of the plugin
  * @param releaseChannel - Release channel of the plugin
  */
-async function uploadDirectory(version: string, releaseChannel: string): Promise<void> {
+async function uploadDirectory(releaseChannel: string): Promise<void> {
   const relativePath = './dist';
   try {
     const absolutePath = path.resolve(relativePath);
@@ -47,7 +55,7 @@ async function uploadDirectory(version: string, releaseChannel: string): Promise
     }
 
     const formData = new FormData();
-    formData.append('version', version);
+    formData.append('version', VERSION);
     formData.append('release_channel', releaseChannel);
     formData.append('plugin_id', RIMORI_PLUGIN);
     formData.append('token', RIMORI_TOKEN);
@@ -64,7 +72,7 @@ async function uploadDirectory(version: string, releaseChannel: string): Promise
           const relativeFilePath = path.relative(absolutePath, fullPath);
           const fileKey = `file_${relativeFilePath.replace(/[\\/]/g, '___')}`;
           console.log(`📄 Preparing file for upload: ${relativeFilePath}`);
-          
+
           const fileContent = await fs.promises.readFile(fullPath);
           formData.append(fileKey, fileContent, {
             filename: relativeFilePath,
@@ -84,7 +92,7 @@ async function uploadDirectory(version: string, releaseChannel: string): Promise
     console.log(`🚀 Uploading ${fileCount} files...`);
     console.log(`Plugin ID: ${RIMORI_PLUGIN}`);
     console.log(`Release Channel: ${releaseChannel}`);
-    console.log(`Version: ${version}`);
+    console.log(`Version: ${VERSION}`);
 
     const response = await fetch(`${DEFAULT_ENDPOINT}/functions/v1/release`, {
       method: 'POST',
@@ -145,10 +153,10 @@ function getContentType(filePath: string): string {
 }
 
 const args = process.argv.slice(2);
-const [version, releaseChannel] = args;
-if (!version || !releaseChannel) {
-  console.error('Usage: rimori-release <version> <release_channel>');
+const [releaseChannel] = args;
+if (!releaseChannel) {
+  console.error('Usage: rimori-release <release_channel>');
   process.exit(1);
 }
 
-uploadDirectory(version, releaseChannel);
+uploadDirectory(releaseChannel);
