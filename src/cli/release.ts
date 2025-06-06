@@ -17,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { sendConfiguration } from './release-components/release-push.js';
 import { uploadDirectory } from './release-components/file-upload.js';
+import dbUpdate from './release-components/db-update.js';
 
 // Read version from package.json
 const packageJson = JSON.parse(fs.readFileSync(path.resolve('./package.json'), 'utf8'));
@@ -49,11 +50,14 @@ export type Config = typeof config;
  */
 async function releaseProcess(releaseChannel: string): Promise<void> {
   try {
+    console.log(`🚀 Releasing ${config.plugin_id} to ${config.release_channel}...`);
     // First send the configuration
-    await sendConfiguration(config);
+    const release_id = await sendConfiguration(config);
+
+    await dbUpdate(config, release_id);
 
     // Then upload the files
-    await uploadDirectory(config);
+    await uploadDirectory(config, release_id);
   } catch (error: any) {
     console.error('❌ Release process failed:', error.message);
     process.exit(1);

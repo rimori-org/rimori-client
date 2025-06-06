@@ -6,7 +6,7 @@ import { Config } from '../release.js';
  * Upload all files from a directory and its subdirectories to the release function
  * @param config - Configuration object
  */
-export async function uploadDirectory(config: Config): Promise<void> {
+export async function uploadDirectory(config: Config, release_id: string): Promise<void> {
   const relativePath = './dist';
 
   console.log(`📁 Uploading files from ${relativePath}...`);
@@ -34,6 +34,7 @@ export async function uploadDirectory(config: Config): Promise<void> {
   // Add version and release channel data
   formData.append('version', config.version);
   formData.append('release_channel', config.release_channel);
+  formData.append('plugin_id', config.plugin_id);
 
   // Create path mapping with IDs as keys
   const pathMapping: Record<string, string> = {};
@@ -68,7 +69,7 @@ export async function uploadDirectory(config: Config): Promise<void> {
 
   // Upload to the release endpoint
   try {
-    const response = await fetch(`${config.domain}/release/${config.plugin_id}/files`, {
+    const response = await fetch(`${config.domain}/release/${release_id}/files`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${config.token}` },
       body: formData,

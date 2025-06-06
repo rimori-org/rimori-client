@@ -7,3 +7,4 @@ export * from "./providers/PluginProvider";
 export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
 export * from "./plugin/PluginController";
+export * from "./types/DatabaseTypes";

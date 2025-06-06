@@ -7,7 +7,7 @@ import { Config } from '../release.js';
  * Read and send the rimori configuration to the release endpoint
  * @param config - Configuration object
  */
-export async function sendConfiguration(config: Config): Promise<void> {
+export async function sendConfiguration(config: Config): Promise<string> {
   const configPath = path.resolve('./rimori/rimori.config.ts');
 
   // Check if config file exists
@@ -53,8 +53,6 @@ export async function sendConfiguration(config: Config): Promise<void> {
     }
 
     console.log(`🚀 Sending configuration...`);
-    console.log(`Plugin ID: ${config.plugin_id}`);
-    console.log(`Release Channel: ${config.release_channel}`);
 
     const requestBody = {
       config: configObject,
@@ -78,6 +76,7 @@ export async function sendConfiguration(config: Config): Promise<void> {
     const responseData = JSON.parse(responseText);
     if (response.ok) {
       console.log('✅ Configuration deployed successfully!');
+      return responseData.release_id;
     } else {
       console.log('❌ Configuration failed!');
       console.log('Error:', responseData.error || 'Unknown error');
