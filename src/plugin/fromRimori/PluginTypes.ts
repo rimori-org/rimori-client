@@ -81,7 +81,7 @@ export interface RimoriPluginConfig {
     /** relative or absolute URL or path to the plugin's logo/icon image */
     logo: string;
     /** Optional website URL for the plugin's homepage or link to plugins owner for contributions */
-    website?: URL;
+    website?: string;
   }
   /**
    * Configuration for different types of pages.
