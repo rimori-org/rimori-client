@@ -93,3 +93,20 @@ export async function sendConfiguration(config: Config): Promise<string> {
     throw error;
   }
 }
+
+export async function releasePlugin(config: Config, release_id: string): Promise<void> {
+  const response = await fetch(`${config.domain}/release/${release_id}/release`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.token}`
+    },
+    body: JSON.stringify({plugin_id: config.plugin_id})
+  });
+
+  if (!response.ok) {
+    console.log("Response:", await response.text());
+    throw new Error("Failed to release plugin");
+  }
+  console.log("✅ Plugin released successfully");
+}

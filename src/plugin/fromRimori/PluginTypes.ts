@@ -38,12 +38,12 @@ export interface SidebarPage {
 
 // context menu entry being configured in the plugin configuration
 export interface MenuEntry {
-  // identifier of the menu entry. Used to know which entry to trigger when clicking on the context menu
-  id: string;
-  // text of the menu entry. Shown in the context menu
-  text: string;
   // id of the plugin that the menu entry belongs to
   plugin_id: string;
+  // identifier of the menu entry action. Used to know which entry to trigger when clicking on the context menu
+  action_key: string;
+  // text of the menu entry. Shown in the context menu
+  text: string;
   // icon of the menu entry. Shown in the context menu
   icon?: React.ReactNode;
 }
@@ -116,7 +116,7 @@ export interface RimoriPluginConfig {
   /**
    * Configuration for the plugin's web worker if it uses background processing or exposes actions to other plugins.
    */
-  worker: {
+  worker?: {
     /** Relative path to the web worker JavaScript file. Mostly it's 'web-worker.js' which is located in the public folder. */
     url: string;
     /** Optional array of event topics the worker should listen to in addition to events having the pluginId in the topic. Can be a wildcard. Example: 'global.topic.*' or 'pluginId.*' */

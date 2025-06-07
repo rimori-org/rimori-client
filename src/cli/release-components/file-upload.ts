@@ -9,7 +9,7 @@ import { Config } from '../release.js';
 export async function uploadDirectory(config: Config, release_id: string): Promise<void> {
   const relativePath = './dist';
 
-  console.log(`📁 Uploading files from ${relativePath}...`);
+  console.log(`📁 Preparing to upload files from ${relativePath}...`);
 
   // Check if dist directory exists
   try {
@@ -17,7 +17,6 @@ export async function uploadDirectory(config: Config, release_id: string): Promi
   } catch (e) {
     throw new Error(`Directory ${relativePath} does not exist. Make sure to build your plugin first.`);
   }
-
   // Get all files recursively
   const files = await getAllFiles(relativePath);
 

@@ -8,3 +8,5 @@ export * from "./utils/Language";
 export * from "./plugin/fromRimori/PluginTypes";
 export { SharedContent } from "./controller/SharedContentController";
 export { Tool, Message, ToolInvocation, OnLLMResponse } from "./controller/AIController";
+export { EventBusMessage } from "./plugin/fromRimori/EventBus";
+export { MacroAccomplishmentPayload } from "./plugin/AccomplishmentHandler";
