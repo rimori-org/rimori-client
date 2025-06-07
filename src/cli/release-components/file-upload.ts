@@ -130,6 +130,7 @@ function getContentType(filePath: string): string {
     wav: 'audio/wav',
     ogg: 'audio/ogg',
     m4a: 'audio/mp4',
+    webp: 'image/webp',
   };
   const contentType = contentTypes[ext || ''];
   if (!contentType) throw new Error(`Unsupported file type: ${ext}`);
