@@ -68,24 +68,19 @@ export async function uploadDirectory(config: Config, release_id: string): Promi
   formData.append('path_mapping', JSON.stringify(pathMapping));
 
   // Upload to the release endpoint
-  try {
-    const response = await fetch(`${config.domain}/release/${release_id}/files`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${config.token}` },
-      body: formData,
-    });
+  const response = await fetch(`${config.domain}/release/${release_id}/files`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${config.token}` },
+    body: formData,
+  });
 
-    if (response.ok) {
-      console.log('✅ Files uploaded successfully!');
-    } else {
-      const errorText = await response.text();
-      console.log('❌ File upload failed!');
-      console.log('Response:', errorText);
-      throw new Error(`File upload failed with status ${response.status}`);
-    }
-  } catch (error: any) {
-    console.error('❌ Error uploading files:', error.message);
-    throw error;
+  if (response.ok) {
+    console.log('✅ Files uploaded successfully!');
+  } else {
+    const errorText = await response.text();
+    console.log('❌ File upload failed!');
+    console.log('Response:', errorText);
+    throw new Error(`File upload failed with status ${response.status}`);
   }
 }
 

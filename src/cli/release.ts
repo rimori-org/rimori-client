@@ -59,7 +59,6 @@ async function releaseProcess(releaseChannel: string): Promise<void> {
     // Then upload the files
     await uploadDirectory(config, release_id);
   } catch (error: any) {
-    console.error('❌ Release process failed:', error.message);
     process.exit(1);
   }
 }

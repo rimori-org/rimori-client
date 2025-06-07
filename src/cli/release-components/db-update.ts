@@ -69,18 +69,26 @@ export default async function dbUpdate(config: Config, release_id: string): Prom
         'Authorization': `Bearer ${config.token}`
       },
       body: JSON.stringify(requestBody),
+    }).catch((e) => {
+      console.log("error", e);
+      throw new Error("Error sending database configuration");
     });
+    try {
+      const responseText = await response.text().catch((e) => {
+        console.log("error", e);
+        throw new Error("Error sending database configuration");
+      });
 
-    const responseText = await response.text();
-
-    const responseData = JSON.parse(responseText);
-    if (response.ok) {
-      console.log('✅ Database configuration deployed successfully!');
-    } else {
-      console.log('❌ Database configuration failed!');
-      console.log('Error:', responseData.error || 'Unknown error');
-      console.log('Response data:', JSON.stringify(responseData, null, 2));
-      throw new Error('Database configuration upload failed');
+      const responseData = JSON.parse(responseText);
+      if (response.ok) {
+        console.log('✅ Database configuration deployed successfully!');
+      } else {
+        console.log("responseData", responseData);
+        throw new Error(responseData.message);
+      }
+    } catch (e) {
+      console.log("error", e);
+      throw new Error("Error sending database configuration");
     }
   } catch (error: any) {
     console.error('❌ Error sending database configuration:', error.message);

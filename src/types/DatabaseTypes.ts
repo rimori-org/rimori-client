@@ -37,10 +37,12 @@ export interface DbColumnDefinition {
   // enum?: string[];
   /** Foreign key relationship configuration */
   foreign_key?: ForeignKeyRelation;
-  /** The name of the column before it was renamed */
+  /** The name of the column before it was renamed. */
   old_name?: string;
   /** Whether the column is deprecated. The column gets renamed to column_name_old. To fully remove the column, first set deprecated to true and then after a release, remove the column from the table definition. */
   deprecated?: boolean;
+  /** Whether the column is a primary key */
+  // primary_key?: boolean;
 }
 
 /**

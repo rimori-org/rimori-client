@@ -61,6 +61,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
       release_channel: config.release_channel,
     };
 
+    try{
     const response = await fetch(`${config.domain}/release`, {
       method: 'POST',
       headers: {
@@ -83,6 +84,10 @@ export async function sendConfiguration(config: Config): Promise<string> {
       console.log('Response data:', JSON.stringify(responseData, null, 2));
       throw new Error('Configuration upload failed');
     }
+  } catch (e) {
+    console.log("error", e);
+    throw new Error("Error sending configuration");
+  }
   } catch (error: any) {
     console.error('❌ Error sending configuration:', error.message);
     throw error;
