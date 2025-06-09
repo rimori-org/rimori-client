@@ -9,15 +9,8 @@ import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceControll
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
 import { Plugin } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
-import { PluginController } from "./PluginController";
+import { PluginController, RimoriInfo } from "./PluginController";
 
-interface RimoriClientOptions {
-  pluginController: PluginController;
-  supabase: SupabaseClient;
-  tablePrefix: string;
-  pluginId: string;
-  installedPlugins: Plugin[];
-}
 
 interface Db {
   from: {
@@ -66,18 +59,20 @@ export class RimoriClient {
   private sharedContentController: SharedContentController;
   private accomplishmentHandler: AccomplishmentHandler;
   private supabaseUrl: string;
+  private installedPlugins: Plugin[];
+  private profile: UserInfo;
   public db: Db;
   public plugin: PluginInterface;
-  public installedPlugins: Plugin[];
 
-  private constructor(options: RimoriClientOptions) {
-    this.superbase = options.supabase;
-    this.pluginController = options.pluginController;
-    this.settingsController = new SettingsController(options.supabase, options.pluginId);
+  private constructor(supabase: SupabaseClient, info: RimoriInfo, pluginController: PluginController) {
+    this.superbase = supabase;
+    this.pluginController = pluginController;
+    this.settingsController = new SettingsController(supabase, info.pluginId);
     this.sharedContentController = new SharedContentController(this.superbase, this);
     this.supabaseUrl = this.pluginController.getSupabaseUrl();
-    this.accomplishmentHandler = new AccomplishmentHandler(options.pluginId);
-    this.installedPlugins = options.installedPlugins;
+    this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
+    this.installedPlugins = info.installedPlugins;
+    this.profile = info.profile;
 
     this.from = this.from.bind(this);
 
@@ -85,11 +80,11 @@ export class RimoriClient {
       from: this.from,
       storage: this.superbase.storage,
       // functions: this.superbase.functions,
-      tablePrefix: options.tablePrefix,
+      tablePrefix: info.tablePrefix,
       getTableName: this.getTableName.bind(this),
     }
     this.plugin = {
-      pluginId: options.pluginId,
+      pluginId: info.pluginId,
       setSettings: async (settings: any) => {
         await this.settingsController.setSettings(settings);
       },
@@ -100,7 +95,7 @@ export class RimoriClient {
         return this.installedPlugins;
       },
       getUserInfo: async (): Promise<UserInfo> => {
-        return this.settingsController.getUserInfo();
+        return this.profile;
       }
     }
   }
@@ -184,8 +179,8 @@ export class RimoriClient {
 
   public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
-      const { supabase, tablePrefix, pluginId, installedPlugins } = await pluginController.getClient();
-      RimoriClient.instance = new RimoriClient({ pluginController, supabase, tablePrefix, pluginId, installedPlugins });
+      const client = await pluginController.getClient();
+      RimoriClient.instance = new RimoriClient(client.supabase, client.info, pluginController);
     }
     return RimoriClient.instance;
   }

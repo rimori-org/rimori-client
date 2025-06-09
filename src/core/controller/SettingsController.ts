@@ -43,32 +43,6 @@ export class SettingsController {
     await this.supabase.from("plugin_settings").upsert({ plugin_id: this.pluginId, settings });
   }
 
-  public async getUserInfo(): Promise<UserInfo> {
-    const { data } = await this.supabase.from("profiles").select("*");
-
-    if (!data || data.length === 0) {
-      return {
-        mother_tongue: "en",
-        skill_level_listening: "Pre-A1",
-        skill_level_reading: "Pre-A1",
-        skill_level_speaking: "Pre-A1",
-        skill_level_writing: "Pre-A1",
-        skill_level_understanding: "Pre-A1",
-        skill_level_grammar: "Pre-A1",
-        goal_longterm: "",
-        goal_weekly: "",
-        study_buddy: "clarence",
-        story_genre: "adventure",
-        study_duration: 30,
-        motivation_type: "self-motivated",
-        onboarding_completed: false,
-        context_menu_on_select: false,
-      }
-    }
-
-    return data[0].settings;
-  }
-
   /**
    * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
    * @param defaultSettings The default settings to use if no settings are found.

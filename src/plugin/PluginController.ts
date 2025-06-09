@@ -1,14 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { UserInfo } from '../core/controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
+import { Plugin } from '../fromRimori/PluginTypes';
 import { RimoriClient } from "./RimoriClient";
 import { StandaloneClient } from './StandaloneClient';
 import { setTheme } from './ThemeSetter';
-import { Plugin } from '../fromRimori/PluginTypes';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
 
-interface SupabaseInfo {
+export interface RimoriInfo {
   url: string,
   key: string,
   token: string,
@@ -16,6 +17,7 @@ interface SupabaseInfo {
   tablePrefix: string,
   pluginId: string
   installedPlugins: Plugin[]
+  profile: UserInfo
 }
 
 export class PluginController {
@@ -23,7 +25,7 @@ export class PluginController {
   private static instance: PluginController;
   private communicationSecret: string | null = null;
   private supabase: SupabaseClient | null = null;
-  private supabaseInfo: SupabaseInfo | null = null;
+  private rimoriInfo: RimoriInfo | null = null;
   private pluginId: string;
 
   private constructor(pluginId: string, standalone: boolean) {
@@ -80,47 +82,47 @@ export class PluginController {
     return this.communicationSecret;
   }
 
-  public async getClient(): Promise<{ supabase: SupabaseClient, tablePrefix: string, pluginId: string, installedPlugins: Plugin[] }> {
+  public async getClient(): Promise<{ supabase: SupabaseClient, info: RimoriInfo }> {
     if (
       this.supabase &&
-      this.supabaseInfo &&
-      this.supabaseInfo.expiration > new Date()
+      this.rimoriInfo &&
+      this.rimoriInfo.expiration > new Date()
     ) {
-      return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId, installedPlugins: this.supabaseInfo.installedPlugins };
+      return { supabase: this.supabase, info: this.rimoriInfo };
     }
 
-    const { data } = await EventBus.request<SupabaseInfo>(this.pluginId, "global.supabase.requestAccess");
-    this.supabaseInfo = data;
-    this.supabase = createClient(this.supabaseInfo.url, this.supabaseInfo.key, {
+    const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
+    this.rimoriInfo = data;
+    this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
       accessToken: () => Promise.resolve(this.getToken())
     });
 
-    return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId, installedPlugins: this.supabaseInfo.installedPlugins };
+    return { supabase: this.supabase, info: this.rimoriInfo };
   }
 
   public async getToken() {
-    if (this.supabaseInfo && this.supabaseInfo.expiration && this.supabaseInfo.expiration > new Date()) {
-      return this.supabaseInfo.token;
+    if (this.rimoriInfo && this.rimoriInfo.expiration && this.rimoriInfo.expiration > new Date()) {
+      return this.rimoriInfo.token;
     }
 
     const { data } = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
 
-    if (!this.supabaseInfo) {
+    if (!this.rimoriInfo) {
       throw new Error("Supabase info not found");
     }
 
-    this.supabaseInfo.token = data.token;
-    this.supabaseInfo.expiration = data.expiration;
+    this.rimoriInfo.token = data.token;
+    this.rimoriInfo.expiration = data.expiration;
 
-    return this.supabaseInfo.token;
+    return this.rimoriInfo.token;
   }
 
   public getSupabaseUrl() {
-    if (!this.supabaseInfo) {
+    if (!this.rimoriInfo) {
       throw new Error("Supabase info not found");
     }
 
-    return this.supabaseInfo.url;
+    return this.rimoriInfo.url;
   }
 
   public getGlobalEventTopic(preliminaryTopic: string) {
@@ -140,7 +142,7 @@ export class PluginController {
       throw new Error(`The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`);
     }
 
-    const topicRoot = this.supabaseInfo?.pluginId ?? "global";
+    const topicRoot = this.rimoriInfo?.pluginId ?? "global";
     return `${topicRoot}.${preliminaryTopic}`;
   }
 
