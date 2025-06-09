@@ -1,6 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { LanguageLevel } from "../utils/difficultyConverter";
-import { Language } from "../utils/Language";
+import { LanguageLevel } from "../../utils/difficultyConverter";
+import { Language } from "../../utils/Language";
 
 export interface UserInfo {
   skill_level_reading: LanguageLevel;

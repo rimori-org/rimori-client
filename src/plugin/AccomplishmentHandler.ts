@@ -1,4 +1,4 @@
-import { EventBus, EventBusMessage } from "./fromRimori/EventBus";
+import { EventBus, EventBusMessage } from "../fromRimori/EventBus";
 
 export type AccomplishmentMessage = EventBusMessage<MicroAccomplishmentPayload>;
 

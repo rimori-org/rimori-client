@@ -1,15 +1,14 @@
 import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
-import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../controller/AIController";
-import { generateObject as generateObjectFunction, ObjectRequest } from "../controller/ObjectController";
-import { SettingsController, UserInfo } from "../controller/SettingsController";
-import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../controller/SharedContentController";
-import { getPlugins } from "../controller/SidePluginController";
-import { getSTTResponse, getTTSResponse } from "../controller/VoiceController";
+import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../core/controller/AIController";
+import { generateObject as generateObjectFunction, ObjectRequest } from "../core/controller/ObjectController";
+import { SettingsController, UserInfo } from "../core/controller/SettingsController";
+import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
+import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
+import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
+import { Plugin } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
-import { EventBus, EventBusMessage, EventHandler, EventPayload } from "./fromRimori/EventBus";
-import { Plugin } from "./fromRimori/PluginTypes";
 import { PluginController } from "./PluginController";
 
 interface RimoriClientOptions {
@@ -17,6 +16,7 @@ interface RimoriClientOptions {
   supabase: SupabaseClient;
   tablePrefix: string;
   pluginId: string;
+  installedPlugins: Plugin[];
 }
 
 interface Db {
@@ -68,6 +68,7 @@ export class RimoriClient {
   private supabaseUrl: string;
   public db: Db;
   public plugin: PluginInterface;
+  public installedPlugins: Plugin[];
 
   private constructor(options: RimoriClientOptions) {
     this.superbase = options.supabase;
@@ -76,6 +77,7 @@ export class RimoriClient {
     this.sharedContentController = new SharedContentController(this.superbase, this);
     this.supabaseUrl = this.pluginController.getSupabaseUrl();
     this.accomplishmentHandler = new AccomplishmentHandler(options.pluginId);
+    this.installedPlugins = options.installedPlugins;
 
     this.from = this.from.bind(this);
 
@@ -95,7 +97,7 @@ export class RimoriClient {
         return await this.settingsController.getSettings<T>(defaultSettings);
       },
       getInstalled: async (): Promise<Plugin[]> => {
-        return getPlugins(this.superbase);
+        return this.installedPlugins;
       },
       getUserInfo: async (): Promise<UserInfo> => {
         return this.settingsController.getUserInfo();
@@ -182,8 +184,8 @@ export class RimoriClient {
 
   public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
-      const { supabase, tablePrefix, pluginId } = await pluginController.getClient();
-      RimoriClient.instance = new RimoriClient({ pluginController, supabase, tablePrefix, pluginId });
+      const { supabase, tablePrefix, pluginId, installedPlugins } = await pluginController.getClient();
+      RimoriClient.instance = new RimoriClient({ pluginController, supabase, tablePrefix, pluginId, installedPlugins });
     }
     return RimoriClient.instance;
   }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaPlayCircle, FaStopCircle } from "react-icons/fa";
 import { usePlugin } from "../../providers/PluginProvider";
 import { Spinner } from '../Spinner';
-import { EventBus } from '../../plugin/fromRimori/EventBus';
+import { EventBus } from '../../fromRimori/EventBus';
 
 type AudioPlayerProps = {
     text: string;

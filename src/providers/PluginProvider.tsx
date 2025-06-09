@@ -1,8 +1,8 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { PluginController } from '../plugin/PluginController';
 import { RimoriClient } from '../plugin/RimoriClient';
-import { EventBusHandler } from '../plugin/fromRimori/EventBus';
-import ContextMenu from '../core/components/ContextMenu';
+import { EventBusHandler } from '../fromRimori/EventBus';
+import ContextMenu from '../components/components/ContextMenu';
 import { StandaloneClient } from '../plugin/StandaloneClient';
 
 interface PluginProviderProps {

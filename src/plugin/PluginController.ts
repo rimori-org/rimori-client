@@ -1,8 +1,9 @@
-import { AuthSessionMissingError, createClient, SupabaseClient } from '@supabase/supabase-js';
-import { EventBus, EventBusMessage } from './fromRimori/EventBus';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { RimoriClient } from "./RimoriClient";
-import { setTheme } from './ThemeSetter';
 import { StandaloneClient } from './StandaloneClient';
+import { setTheme } from './ThemeSetter';
+import { Plugin } from '../fromRimori/PluginTypes';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
@@ -14,6 +15,7 @@ interface SupabaseInfo {
   expiration: Date,
   tablePrefix: string,
   pluginId: string
+  installedPlugins: Plugin[]
 }
 
 export class PluginController {
@@ -34,7 +36,7 @@ export class PluginController {
 
     //no need to forward messages to parent in standalone mode
     if (standalone) return;
-    
+
     window.addEventListener("message", (event) => {
       // console.log("client: message received", event);
       const { topic, sender, data, eventId } = event.data.event as EventBusMessage;
@@ -78,13 +80,13 @@ export class PluginController {
     return this.communicationSecret;
   }
 
-  public async getClient(): Promise<{ supabase: SupabaseClient, tablePrefix: string, pluginId: string }> {
+  public async getClient(): Promise<{ supabase: SupabaseClient, tablePrefix: string, pluginId: string, installedPlugins: Plugin[] }> {
     if (
       this.supabase &&
       this.supabaseInfo &&
       this.supabaseInfo.expiration > new Date()
     ) {
-      return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId };
+      return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId, installedPlugins: this.supabaseInfo.installedPlugins };
     }
 
     const { data } = await EventBus.request<SupabaseInfo>(this.pluginId, "global.supabase.requestAccess");
@@ -93,7 +95,7 @@ export class PluginController {
       accessToken: () => Promise.resolve(this.getToken())
     });
 
-    return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId };
+    return { supabase: this.supabase, tablePrefix: this.supabaseInfo.tablePrefix, pluginId: this.supabaseInfo.pluginId, installedPlugins: this.supabaseInfo.installedPlugins };
   }
 
   public async getToken() {

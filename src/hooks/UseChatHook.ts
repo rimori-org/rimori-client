@@ -1,5 +1,5 @@
 import React from "react";
-import { Message, Tool, ToolInvocation } from "../controller/AIController";
+import { Message, Tool, ToolInvocation } from "../core/controller/AIController";
 import { usePlugin } from "../providers/PluginProvider";
 
 export function useChat(tools?: Tool[]) {

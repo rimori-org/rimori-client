@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { EventBus } from "../../plugin/fromRimori/EventBus";
+import { EventBus } from "../../fromRimori/EventBus";
 import { RimoriClient } from "../../plugin/RimoriClient";
-import { MenuEntry } from "../../plugin/fromRimori/PluginTypes";
+import { MenuEntry } from "../../fromRimori/PluginTypes";
 
 export interface Position {
   x: number,

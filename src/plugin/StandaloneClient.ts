@@ -1,7 +1,6 @@
-import { DEFAULT_ENDPOINT } from "../utils/endpoint";
-import { DEFAULT_ANON_KEY } from "../utils/endpoint";
-import { EventBus } from "./fromRimori/EventBus";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { EventBus } from "../fromRimori/EventBus";
+import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from "../utils/endpoint";
 
 export interface StandaloneConfig {
   url: string,

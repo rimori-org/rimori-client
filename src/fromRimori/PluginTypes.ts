@@ -2,6 +2,7 @@
 export type Plugin = RimoriPluginConfig & {
   version: string;
   endpoint: string;
+  assetEndpoint: string;
   release_channel: "alpha" | "beta" | "stable";
 }
 
