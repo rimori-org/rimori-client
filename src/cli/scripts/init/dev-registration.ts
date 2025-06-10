@@ -24,10 +24,55 @@ export async function askForCredentials(): Promise<UserCredentials> {
 
   return new Promise((resolve) => {
     rl.question('Enter your email: ', (email) => {
-      rl.question('Enter your password: ', (password) => {
-        rl.close();
-        resolve({ email: email.trim(), password: password.trim() });
+      rl.close();
+
+      // Create a new interface for password input with muted output
+      const passwordRl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: false
       });
+
+      process.stdout.write('Enter your password: ');
+
+      // Set up stdin for raw input
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+
+      let password = '';
+
+      const onData = (buffer: Buffer) => {
+        const char = buffer.toString('utf8');
+
+        if (char === '\r' || char === '\n') {
+          // Enter pressed
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+          process.stdin.removeListener('data', onData);
+          process.stdout.write('\n');
+          passwordRl.close();
+          resolve({ email: email.trim(), password: password.trim() });
+        } else if (char === '\u0003') {
+          // Ctrl+C
+          process.stdin.setRawMode(false);
+          process.stdin.pause();
+          process.stdin.removeListener('data', onData);
+          process.stdout.write('\n');
+          process.exit(0);
+        } else if (char === '\u007f' || char === '\b') {
+          // Backspace
+          if (password.length > 0) {
+            password = password.slice(0, -1);
+            process.stdout.write('\b \b');
+          }
+        } else if (char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126) {
+          // Printable characters
+          password += char;
+          process.stdout.write('*');
+        }
+      };
+
+      process.stdin.on('data', onData);
     });
   });
 }
