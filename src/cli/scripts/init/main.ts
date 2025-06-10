@@ -8,9 +8,10 @@ import {
   authenticateWithSupabase,
   registerDeveloper,
 } from './dev-registration.js';
-import { copyPluginFiles } from './file-operations.js';
 import { setupEnvFile, updateGitignore } from './env-setup.js';
-import {  updatePackageJson,  type PackageJson} from './package-setup.js';
+import { copyPluginFiles } from './file-operations.js';
+import { updatePackageJson, type PackageJson } from './package-setup.js';
+import { updateViteConfigBase } from './vite-config.js';
 
 /**
  * Main function that handles the complete plugin setup flow.
@@ -19,7 +20,7 @@ async function main(): Promise<void> {
   try {
     // Check for --upgrade flag
     const isUpgrade = process.argv.includes('--upgrade');
-    
+
     if (isUpgrade) {
       console.log('🔄 Starting Rimori Plugin Upgrade...');
     } else {
@@ -67,6 +68,8 @@ async function main(): Promise<void> {
 
       // Update gitignore
       updateGitignore();
+
+
     } else {
       // Step 1: Get user credentials
       const credentials = await askForCredentials();
@@ -99,6 +102,15 @@ async function main(): Promise<void> {
 
       // Step 8: Update gitignore
       updateGitignore();
+    }
+
+    // Setup vite config base
+    try {
+      console.log('Updating vite config base...');
+      updateViteConfigBase();
+      console.log('✅ Vite config base updated');
+    } catch (error) {
+      console.warn(`Warning: Could not update vite.config.ts base property: ${error instanceof Error ? error.message : error}`);
     }
 
     console.log('');
