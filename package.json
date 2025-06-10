@@ -4,8 +4,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "rimori-release": "./dist/cli/release.js",
-    "rimori-init": "./dist/cli/init/init-script.js"
+    "rimori-release": "./dist/cli/scripts/release/release.js",
+    "rimori-init": "./dist/cli/scripts/init/main.js"
   },
   "type": "module",
   "exports": {
