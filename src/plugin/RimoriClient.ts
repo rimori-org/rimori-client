@@ -173,7 +173,7 @@ export class RimoriClient {
      * @param text Optional text to be used for the action like for example text that the translator would look up.
      */
     emitSidebarAction: (pluginId: string, actionKey: string, text?: string) => {
-      this.event.emit("global.sidebar.triggerAction", { pluginId, actionKey, text });
+      this.event.emit("global.sidebar.triggerAction", { plugin_id: pluginId, action_key: actionKey, text });
     }
   }
 
