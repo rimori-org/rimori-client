@@ -14,7 +14,7 @@ export interface PluginPage {
   // Whether the page should be shown in the navbar
   show: boolean;
   description: string;
-  root: "vocabulary" | "grammar" | "reading" | "listening" | "writing" | "speaking" | "other" | "community";
+  root: "vocabulary" | "grammar" | "reading" | "listening"|"watching" | "writing" | "speaking" | "other" | "community";
   // The actions that can be triggered in the plugin
   // The key is the action key. The other entries are additional properties needed when triggering the action
   action?: {
