@@ -44,15 +44,15 @@ To publish a new version of your plugin to the Rimori platform, use the CLI scri
 Run the release script using Node.js:
 
 ```bash
-RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release <version> <release_channel>
+RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release <release_channel>
 ```
-- `<version>`: The version number to release (e.g., `1.0.0`).
 - `<release_channel>`: The release channel (e.g., `stable`, `beta`, `alpha`).
 
 **Example:**
 ```bash
-RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release 1.0.0 stable
+RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release stable
 ```
+The version gets picked from package.json
 
 ### What the Script Does
 - Scans the `dist/` directory and subdirectories for files to upload.
@@ -92,7 +92,7 @@ export default App;
 
 ### TailwindCSS Configuration
 
-Add the library to your `tailwind.config.js`:
+Add the library to your `tailwind.config.ts`:
 
 ```javascript
 export default {

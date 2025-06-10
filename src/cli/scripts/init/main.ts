@@ -10,9 +10,10 @@ import {
 } from './dev-registration.js';
 import { setupEnvFile, updateGitignore } from './env-setup.js';
 import { copyPluginFiles } from './file-operations.js';
-import { updatePackageJson, type PackageJson } from './package-setup.js';
-import { updateViteConfigBase } from './vite-config.js';
 import { cleanHtmlMetaTags } from './html-cleaner.js';
+import { updatePackageJson, type PackageJson } from './package-setup.js';
+import { updateTailwindConfig } from './tailwind-config.js';
+import { updateViteConfigBase } from './vite-config.js';
 
 /**
  * Main function that handles the complete plugin setup flow.
@@ -117,6 +118,9 @@ async function main(): Promise<void> {
     // Clean meta tags from index.html after vite adaptation
     cleanHtmlMetaTags();
     console.log('✅ Meta tags cleaned from index.html');
+
+    // Update Tailwind CSS configuration
+    updateTailwindConfig();
 
     console.log('');
     console.log('✅ Plugin ' + (isUpgrade ? 'upgrade' : 'setup') + ' completed successfully!');
