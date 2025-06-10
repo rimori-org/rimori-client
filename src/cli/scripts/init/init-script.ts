@@ -6,7 +6,7 @@ import * as path from 'path';
 import { dirname } from 'path';
 import * as readline from 'readline';
 import { fileURLToPath } from 'url';
-import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from '../../utils/endpoint.js';
+import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from '../../../utils/endpoint.js';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);

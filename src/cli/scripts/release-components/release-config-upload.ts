@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
-import { Config } from '../release.js';
+import { Config } from './release.js';
 
 /**
  * Read and send the rimori configuration to the release endpoint
@@ -61,33 +61,33 @@ export async function sendConfiguration(config: Config): Promise<string> {
       release_channel: config.release_channel,
     };
 
-    try{
-    const response = await fetch(`${config.domain}/release`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.token}`
-      },
-      body: JSON.stringify(requestBody),
-    });
+    try {
+      const response = await fetch(`${config.domain}/release`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.token}`
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-    const responseText = await response.text();
-    // console.log('Configuration response status:', response.status);
+      const responseText = await response.text();
+      // console.log('Configuration response status:', response.status);
 
-    const responseData = JSON.parse(responseText);
-    if (response.ok) {
-      console.log('✅ Configuration deployed successfully!');
-      return responseData.release_id;
-    } else {
-      console.log('❌ Configuration failed!');
-      console.log('Error:', responseData.error || 'Unknown error');
-      console.log('Response data:', JSON.stringify(responseData, null, 2));
-      throw new Error('Configuration upload failed');
+      const responseData = JSON.parse(responseText);
+      if (response.ok) {
+        console.log('✅ Configuration deployed successfully!');
+        return responseData.release_id;
+      } else {
+        console.log('❌ Configuration failed!');
+        console.log('Error:', responseData.error || 'Unknown error');
+        console.log('Response data:', JSON.stringify(responseData, null, 2));
+        throw new Error('Configuration upload failed');
+      }
+    } catch (e) {
+      console.log("error", e);
+      throw new Error("Error sending configuration");
     }
-  } catch (e) {
-    console.log("error", e);
-    throw new Error("Error sending configuration");
-  }
   } catch (error: any) {
     console.error('❌ Error sending configuration:', error.message);
     throw error;
@@ -101,7 +101,7 @@ export async function releasePlugin(config: Config, release_id: string): Promise
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.token}`
     },
-    body: JSON.stringify({plugin_id: config.plugin_id})
+    body: JSON.stringify({ plugin_id: config.plugin_id })
   });
 
   if (!response.ok) {

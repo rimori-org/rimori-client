@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
-import { Config } from "../release";
+import { Config } from "./release";
 
 /**
  * Read and send the database configuration to the release endpoint

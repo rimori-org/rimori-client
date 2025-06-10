@@ -15,9 +15,9 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
-import { releasePlugin, sendConfiguration } from './release-components/release-push.js';
-import { uploadDirectory } from './release-components/file-upload.js';
-import dbUpdate from './release-components/db-update.js';
+import dbUpdate from './release-db-update.js';
+import { uploadDirectory } from './release-file-upload.js';
+import { releasePlugin, sendConfiguration } from './release-config-upload.js';
 
 // Read version from package.json
 const packageJson = JSON.parse(fs.readFileSync(path.resolve('./package.json'), 'utf8'));

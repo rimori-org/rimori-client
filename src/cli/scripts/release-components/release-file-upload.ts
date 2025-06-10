@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Config } from '../release.js';
+import { Config } from './release.js';
 
 /**
  * Upload all files from a directory and its subdirectories to the release function
