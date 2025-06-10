@@ -78,8 +78,8 @@ const config: RimoriPluginConfig = {
   ],
   documentation: {
     overview_path: "docs/overview.md",
-    user_path: "docs/user/userdocs.md",
-    developer_path: "docs/dev/devdocs.md"
+    user_path: "docs/userdocs.md",
+    developer_path: "docs/devdocs.md"
   },
   worker: {
     url: "web-worker.js",

@@ -119,7 +119,8 @@ async function main(): Promise<void> {
     console.log('Next steps:');
     console.log('1. Check out ./rimori/readme.md for more information about how to make the most out of the plugin.');
     console.log('2. Adapt the ./rimori/rimori.config.ts file to your needs.');
-    console.log('3. Start development with: yarn dev');
+    console.log('3. Under ./public/docs/ you can find the documentation for an example flashcard plugin to get started easier.');
+    console.log('4. Start development with: yarn dev');
     console.log('');
     console.log(`The plugin should now be accessible at: http://localhost:${3000}`);
     console.log('');

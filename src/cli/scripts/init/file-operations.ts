@@ -15,6 +15,9 @@ const __dirname = dirname(__filename);
 const FILE_COPY_MAP: Record<string, string> = {
   '../../../../example/rimori.config.ts': './rimori/rimori.config.ts',
   '../../../../README.md': './rimori/readme.md',
+  '../../../../example/docs/overview.md': './public/docs/overview.md',
+  '../../../../example/docs/devdocs.md': './public/docs/devdocs.md',
+  '../../../../example/docs/userdocs.md': './public/docs/userdocs.md',
 };
 
 /**
