@@ -12,6 +12,7 @@ import { setupEnvFile, updateGitignore } from './env-setup.js';
 import { copyPluginFiles } from './file-operations.js';
 import { updatePackageJson, type PackageJson } from './package-setup.js';
 import { updateViteConfigBase } from './vite-config.js';
+import { cleanHtmlMetaTags } from './html-cleaner.js';
 
 /**
  * Main function that handles the complete plugin setup flow.
@@ -112,6 +113,10 @@ async function main(): Promise<void> {
     } catch (error) {
       console.warn(`Warning: Could not update vite.config.ts base property: ${error instanceof Error ? error.message : error}`);
     }
+
+    // Clean meta tags from index.html after vite adaptation
+    cleanHtmlMetaTags();
+    console.log('✅ Meta tags cleaned from index.html');
 
     console.log('');
     console.log('✅ Plugin ' + (isUpgrade ? 'upgrade' : 'setup') + ' completed successfully!');
