@@ -12,6 +12,7 @@ import { setupEnvFile, updateGitignore } from './env-setup.js';
 import { copyPluginFiles } from './file-operations.js';
 import { cleanHtmlMetaTags } from './html-cleaner.js';
 import { updatePackageJson, type PackageJson } from './package-setup.js';
+import { transformAppRouter } from './router-transformer.js';
 import { updateTailwindConfig } from './tailwind-config.js';
 import { updateViteConfigBase } from './vite-config.js';
 
@@ -50,10 +51,21 @@ async function main(): Promise<void> {
       }
     }
 
+    let pluginId: string = '';
+
     if (isUpgrade) {
       // For upgrade mode, only ask for port and setup plugin
       console.log('🔄 Upgrade mode: Skipping authentication and plugin registration...');
       console.log('');
+
+      // Get plugin ID from existing package.json
+      try {
+        const packageJsonPath = path.resolve('./package.json');
+        const packageJson: PackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        pluginId = packageJson.r_id || '';
+      } catch (error) {
+        console.warn('Warning: Could not read plugin ID from package.json');
+      }
 
       // Ask for development port
       const port = await askForPort();
@@ -71,7 +83,6 @@ async function main(): Promise<void> {
       // Update gitignore
       updateGitignore();
 
-
     } else {
       // Step 1: Get user credentials
       const credentials = await askForCredentials();
@@ -87,6 +98,7 @@ async function main(): Promise<void> {
 
       // Step 4: Register developer and get plugin credentials
       const { plugin_id, access_token } = await registerDeveloper(jwtToken, port);
+      pluginId = plugin_id;
       console.log('');
 
       // Step 5: Update package.json
@@ -121,6 +133,17 @@ async function main(): Promise<void> {
 
     // Update Tailwind CSS configuration
     updateTailwindConfig();
+
+    // Transform App.tsx to use PluginProvider with HashRouter
+    if (pluginId) {
+      try {
+        transformAppRouter(pluginId);
+      } catch (error) {
+        console.warn(`Warning: Could not transform App.tsx router: ${error instanceof Error ? error.message : error}`);
+      }
+    } else {
+      console.warn('Warning: Plugin ID not available, skipping router transformation');
+    }
 
     console.log('');
     console.log('✅ Plugin ' + (isUpgrade ? 'upgrade' : 'setup') + ' completed successfully!');
