@@ -5,6 +5,7 @@ The **@rimori/client** package is a comprehensive React library that enables plu
 ## Table of Contents
 
 - [Installation](#installation)
+- [Quick Start Plugin Development](#quick-start-plugin-development)
 - [Releasing Your Plugin to Rimori](#releasing-your-plugin-to-rimori)
 - [Quick Start](#quick-start)
 - [Core API - usePlugin Hook](#core-api---useplugin-hook)
@@ -26,101 +27,146 @@ npm install @rimori/client
 yarn add @rimori/client
 ```
 
-## Releasing Your Plugin to Rimori
+## Quick Start Plugin Development
 
-To publish a new version of your plugin to the Rimori platform, use the CLI script at `rimori-release`. This script uploads your plugin's build output to the Rimori platform.
+The Rimori Client package includes powerful CLI tools to eliminate the tedious setup process and get you building your plugin fast. The initialization script handles authentication, plugin registration, environment setup, and all necessary boilerplate configuration.
 
 ### Prerequisites
 
-1. **Build your plugin**
-   - Ensure your plugin is built and the output is in the `dist/` directory.
-2. **Set required environment variables**
-   - `RIMORI_TOKEN`: Your Rimori authentication token.
-   - `RIMORI_PLUGIN`: The unique ID of your plugin.
-   - You can set these in your shell or a `.env` file.
+Before initializing your plugin, ensure you have:
 
-### Usage
+1. **Node.js and yarn/npm installed**
+2. **A Rimori account** - You'll need to login during initialization to receive your access token
 
-Run the release script using Node.js:
+### Initializing a New Plugin
+
+Open Lovable and vibe code the look of your plugin. 
+
+Then connect it to your Github account.
+
+Clone the git repository: 
 
 ```bash
-RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release <release_channel>
-```
-- `<release_channel>`: The release channel (e.g., `stable`, `beta`, `alpha`).
+git clone ...
+cd my-awesome-plugin
 
-**Example:**
+# Initialize with Rimori Client (this handles everything!)
+npx @rimori/client rimori-init
+```
+
+### What the Init Script Does
+
+The `rimori-init` command automates the entire plugin setup process:
+
+1. **🔐 Authentication**: Prompts for your Rimori credentials and authenticates with the platform
+2. **🚀 Plugin Registration**: Automatically registers your plugin and generates a unique plugin ID
+3. **🔑 Access Token**: Provides you with an access token for future plugin releases
+4. **📦 Package Configuration**: Updates `package.json` with plugin-specific settings
+5. **⚙️ Environment Setup**: Creates `.env` files with your credentials
+6. **📁 File Structure**: Copies all necessary boilerplate files and examples
+7. **🎨 Configuration**: Sets up Vite, Tailwind, and router configurations
+8. **📖 Documentation**: Provides example documentation and getting started guides
+
+### Upgrade Mode
+
+If you need to upgrade an existing plugin's configuration without changing the plugin ID:
+
 ```bash
-RIMORI_TOKEN=your_token RIMORI_PLUGIN_ID=your_plugin_id yarn rimori-release stable
-```
-The version gets picked from package.json
-
-### What the Script Does
-- Scans the `dist/` directory and subdirectories for files to upload.
-- Sends the files to the Rimori release endpoint.
-- Prints the result of the upload (success or error).
-
-### Notes
-- Ensure your `dist/` directory contains all files needed for your plugin to run.
-- If you encounter errors about missing environment variables or unsupported file types, check your setup and file extensions.
-
-## Quick Start
-
-### Basic Setup
-
-```typescript
-import { lazy } from "react";
-import { PluginProvider, usePlugin } from "@rimori/client";
-import { HashRouter, Route, Routes } from "react-router-dom";
-
-// Load pages lazily for optimal performance
-const SettingsPage = lazy(() => import("./pages/settings/SettingsPage"));
-const MainPage = lazy(() => import("./pages/MainPage"));
-
-const App = () => (
-  <PluginProvider pluginId="rimori-plugin-id">
-    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Routes>
-        <Route path="/" element={<MainPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
-    </HashRouter>
-  </PluginProvider>
-);
-
-export default App;
+yarn rimori-init --upgrade
 ```
 
-### TailwindCSS Configuration
+### Development Setup
 
-Add the library to your `tailwind.config.ts`:
+After initialization, start developing immediately:
 
-```javascript
-export default {
-  darkMode: ["class"],  // Required for theme detection
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "node_modules/@rimori/client/dist/components/**/*.{js,jsx}",
-  ],
-  // ... rest of config
-}
+```bash
+# Start development server
+yarn dev
+
+# Your plugin will be available at:
+# http://localhost:3000 (or your chosen port)
 ```
 
-### Vite Configuration
+Rimori client comes pre-configured with:
+- ✅ **Hot reload** for instant development feedback
+- ✅ **TypeScript support** with full type safety
+- ✅ **TailwindCSS** for modern styling
+- ✅ **React Router** for navigation
+- ✅ **Example components** and documentation
 
-Add the following to your `vite.config.ts`:
+## Releasing Your Plugin to Rimori
 
-```javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+Publishing your plugin to the Rimori platform is streamlined through the built-in `rimori-release` CLI tool. The release process handles database updates, file uploads, and plugin activation automatically.
 
-export default defineConfig({
-  plugins: [react()],
-  base: './', // Set base path for proper asset loading
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets'
-  }
-})
+### Prerequisites
+
+1. **Plugin must be initialized** - Use `rimori-init` first to set up your plugin
+2. **Build your plugin** - Ensure your plugin is built and the output is in the `dist/` directory
+3. **Environment configured** - Your `.env` file should contain `RIMORI_TOKEN` (set during initialization)
+
+### Quick Release (Recommended)
+
+During plugin initialization, convenient release scripts are automatically added to your `package.json`. These scripts handle building and releasing in one command:
+
+```bash
+# Quick release commands (build + release)
+yarn release:alpha     # Build and release to alpha channel
+yarn release:beta      # Build and release to beta channel  
+yarn release:stable    # Build and release to stable channel
+```
+
+### Manual Release Process
+
+If you prefer more control or need to understand the underlying process, you can use the `rimori-release` command directly:
+
+```bash
+# Build your plugin first
+yarn build
+
+# Then release to different channels
+yarn rimori-release alpha    # For alpha testing
+yarn rimori-release beta     # For beta releases  
+yarn rimori-release stable   # For production releases
+```
+
+The plugin version is automatically read from your `package.json`, and the plugin ID is retrieved from the `r_id` field (set during initialization).
+
+### What the Release Script Does
+
+The `rimori-release` command performs a complete release workflow:
+
+1. **📋 Configuration Upload**: Sends plugin metadata and configuration to the platform
+2. **🗄️ Database Updates**: Updates plugin information and release records
+3. **📁 File Upload**: Uploads all files from your `dist/` directory to the platform
+4. **🚀 Plugin Activation**: Activates the new version on the specified release channel
+
+### Release Channels
+
+- **`alpha`**: Early development releases for internal testing
+- **`beta`**: Pre-release versions for beta testers
+- **`stable`**: Production-ready releases for all users
+
+### Automatic Configuration
+
+During plugin initialization, the following are automatically configured:
+- `RIMORI_TOKEN`: Your authentication token (stored in `.env`)
+- `r_id`: Your unique plugin ID (stored in `package.json`)
+- **Release scripts**: `yarn release:alpha`, `yarn release:beta`, `yarn release:stable`
+- **Build configuration**: TypeScript checking, Vite setup, and worker builds
+
+### Troubleshooting
+
+If you encounter release issues:
+
+1. **Missing token**: Ensure `RIMORI_TOKEN` is in your `.env` file
+2. **No plugin ID**: Verify `r_id` exists in your `package.json`
+3. **Build errors**: Run `yarn build` successfully before releasing
+4. **Authentication**: Your token may have expired - re-run `rimori-init` if needed
+
+
+
+
+
 ```
 
 ## Core API - usePlugin Hook
