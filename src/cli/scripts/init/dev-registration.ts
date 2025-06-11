@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import path from 'path';
 import * as readline from 'readline';
 import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from '../../../utils/endpoint.js';
 
@@ -157,13 +158,16 @@ export async function registerDeveloper(jwtToken: string, port: number): Promise
 
   try {
     console.log('port', port, typeof port);
+    const currentFolderName = path.basename(process.cwd());
+    const body: any = { port, pluginName: currentFolderName };
+
     const response = await fetch('http://localhost:2800/developer/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwtToken}`,
       },
-      body: JSON.stringify({ port }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
