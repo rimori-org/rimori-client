@@ -18,6 +18,8 @@ const FILE_COPY_MAP: Record<string, string> = {
   '../../../../example/docs/overview.md': './public/docs/overview.md',
   '../../../../example/docs/devdocs.md': './public/docs/devdocs.md',
   '../../../../example/docs/userdocs.md': './public/docs/userdocs.md',
+  '../../../../example/worker/worker.ts': './worker/worker.ts',
+  '../../../../example/worker/vite.config.ts': './worker/vite.config.ts',
 };
 
 /**

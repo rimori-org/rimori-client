@@ -1051,5 +1051,4 @@ export default App;
 4. **Event Cleanup**: Always unsubscribe from events in useEffect cleanup
 5. **Responsive Design**: Use TailwindCSS classes for responsive layouts
 
-## License
 

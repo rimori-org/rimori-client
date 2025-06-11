@@ -98,7 +98,9 @@ export function updatePackageJson({
     "check": "tsc --project tsconfig.app.json --noEmit --pretty",
     "release:alpha": "yarn build && yarn rimori-release alpha",
     "release:beta": "yarn build && yarn rimori-release beta",
-    "release:stable": "yarn build && yarn rimori-release stable"
+    "release:stable": "yarn build && yarn rimori-release stable",
+    "dev:worker": "VITE_MINIFY=false vite build --watch --config worker/vite.config.ts",
+    "build:worker": "vite build --config worker/vite.config.ts",
   };
   packageJson.dependencies = {
     ...packageJson.dependencies,

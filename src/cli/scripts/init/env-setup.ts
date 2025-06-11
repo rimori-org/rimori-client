@@ -35,8 +35,7 @@ export function updateGitignore(): void {
   }
 
   if (needsUpdate) {
-    const envEntry = gitignoreContent.endsWith('\n') || gitignoreContent === '' ? '.env\n' : '\n.env\n';
-    gitignoreContent += envEntry;
+    gitignoreContent += '\n.env\npublic/web-worker.js\n';
     fs.writeFileSync(gitignorePath, gitignoreContent, 'utf8');
     console.log('Added .env to .gitignore');
   } else {
