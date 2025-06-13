@@ -1,8 +1,9 @@
 // whole configuration of a plugin (from the database)
-export type Plugin = RimoriPluginConfig & {
+export type Plugin = Omit<RimoriPluginConfig, 'context_menu_actions'> & {
   version: string;
   endpoint: string;
   assetEndpoint: string;
+  context_menu_actions: MenuEntry[];
   release_channel: "alpha" | "beta" | "stable";
 }
 
@@ -14,7 +15,7 @@ export interface PluginPage {
   // Whether the page should be shown in the navbar
   show: boolean;
   description: string;
-  root: "vocabulary" | "grammar" | "reading" | "listening"|"watching" | "writing" | "speaking" | "other" | "community";
+  root: "vocabulary" | "grammar" | "reading" | "listening" | "watching" | "writing" | "speaking" | "other" | "community";
   // The actions that can be triggered in the plugin
   // The key is the action key. The other entries are additional properties needed when triggering the action
   action?: {
@@ -102,7 +103,7 @@ export interface RimoriPluginConfig {
   /**
    * Context menu actions that the plugin registers to appear in right-click menus throughout the application.
    */
-  context_menu_actions: MenuEntry[];
+  context_menu_actions: Omit<MenuEntry, "plugin_id">[];
   /**
    * Documentation paths for different types of plugin documentation.
    */
