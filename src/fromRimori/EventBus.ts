@@ -165,15 +165,33 @@ export class EventBusHandler {
    * @param handler - The handler to be called when the event is received. The handler returns the data to be emitted. Can be a static object or a function.
    * @returns An EventListener object containing an off() method to unsubscribe the listeners.
    */
-  public respond(sender: string, topic: string, handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): EventListener {
-    const listener = this.on(topic, async (data: EventBusMessage) => {
-      const response = typeof handler === "function" ? await handler(data) : handler;
-      this.emit(sender, topic, response, data.eventId);
-    }, [sender]);
+  public respond(sender: string, topic: string | string[], handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): EventListener {
+    const topics = Array.isArray(topic) ? topic : [topic];
+    const listeners = topics.map(topic => {
+      const blackListedEventIds: number[] = [];
+      //To allow event communication inside the same plugin the sender needs to be ignored but the events still need to be checked for the same event just reaching the subscriber to prevent infinite loops
+      const finalIgnoreSender = !topic.startsWith("self.") ? [sender] : [];
 
-    this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listener, sender });
+      const listener = this.on(topic, async (data: EventBusMessage) => {
+        if (blackListedEventIds.includes(data.eventId)) {
+          // console.log("BLACKLISTED EVENT ID", data.eventId);
+          return;
+        }
+        blackListedEventIds.push(data.eventId);
+        if (blackListedEventIds.length > 20) {
+          blackListedEventIds.shift();
+        }
+        const response = typeof handler === "function" ? await handler(data) : handler;
+        this.emit(sender, topic, response, data.eventId);
+      }, finalIgnoreSender);
+
+      this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listener, sender });
+      return {
+        off: () => listener.off()
+      };
+    });
     return {
-      off: () => listener.off()
+      off: () => listeners.forEach(listener => listener.off())
     };
   }
 

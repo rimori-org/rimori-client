@@ -148,8 +148,9 @@ export class RimoriClient {
      * @param topic The topic to respond to.
      * @param data The data to respond with.
      */
-    respond: <T = EventPayload>(topic: string, data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
-      EventBus.respond(this.plugin.pluginId, this.pluginController.getGlobalEventTopic(topic), data);
+    respond: <T = EventPayload>(topic: string | string[], data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
+      const topics = Array.isArray(topic) ? topic : [topic];
+      EventBus.respond(this.plugin.pluginId, topics.map(t => this.pluginController.getGlobalEventTopic(t)), data);
     },
     /**
      * Emit an accomplishment.
