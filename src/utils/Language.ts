@@ -63,8 +63,10 @@ export type Language = keyof typeof languageKeys;
 /**
  * Get the language name from the language code
  * @param languageCode The code of the language
+ * @param capitalize Whether to capitalize the first letter of the language name
  * @returns The language name
  */
-export function getLanguageName(languageCode: Language): string {
-  return languageKeys[languageCode];
+export function getLanguageName(languageCode: Language, capitalize: boolean = false): string {
+  const lang = languageKeys[languageCode];
+  return capitalize ? lang.charAt(0).toUpperCase() + lang.slice(1) : lang;
 }
