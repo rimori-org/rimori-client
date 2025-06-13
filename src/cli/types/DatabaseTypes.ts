@@ -43,6 +43,17 @@ export interface DbColumnDefinition {
   deprecated?: boolean;
   /** Whether the column is a primary key */
   // primary_key?: boolean;
+  /** Restrictions for the column. If the column is restricted, the permission is further restricted. E.g. if the column is restricted to user, then the user can only read the column if they have the right permission.
+   * Example: Denying users to update the column, but allowing the moderator to update the column.
+  */
+  restrict?: {
+    /** Restrictions for the user */
+    user: Partial<Omit<DbPermissionDefinition, 'delete'>>,
+    /** Restrictions for the moderator */
+    moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>,
+    /** Restrictions for the maintainer */
+    // maintainer?: Partial<DbPermissionDefinition>,
+  }
 }
 
 /**
@@ -67,10 +78,37 @@ export interface DbTableDefinition {
   table_name: string;
   /** Description of the table's purpose and usage */
   description: string;
+  /** Permissions for the table */
+  permissions: {
+    user: DbPermissionDefinition,
+    moderator?: DbPermissionDefinition,
+    // maintainer?: DbPermissionDefinition,
+  };
   /** Column definitions for the table */
   columns: {
     [column_name: string]: DbColumnDefinition;
   };
+}
+
+/**
+ * Permission definition for a database table.
+ * NONE means the action is not allowed.
+ * OWN means only do the action on your own records.
+ * ALL means do the action on all records.
+ *
+ * Defines the permissions for a database table.
+ */
+export type DbPermission = "NONE" | "OWN" | "ALL";
+
+/**
+ * Permission definition for a database table.
+ * Defines the permissions for a database table.
+ */
+export interface DbPermissionDefinition {
+  read: DbPermission;
+  insert: DbPermission;
+  update: DbPermission;
+  delete: DbPermission;
 }
 
 /**
