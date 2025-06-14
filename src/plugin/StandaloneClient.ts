@@ -19,12 +19,12 @@ export class StandaloneClient {
 
   public static async getInstance(): Promise<StandaloneClient> {
     if (!StandaloneClient.instance) {
-      const config = await fetch("http://localhost:3000/config.json").then(res => res.json()).catch(err => {
+      const config = await fetch("https://app.rimori.se/config.json").then(res => res.json()).catch(err => {
         console.warn("Error fetching config.json, using default values", err);
       });
       StandaloneClient.instance = new StandaloneClient({
-        url: config.SUPABASE_URL || DEFAULT_ENDPOINT,
-        key: config.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
+        url: config?.SUPABASE_URL || DEFAULT_ENDPOINT,
+        key: config?.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
       });
     }
     return StandaloneClient.instance;
