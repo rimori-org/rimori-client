@@ -8,11 +8,14 @@ import { StandaloneClient } from '../plugin/StandaloneClient';
 interface PluginProviderProps {
   children: ReactNode;
   pluginId: string;
+  settings?: {
+    disableContextMenu?: boolean;
+  }
 }
 
 const PluginContext = createContext<RimoriClient | null>(null);
 
-export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId }) => {
+export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId, settings }) => {
   const [plugin, setPlugin] = useState<RimoriClient | null>(null);
   const [standaloneClient, setStandaloneClient] = useState<StandaloneClient | boolean>(false);
 
@@ -73,7 +76,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
 
   return (
     <PluginContext.Provider value={plugin}>
-      <ContextMenu client={plugin} />
+      {!settings?.disableContextMenu && <ContextMenu client={plugin} />}
       {children}
     </PluginContext.Provider>
   );
