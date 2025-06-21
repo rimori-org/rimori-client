@@ -100,7 +100,7 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled || loading || internalIsProcessing}>
       {loading || internalIsProcessing ? <FaSpinner className="animate-spin mr-[6px]" /> :
-        <FaMicrophone size={iconSize} className={"mr-2 " + (isRecording ? "text-red-600" : "")} />
+        <FaMicrophone size={iconSize} className={(isRecording ? "text-red-600" : "")} />
       }
     </button>
   );

@@ -17,7 +17,5 @@ export function getFirstMessages(instructions: FirstMessages): any[] {
       messages.push({ id: '3', role: 'assistant', content: instructions.assistantMessage });
   }
 
-  console.log("getFirstMessages", messages);
-
   return messages;
 }

@@ -8,3 +8,4 @@ export * from "./utils/difficultyConverter";
 export * from "./utils/PluginUtils";
 export * from "./utils/Language";
 export * from "./fromRimori/PluginTypes";
+export { FirstMessages } from "./components/ai/utils";

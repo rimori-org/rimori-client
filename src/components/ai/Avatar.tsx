@@ -16,13 +16,23 @@ interface Props {
   isDarkTheme?: boolean;
   children?: React.ReactNode;
   autoStartConversation?: FirstMessages;
+  className?: string;
 }
 
-export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversation, children, isDarkTheme = false, circleSize = "300px" }: Props) {
-  const { ai: llm, event } = usePlugin();
+export function Avatar({
+  avatarImageUrl,
+  voiceId,
+  agentTools,
+  autoStartConversation,
+  children,
+  isDarkTheme = false,
+  circleSize = "300px",
+  className
+}: Props) {
+  const { ai, event } = usePlugin();
   const [agentReplying, setAgentReplying] = useState(false);
   const [isProcessingMessage, setIsProcessingMessage] = useState(false);
-  const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);
+  const sender = useMemo(() => new MessageSender(ai.getVoice, voiceId), [voiceId]);
   const { messages, append, isLoading, lastMessage, setMessages } = useChat(agentTools);
 
   useEffect(() => {
@@ -48,16 +58,21 @@ export function Avatar({ avatarImageUrl, voiceId, agentTools, autoStartConversat
     } else if (autoStartConversation.userMessage) {
       append([{ role: 'user', content: autoStartConversation.userMessage, id: messages.length.toString() }]);
     }
-  }, []);
+  }, [autoStartConversation]);
 
   useEffect(() => {
     if (lastMessage?.role === 'assistant') {
       sender.handleNewText(lastMessage.content, isLoading);
+      if (lastMessage.tool_calls) {
+        console.log("unlocking mic",lastMessage)
+        setAgentReplying(false);
+        setIsProcessingMessage(false);
+      }
     }
   }, [lastMessage, isLoading]);
 
   return (
-    <div className='pb-8'>
+    <div className={`pb-8 ${className}`}>
       <CircleAudioAvatar
         width={circleSize}
         className='mx-auto'
