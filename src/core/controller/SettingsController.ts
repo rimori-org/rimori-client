@@ -2,6 +2,15 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { LanguageLevel } from "../../utils/difficultyConverter";
 import { Language } from "../../utils/Language";
 
+export interface Buddy {
+  id: string;
+  name: string;
+  description: string;
+  avatarUrl: string;
+  voiceId: string;
+  aiPersonality: string;
+}
+
 export interface UserInfo {
   skill_level_reading: LanguageLevel;
   skill_level_writing: LanguageLevel;
@@ -11,7 +20,7 @@ export interface UserInfo {
   skill_level_understanding: LanguageLevel;
   goal_longterm: string;
   goal_weekly: string;
-  study_buddy: string;
+  study_buddy: Buddy;
   story_genre: string;
   study_duration: number;
   mother_tongue: Language;

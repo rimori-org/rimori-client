@@ -199,6 +199,9 @@ export class RimoriClient {
   }
 
   private getTableName(type: string) {
+    if (type.startsWith("global_")) {
+      return type.replace("global_", "");
+    }
     return this.db.tablePrefix + "_" + type;
   }
 
