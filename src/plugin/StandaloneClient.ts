@@ -58,7 +58,10 @@ export class StandaloneClient {
     EventBus.respond("standalone", "global.supabase.requestAccess", async () => {
       const session = await supabase.auth.getSession();
       console.log("session", session);
-      const { data, error } = await supabase.functions.invoke("plugin-token", { headers: { authorization: `Bearer ${session.data.session?.access_token}` } });
+      const { data, error } = await supabase.functions.invoke("plugin-token", {
+        body: { pluginId },
+        headers: { authorization: `Bearer ${session.data.session?.access_token}` },
+      });
       if (error) {
         throw new Error("Failed to get plugin token. " + error.message);
       }
