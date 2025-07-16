@@ -178,6 +178,12 @@ export class RimoriClient {
     }
   }
 
+  public navigation = {
+    toDashboard: () => {
+      this.event.emit("global.navigation.triggerToDashboard");
+    }
+  }
+
   public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
       const client = await pluginController.getClient();
