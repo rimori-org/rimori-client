@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { VoiceRecorder } from './EmbeddedAssistent/VoiceRecoder';
 import { MessageSender } from './EmbeddedAssistent/TTS/MessageSender';
 import { CircleAudioAvatar } from './EmbeddedAssistent/CircleAudioAvatar';
-import { Tool } from '../../core/controller/AIController';
+import { Tool } from '../../fromRimori/PluginTypes';
 import { useChat } from '../../hooks/UseChatHook';
 import { usePlugin } from '../../components';
 import { getFirstMessages } from './utils';

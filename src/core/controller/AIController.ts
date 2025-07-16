@@ -1,18 +1,9 @@
+import { Tool } from "../../fromRimori/PluginTypes";
+
 export interface ToolInvocation {
   tool_call_id: string;
   tool_name: string;
   args: Record<string, string>;
-}
-
-export interface Tool {
-  name: string;
-  description: string;
-  parameters: {
-    name: string;
-    description: string;
-    type: "string" | "number" | "boolean";
-  }[];
-  execute?: <T = Record<string, string | boolean | number>>(args: T) => Promise<any> | void;
 }
 
 export interface Message {

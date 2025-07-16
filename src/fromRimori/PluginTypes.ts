@@ -20,7 +20,7 @@ export interface PluginPage {
   // The key is the action key. The other entries are additional properties needed when triggering the action
   action?: {
     key: string;
-    parameters: Tool;
+    parameters: ObjectTool;
   }
 }
 
@@ -128,6 +128,17 @@ export interface RimoriPluginConfig {
 
 // copied from llm edge function
 
+export interface Tool {
+  name: string;
+  description: string;
+  parameters: {
+    name: string;
+    description: string;
+    type: "string" | "number" | "boolean";
+  }[];
+  execute?: (args: Record<string, any>) => Promise<unknown> | unknown | void;
+}
+
 /**
  * The tool definition structure is used for LLM function calling and plugin action parameters.
  * It defines the schema for tools that can be used by Language Learning Models (LLMs)
@@ -150,7 +161,7 @@ export interface RimoriPluginConfig {
  * ```
  * 
  */
-export type Tool = {
+export type ObjectTool = {
   [key: string]: ToolParameter;
 };
 
@@ -166,6 +177,8 @@ interface ToolParameter {
   description: string;
   /** Optional array of allowed values for enumerated parameters */
   enum?: string[];
+  /** Whether the parameter is optional */
+  optional?: boolean;
 }
 
 /**
