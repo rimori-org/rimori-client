@@ -12,6 +12,7 @@ declare const WorkerGlobalScope: any;
 export interface RimoriInfo {
   url: string,
   key: string,
+  backendUrl: string,
   token: string,
   expiration: Date,
   tablePrefix: string,
@@ -123,6 +124,13 @@ export class PluginController {
     }
 
     return this.rimoriInfo.url;
+  }
+
+  public getBackendUrl() {
+    if (!this.rimoriInfo) {
+      throw new Error("Rimori info not found");
+    }
+    return this.rimoriInfo.backendUrl;
   }
 
   public getGlobalEventTopic(preliminaryTopic: string) {

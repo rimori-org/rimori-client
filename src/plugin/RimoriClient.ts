@@ -61,8 +61,8 @@ export class RimoriClient {
   private supabaseUrl: string;
   private installedPlugins: Plugin[];
   private profile: UserInfo;
-  public db: Db;
   public plugin: PluginInterface;
+  public db: Db;
 
   private constructor(supabase: SupabaseClient, info: RimoriInfo, pluginController: PluginController) {
     this.superbase = supabase;
@@ -208,11 +208,11 @@ export class RimoriClient {
   public ai = {
     getText: async (messages: Message[], tools?: Tool[]): Promise<string> => {
       const token = await this.pluginController.getToken();
-      return generateText(this.supabaseUrl, messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);
+      return generateText(this.pluginController.getBackendUrl(), messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);
     },
     getSteamedText: async (messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]) => {
       const token = await this.pluginController.getToken();
-      streamChatGPT(this.supabaseUrl, messages, tools || [], onMessage, token);
+      streamChatGPT(this.pluginController.getBackendUrl(), messages, tools || [], onMessage, token);
     },
     getVoice: async (text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> => {
       const token = await this.pluginController.getToken();

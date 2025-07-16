@@ -23,8 +23,8 @@ export interface Message {
   tool_call_id?: string;
 }
 
-export async function generateText(supabaseUrl: string, messages: Message[], tools: Tool[], token: string) {
-  const response = await fetch(`${supabaseUrl}/functions/v1/llm`, {
+export async function generateText(backendUrl: string, messages: Message[], tools: Tool[], token: string) {
+  const response = await fetch(`${backendUrl}/ai/llm`, {
     method: 'POST',
     body: JSON.stringify({ messages, tools }),
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -35,14 +35,14 @@ export async function generateText(supabaseUrl: string, messages: Message[], too
 
 export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: { toolName: string, args: any }[]) => void;
 
-export async function streamChatGPT(supabaseUrl: string, messages: Message[], tools: Tool[], onResponse: OnLLMResponse, token: string) {
+export async function streamChatGPT(backendUrl: string, messages: Message[], tools: Tool[], onResponse: OnLLMResponse, token: string) {
   const messageId = Math.random().toString(36).substring(3);
   let currentMessages: Message[] = [...messages];
 
   while (true) {
     const messagesForApi = currentMessages.map(({ id, ...rest }) => rest);
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/llm`, {
+    const response = await fetch(`${backendUrl}/ai/llm`, {
       method: 'POST',
       body: JSON.stringify({ messages: messagesForApi, tools, stream: true }),
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
