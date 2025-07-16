@@ -72,7 +72,7 @@ export function Avatar({
   }, [lastMessage, isLoading]);
 
   return (
-    <div className={`pb-8 ${className}`}>
+    <div className={`pb-8 ${className || ''}`}>
       <CircleAudioAvatar
         width={circleSize}
         className='mx-auto'
