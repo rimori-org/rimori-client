@@ -96,10 +96,10 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
   }, [enablePushToTalk]);
 
   return (
-    <button className={"flex flex-row justify-center items-center rounded-full mx-auto pl-[6px] disabled:opacity-50 " + className}
+    <button className={"flex flex-row justify-center items-center rounded-full mx-auto disabled:opacity-50 " + className}
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled || loading || internalIsProcessing}>
-      {loading || internalIsProcessing ? <FaSpinner className="animate-spin mr-[6px]" /> :
+      {loading || internalIsProcessing ? <FaSpinner className="animate-spin" /> :
         <FaMicrophone size={iconSize} className={(isRecording ? "text-red-600" : "")} />
       }
     </button>
