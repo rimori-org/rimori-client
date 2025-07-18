@@ -38,7 +38,7 @@ const config = {
   release_channel: releaseChannel,
   plugin_id: pluginId,
   token: RIMORI_TOKEN,
-  domain: "http://localhost:2800"
+  domain: process.env.RIMORI_BACKEND_URL || "https://api.rimori.se"
 }
 
 export type Config = typeof config;

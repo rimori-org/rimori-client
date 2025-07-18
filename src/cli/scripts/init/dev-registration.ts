@@ -160,8 +160,9 @@ export async function registerDeveloper(jwtToken: string, port: number): Promise
     console.log('port', port, typeof port);
     const currentFolderName = path.basename(process.cwd());
     const body: any = { port, pluginName: currentFolderName };
+    const backendUrl = process.env.RIMORI_BACKEND_URL || "https://api.rimori.se";
 
-    const response = await fetch('http://localhost:2800/developer/register', {
+    const response = await fetch(backendUrl + '/developer/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
