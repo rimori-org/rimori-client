@@ -1,8 +1,8 @@
 import { Tool } from "../../fromRimori/PluginTypes";
 
 export interface ToolInvocation {
-  tool_call_id: string;
-  tool_name: string;
+  toolCallId: string;
+  toolName: string;
   args: Record<string, string>;
 }
 
@@ -10,8 +10,7 @@ export interface Message {
   id?: string;
   role: "user" | "assistant" | "system"
   content: string;
-  tool_calls?: ToolInvocation[];
-  tool_call_id?: string;
+  toolCalls?: ToolInvocation[];
 }
 
 export async function generateText(backendUrl: string, messages: Message[], tools: Tool[], token: string) {
@@ -24,7 +23,7 @@ export async function generateText(backendUrl: string, messages: Message[], tool
   return await response.json();
 }
 
-export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: { toolName: string, args: any }[]) => void;
+export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: ToolInvocation[]) => void;
 
 export async function streamChatGPT(backendUrl: string, messages: Message[], tools: Tool[], onResponse: OnLLMResponse, token: string) {
   const messageId = Math.random().toString(36).substring(3);
@@ -88,16 +87,12 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
         id: messageId,
         role: "assistant",
         content: content,
-        tool_calls: toolInvocations.length > 0 ? toolInvocations.map(t => ({
-          tool_call_id: t.toolCallId,
-          tool_name: t.toolName,
-          args: t.args
-        })) : undefined,
+        toolCalls: toolInvocations.length > 0 ? toolInvocations: undefined,
       });
     }
 
     if (finishReason !== 'tool-calls') {
-      onResponse(messageId, content.replace(/\\n/g, '\n'), true, toolInvocations.map(t => ({ toolName: t.toolName, args: t.args })));
+      onResponse(messageId, content.replace(/\\n/g, '\n'), true, toolInvocations);
       return;
     }
 

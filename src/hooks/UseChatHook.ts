@@ -1,6 +1,7 @@
 import React from "react";
-import { Message, Tool, ToolInvocation } from "../core/controller/AIController";
+import { Tool } from "../fromRimori/PluginTypes";
 import { usePlugin } from "../providers/PluginProvider";
+import { Message, ToolInvocation } from "../core/controller/AIController";
 
 export function useChat(tools?: Tool[]) {
   const [messages, setMessages] = React.useState<Message[]>([]);
@@ -16,7 +17,7 @@ export function useChat(tools?: Tool[]) {
         lastMessage.content = message;
         setMessages([...messages, lastMessage]);
       } else {
-        setMessages([...messages, ...appendMessages, { id, role: 'assistant', content: message, toolInvocations }]);
+        setMessages([...messages, ...appendMessages, { id, role: 'assistant', content: message, toolCalls: toolInvocations }]);
       }
     }, tools);
   };

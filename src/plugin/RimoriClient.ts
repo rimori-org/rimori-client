@@ -1,13 +1,13 @@
 import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
-import { generateText, Message, OnLLMResponse, streamChatGPT, Tool } from "../core/controller/AIController";
+import { generateText, Message, OnLLMResponse, streamChatGPT } from "../core/controller/AIController";
 import { generateObject as generateObjectFunction, ObjectRequest } from "../core/controller/ObjectController";
 import { SettingsController, UserInfo } from "../core/controller/SettingsController";
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
-import { Plugin } from "../fromRimori/PluginTypes";
+import { Plugin, Tool } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { PluginController, RimoriInfo } from "./PluginController";
 

@@ -63,7 +63,7 @@ export function Avatar({
   useEffect(() => {
     if (lastMessage?.role === 'assistant') {
       sender.handleNewText(lastMessage.content, isLoading);
-      if (lastMessage.tool_calls) {
+      if (lastMessage.toolCalls) {
         console.log("unlocking mic",lastMessage)
         setAgentReplying(false);
         setIsProcessingMessage(false);

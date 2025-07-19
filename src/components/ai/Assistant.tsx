@@ -50,16 +50,16 @@ export function AssistantChat({ avatarImageUrl, voiceId, onComplete, autoStartCo
 
     useEffect(() => {
         console.log("lastMessage", lastMessage);
-        const toolInvocations = lastMessage?.tool_calls;
+        const toolInvocations = lastMessage?.toolCalls;
         if (toolInvocations && toolInvocations.length > 0) {
             console.log("toolInvocations", toolInvocations);
             onComplete(toolInvocations[0].args);
         }
     }, [lastMessage]);
 
-    if (lastMessage?.tool_calls && lastMessage.tool_calls.length > 0) {
+    if (lastMessage?.toolCalls && lastMessage.toolCalls.length > 0) {
         console.log("lastMessage test2", lastMessage);
-        const args = lastMessage.tool_calls[0].args;
+        const args = lastMessage.toolCalls[0].args;
 
         const success = args.explanationUnderstood === "TRUE" || args.studentKnowsTopic === "TRUE";
 

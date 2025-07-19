@@ -9,6 +9,7 @@ export * from "../worker/WorkerSetup";
 export { EventBusMessage } from "../fromRimori/EventBus";
 export { Buddy, UserInfo } from "./controller/SettingsController";
 export { SharedContent } from "./controller/SharedContentController";
-export { Message, OnLLMResponse, Tool, ToolInvocation } from "./controller/AIController";
+export { Message, OnLLMResponse, ToolInvocation } from "./controller/AIController";
 export { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from "../plugin/AccomplishmentHandler";
+export { Tool } from "../fromRimori/PluginTypes";
 
