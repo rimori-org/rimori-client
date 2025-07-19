@@ -27,6 +27,7 @@ export interface UserInfo {
   motivation_type: string;
   onboarding_completed: boolean;
   context_menu_on_select: boolean;
+  user_name?: string;
 }
 
 export class SettingsController {
