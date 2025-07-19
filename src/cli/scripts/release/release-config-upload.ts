@@ -59,6 +59,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
       version: config.version,
       plugin_id: config.plugin_id,
       release_channel: config.release_channel,
+      rimori_client_version: config.rimori_client_version,
     };
 
     try {
@@ -72,7 +73,8 @@ export async function sendConfiguration(config: Config): Promise<string> {
       });
 
       const responseText = await response.text();
-      // console.log('Configuration response status:', response.status);
+      console.log('Configuration response status:', response.status);
+      console.log('Configuration response text:', responseText);
 
       const responseData = JSON.parse(responseText);
       if (response.ok) {

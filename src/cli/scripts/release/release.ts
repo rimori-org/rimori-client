@@ -38,7 +38,8 @@ const config = {
   release_channel: releaseChannel,
   plugin_id: pluginId,
   token: RIMORI_TOKEN,
-  domain: process.env.RIMORI_BACKEND_URL || "https://api.rimori.se"
+  domain: process.env.RIMORI_BACKEND_URL || "https://api.rimori.se",
+  rimori_client_version: packageJson.dependencies['@rimori/client'].replace('^', ''),
 }
 
 export type Config = typeof config;
