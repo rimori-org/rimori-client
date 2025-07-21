@@ -33,13 +33,13 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
 
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    
+
     // Center horizontally over the selected text, accounting for menu width
     const centerX = rect.left + (rect.width / 2) - (menuWidth / 2);
-    
-    // Position 30px below where the text ends vertically
-    const textEndY = rect.bottom + 30;
-    
+
+    // Position 12px below where the text ends vertically
+    const textEndY = rect.bottom + 12;
+
     return { x: centerX, y: textEndY, text: selectedText };
   };
 
@@ -69,7 +69,7 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
     const handleMouseMove = (e: MouseEvent) => {
       const selectedText = window.getSelection()?.toString().trim();
       if (isOpen && selectedText === position.text) return;
-      
+
       if (isMobile && selectedText) {
         setPosition(calculateMobilePosition(selectedText, menuWidth));
       } else {
@@ -103,7 +103,7 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
         if (e.button === 2) {
           e.preventDefault();
         }
-        
+
         if (isMobile) {
           setPosition(calculateMobilePosition(selectedText, menuWidth));
         } else {
@@ -115,11 +115,14 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
       }
     };
 
-    // Add selectionchange listener to close menu if selection is cleared
+    // Add selectionchange listener to close menu if selection is cleared and update position for mobile
     const handleSelectionChange = () => {
       const selectedText = window.getSelection()?.toString().trim();
       if (!selectedText && isOpen) {
         setIsOpen(false);
+      } else if (selectedText && isOpen && isMobile) {
+        // Update position in real-time as text selection changes on mobile
+        setPosition(calculateMobilePosition(selectedText, menuWidth));
       }
     };
 
