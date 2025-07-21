@@ -14,7 +14,34 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
   const [actions, setActions] = useState<MenuEntry[]>([]);
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [openOnTextSelect, setOpenOnTextSelect] = useState(false);
+  const [menuWidth, setMenuWidth] = useState<number>(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isMobile = window.innerWidth < 768;
+
+  /**
+   * Calculates position for mobile context menu based on selected text bounds.
+   * Centers the menu horizontally over the selected text and positions it 30px below the text's end.
+   * @param selectedText - The currently selected text
+   * @param menuWidth - The width of the menu to center properly
+   * @returns Position object with x and y coordinates
+   */
+  const calculateMobilePosition = (selectedText: string, menuWidth: number = 0): Position => {
+    const selection = window.getSelection();
+    if (!selection || !selectedText) {
+      return { x: 0, y: 0, text: selectedText };
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    
+    // Center horizontally over the selected text, accounting for menu width
+    const centerX = rect.left + (rect.width / 2) - (menuWidth / 2);
+    
+    // Position 30px below where the text ends vertically
+    const textEndY = rect.bottom + 30;
+    
+    return { x: centerX, y: textEndY, text: selectedText };
+  };
 
   useEffect(() => {
     client.plugin.getInstalled().then(plugins => {
@@ -30,12 +57,24 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
     });
   }, []);
 
+  // Update menu width when menu is rendered
+  useEffect(() => {
+    if (isOpen && menuRef.current) {
+      setMenuWidth(menuRef.current.offsetWidth);
+    }
+  }, [isOpen, actions]);
+
   useEffect(() => {
     // Track mouse position globally
     const handleMouseMove = (e: MouseEvent) => {
       const selectedText = window.getSelection()?.toString().trim();
       if (isOpen && selectedText === position.text) return;
-      setPosition({ x: e.clientX, y: e.clientY, text: selectedText });
+      
+      if (isMobile && selectedText) {
+        setPosition(calculateMobilePosition(selectedText, menuWidth));
+      } else {
+        setPosition({ x: e.clientX, y: e.clientY, text: selectedText });
+      }
     };
 
     const handleMouseUp = (e: MouseEvent) => {
@@ -64,7 +103,12 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
         if (e.button === 2) {
           e.preventDefault();
         }
-        setPosition({ x: e.clientX, y: e.clientY, text: selectedText });
+        
+        if (isMobile) {
+          setPosition(calculateMobilePosition(selectedText, menuWidth));
+        } else {
+          setPosition({ x: e.clientX, y: e.clientY, text: selectedText });
+        }
         setIsOpen(true);
       } else {
         setIsOpen(false);
