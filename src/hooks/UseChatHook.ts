@@ -9,7 +9,9 @@ export function useChat(tools?: Tool[]) {
   const { ai } = usePlugin();
 
   const append = (appendMessages: Message[]) => {
-    ai.getSteamedText([...messages, ...appendMessages], (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
+    const allMessages = [...messages, ...appendMessages];
+    setMessages(allMessages);
+    ai.getSteamedText(allMessages, (id, message, finished: boolean, toolInvocations?: ToolInvocation[]) => {
       const lastMessage = messages[messages.length - 1];
       setIsLoading(!finished);
 
@@ -17,7 +19,7 @@ export function useChat(tools?: Tool[]) {
         lastMessage.content = message;
         setMessages([...messages, lastMessage]);
       } else {
-        setMessages([...messages, ...appendMessages, { id, role: 'assistant', content: message, toolCalls: toolInvocations }]);
+        setMessages([...allMessages, { id, role: 'assistant', content: message, toolCalls: toolInvocations }]);
       }
     }, tools);
   };
