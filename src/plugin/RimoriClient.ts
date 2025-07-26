@@ -2,7 +2,7 @@ import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
 import { generateText, Message, OnLLMResponse, streamChatGPT } from "../core/controller/AIController";
-import { generateObject as generateObjectFunction, ObjectRequest } from "../core/controller/ObjectController";
+import { generateObject, ObjectRequest } from "../core/controller/ObjectController";
 import { SettingsController, UserInfo } from "../core/controller/SettingsController";
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
@@ -229,7 +229,7 @@ export class RimoriClient {
     },
     getObject: async (request: ObjectRequest): Promise<any> => {
       const token = await this.pluginController.getToken();
-      return generateObjectFunction(this.supabaseUrl, request, token);
+      return generateObject(this.pluginController.getBackendUrl(), request, token);
     },
     // getSteamedObject: this.generateObjectStream,
   }

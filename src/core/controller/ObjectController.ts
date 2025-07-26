@@ -41,8 +41,8 @@ export interface ObjectRequest {
   instructions: string;
 }
 
-export async function generateObject(supabaseUrl: string, request: ObjectRequest, token: string) {
-  return await fetch(`${supabaseUrl}/functions/v1/llm-object`, {
+export async function generateObject(backendUrl: string, request: ObjectRequest, token: string) {
+  return await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
       stream: false,
@@ -50,16 +50,16 @@ export async function generateObject(supabaseUrl: string, request: ObjectRequest
       behaviour: request.behaviour,
       instructions: request.instructions,
     }),
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
   }).then(response => response.json());
 }
 
 // TODO adjust stream to work with object
 export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: any[]) => void;
 
-export async function streamObject(supabaseUrl: string, request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
+export async function streamObject(backendUrl: string, request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
   const messageId = Math.random().toString(36).substring(3);
-  const response = await fetch(`${supabaseUrl}/functions/v1/llm-object`, {
+  const response = await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
       stream: true,
@@ -67,7 +67,7 @@ export async function streamObject(supabaseUrl: string, request: ObjectRequest, 
       systemInstructions: request.behaviour,
       secondaryInstructions: request.instructions,
     }),
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
   });
 
   if (!response.body) {
