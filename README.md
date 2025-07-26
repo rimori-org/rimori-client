@@ -163,6 +163,43 @@ If you encounter release issues:
 3. **Build errors**: Run `yarn build` successfully before releasing
 4. **Authentication**: Your token may have expired - re-run `rimori-init` if needed
 
+#### Worker Process Errors
+
+If you encounter errors like:
+```
+ReferenceError: process is not defined
+```
+
+**Root Cause**: Your plugin is importing a library that tries to access `process` or `process.env` in the worker context. Web workers don't have access to Node.js globals like `process`.
+
+**Debugging Steps**:
+
+1. **Check your imports**: Look through the files used in the worker which might import libraries that might access `process.env`:
+   - React libraries (React Router, React Query, etc.)
+   - UI component libraries (Material-UI, Ant Design, etc.)
+   - Utility libraries that check for environment variables
+
+2. **Verify Rimori Client imports**: Ensure you're importing from `@rimori/client/core` and not from `@rimori/client`:
+   ```typescript
+   // ✅ Correct - import from rimori client
+   import { RimoriClient } from '@rimori/client/core';
+   
+   // ❌ Incorrect - direct imports that might access process.env directly or through their dependencies
+   import { Avatar } from '@rimori/client';
+   import { useQuery } from '@tanstack/react-query';
+   ```
+
+3. **Check your dependencies**: Look at your `package.json` for libraries that might be bundled into the worker:
+   - UI frameworks (React, Vue, etc.)
+   - State management libraries
+   - Routing libraries
+   - Any library that checks `process.env.NODE_ENV`
+
+
+**Solution**: Use only `@rimori/client/core` exports in your worker code. The Rimori client provides all necessary functionality without requiring Node.js globals.
+
+**Note**: The worker bundling order is determined by the build system and cannot be controlled. Libraries that access `process.env` will always cause this error in the worker context.
+
 
 
 
