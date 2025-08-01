@@ -52,34 +52,34 @@ export class SharedContentController {
 
     console.log('newAssignments:', newAssignments);
 
-    if (newAssignments.length > 0) {
+    if (!privateTopic && newAssignments.length > 0) {
       const index = Math.floor(Math.random() * newAssignments.length);
       return newAssignments[index];
     }
 
-    // generate new assignments
+    const instructions = await this.generateNewAssignment(contentType, generatorInstructions, filter);
+
+    console.log('instructions:', instructions);
+
+    //create the shared content object
+    const data: SharedContent<T> = {
+      id: "internal-temp-id-" + Math.random().toString(36).substring(2, 15),
+      contentType,
+      title: instructions.title,
+      keywords: instructions.keywords.map(({ text }: { text: string }) => text),
+      data: { ...instructions, title: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
+      privateTopic,
+    }
+
+    return await this.createSharedContent(data);
+  }
+
+  private async generateNewAssignment(contentType: string, generatorInstructions: SharedContentObjectRequest, filter?: SharedContentFilter): Promise<any> {
     const fullInstructions = await this.getGeneratorInstructions(contentType, generatorInstructions, filter);
 
     console.log('fullInstructions:', fullInstructions);
 
-    const instructions = await this.rimoriClient.ai.getObject(fullInstructions);
-
-    console.log('instructions:', instructions);
-
-    const { data: newAssignment, error: insertError } = await this.supabase.from("shared_content").insert({
-      private: privateTopic,
-      content_type: contentType,
-      title: instructions.title,
-      keywords: instructions.keywords.map(({ text }: { text: string }) => text),
-      data: { ...instructions, title: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
-    }).select();
-
-    if (insertError) {
-      console.error('error inserting new assignment:', insertError);
-      throw new Error('error inserting new assignment');
-    }
-
-    return newAssignment[0];
+    return await this.rimoriClient.ai.getObject(fullInstructions);
   }
 
   private async getGeneratorInstructions(contentType: string, generatorInstructions: ObjectRequest, filter?: SharedContentFilter): Promise<ObjectRequest> {

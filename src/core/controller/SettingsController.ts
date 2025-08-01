@@ -23,6 +23,10 @@ export interface UserInfo {
   study_buddy: Buddy;
   story_genre: string;
   study_duration: number;
+  /**
+   * The 2 letter language code of the language the user speaks natively.
+   * With the function getLanguageName, the language name can be retrieved.
+   */
   mother_tongue: Language;
   motivation_type: string;
   onboarding_completed: boolean;
