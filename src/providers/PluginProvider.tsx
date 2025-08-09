@@ -18,6 +18,8 @@ const PluginContext = createContext<RimoriClient | null>(null);
 export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId, settings }) => {
   const [plugin, setPlugin] = useState<RimoriClient | null>(null);
   const [standaloneClient, setStandaloneClient] = useState<StandaloneClient | boolean>(false);
+  const isSidebar = getUrlParam("applicationMode") === "sidebar";
+  const isSettings = getUrlParam("applicationMode") === "settings";
 
   useEffect(() => {
     initEventBus(pluginId);
@@ -37,11 +39,10 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
   useEffect(() => {
     if (!plugin) return;
 
-    const url = new URL(window.location.href);
     //sidebar pages should not report url changes
-    if (url.searchParams.get("applicationMode") === "sidebar") return;
+    if (isSidebar) return;
 
-    let lastHash = url.hash;
+    let lastHash = window.location.hash;
     const emitUrlChange = (url: string) => plugin.event.emit('session.triggerUrlChange', { url });
 
     const interval = setInterval(() => {
@@ -76,7 +77,7 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
 
   return (
     <PluginContext.Provider value={plugin}>
-      {!settings?.disableContextMenu && <ContextMenu client={plugin} />}
+      {!settings?.disableContextMenu && !isSidebar && !isSettings && <ContextMenu client={plugin} />}
       {children}
     </PluginContext.Provider>
   );
@@ -90,9 +91,13 @@ export const usePlugin = () => {
   return context;
 };
 
-function initEventBus(pluginId: string) {
+function getUrlParam(name: string) {
   const url = new URL(window.location.href);
-  const isSidebar = url.searchParams.get("applicationMode") === "sidebar";
+  return url.searchParams.get(name);
+}
+
+function initEventBus(pluginId: string) {
+  const isSidebar = getUrlParam("applicationMode") === "sidebar";
   EventBusHandler.getInstance("Plugin EventBus " + pluginId + " " + (isSidebar ? "sidebar" : "main"));
 }
 
