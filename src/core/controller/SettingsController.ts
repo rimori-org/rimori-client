@@ -28,6 +28,10 @@ export interface UserInfo {
    * With the function getLanguageName, the language name can be retrieved.
    */
   mother_tongue: Language;
+  /**
+   * The language the user targets to learn.
+   */
+  target_language: Language;
   motivation_type: string;
   onboarding_completed: boolean;
   context_menu_on_select: boolean;
