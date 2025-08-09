@@ -222,10 +222,11 @@ export class RimoriClient {
     },
     getVoice: async (text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> => {
       const token = await this.pluginController.getToken();
-      return getTTSResponse(this.supabaseUrl, { input: text, voice, speed, language }, token);
+      return getTTSResponse(this.pluginController.getBackendUrl(), { input: text, voice, speed, language }, token);
     },
-    getTextFromVoice: (file: Blob): Promise<string> => {
-      return getSTTResponse(this.superbase, file);
+    getTextFromVoice: async (file: Blob): Promise<string> => {
+      const token = await this.pluginController.getToken();
+      return getSTTResponse(this.pluginController.getBackendUrl(), file, token);
     },
     getObject: async (request: ObjectRequest): Promise<any> => {
       const token = await this.pluginController.getToken();
