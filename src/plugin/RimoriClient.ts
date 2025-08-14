@@ -184,6 +184,15 @@ export class RimoriClient {
     }
   }
 
+  /**
+   * Get a query parameter value that was passed via MessageChannel
+   * @param key The query parameter key
+   * @returns The query parameter value or null if not found
+   */
+  public getQueryParam(key: string): string | null {
+    return this.pluginController.getQueryParam(key);
+  }
+
   public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
       const client = await pluginController.getClient();

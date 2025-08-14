@@ -16,20 +16,22 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
     isWorker: true,
     location: { search: '?secret=123' },
     parent: {
-      postMessage: (message: { event: EventBusMessage }) => {
-        message.event.sender = "worker." + message.event.sender;
-        checkDebugMode(message.event);
-        logIfDebug('sending event to Rimori', message.event);
-        self.postMessage(message)
+      postMessage: (message: any) => {
+        // Workers should only send EventBus messages, not direct messages like rimori:hello
+        // If it's not an EventBus message, ignore it (workers shouldn't do MessageChannel handshake)
+        if (message.event) {
+          message.event.sender = "worker." + message.event.sender;
+          checkDebugMode(message.event);
+          logIfDebug('sending event to Rimori', message.event);
+          self.postMessage(message)
+        } else {
+          // Ignore non-EventBus messages (like rimori:hello) - workers don't do MessageChannel handshake
+          logIfDebug('ignoring non-EventBus message in worker context', message);
+        }
       }
     },
     addEventListener: (_: string, listener: any) => {
       listeners.push(listener);
-    },
-    APP_CONFIG: {
-      SUPABASE_URL: 'NOT_SET',
-      SUPABASE_ANON_KEY: 'NOT_SET',
-      BACKEND_URL: 'NOT_SET',
     },
   };
 
@@ -47,9 +49,7 @@ export function setupWorker(init: (controller: RimoriClient) => void | Promise<v
 
     if (event.topic === 'global.worker.requestInit') {
       if (!controller) {
-        mockWindow.APP_CONFIG.SUPABASE_URL = event.data.supabaseUrl;
-        mockWindow.APP_CONFIG.SUPABASE_ANON_KEY = event.data.supabaseAnonKey;
-        mockWindow.APP_CONFIG.BACKEND_URL = event.data.backendUrl;
+        // No need for APP_CONFIG - PluginController will use EventBus to get Supabase access
         controller = await PluginController.getInstance(event.data.pluginId);
         logIfDebug('Worker initialized.');
         await init(controller);

@@ -18,20 +18,43 @@ const PluginContext = createContext<RimoriClient | null>(null);
 export const PluginProvider: React.FC<PluginProviderProps> = ({ children, pluginId, settings }) => {
   const [plugin, setPlugin] = useState<RimoriClient | null>(null);
   const [standaloneClient, setStandaloneClient] = useState<StandaloneClient | boolean>(false);
-  const isSidebar = getUrlParam("applicationMode") === "sidebar";
-  const isSettings = getUrlParam("applicationMode") === "settings";
+  const [applicationMode, setApplicationMode] = useState<string | null>(null);
+  const [theme, setTheme] = useState<string | null>(null);
+  
+  const isSidebar = applicationMode === "sidebar";
+  const isSettings = applicationMode === "settings";
 
   useEffect(() => {
+    console.log("[PluginProvider] useEffect called", { pluginId });
     initEventBus(pluginId);
-    const standaloneDetected = new URLSearchParams(window.location.search).get("secret") === null;
+    
+    // Check if we're in an iframe context - if not, we're standalone
+    const standaloneDetected = window === window.parent;
+    console.log("[PluginProvider] Standalone detection", { 
+      standaloneDetected, 
+      windowEqualsParent: window === window.parent,
+      standaloneClient: !!standaloneClient 
+    });
+    
     if (standaloneDetected && !standaloneClient) {
+      console.log("[PluginProvider] Initializing standalone client");
       StandaloneClient.getInstance().then(client => {
         client.needsLogin().then((needLogin) => setStandaloneClient(needLogin ? client : true));
       });
     }
 
     if ((!standaloneDetected && !plugin) || (standaloneDetected && standaloneClient === true)) {
-      PluginController.getInstance(pluginId, standaloneDetected).then(setPlugin);
+      console.log("[PluginProvider] Getting PluginController instance", { standaloneDetected });
+      PluginController.getInstance(pluginId, standaloneDetected).then(client => {
+        setPlugin(client);
+        // Get applicationMode and theme from MessageChannel query params
+        if (!standaloneDetected) {
+          const mode = client.getQueryParam("applicationMode");
+          const themeParam = client.getQueryParam("rm_theme");
+          setApplicationMode(mode);
+          setTheme(themeParam);
+        }
+      });
     }
   }, [pluginId, standaloneClient]);
 
@@ -92,11 +115,21 @@ export const usePlugin = () => {
 };
 
 function getUrlParam(name: string) {
+  // First try to get from URL hash query params (for compatibility)
+  const hashParts = window.location.hash.split('?');
+  if (hashParts.length > 1) {
+    const hashParams = new URLSearchParams(hashParts[1]);
+    const hashValue = hashParams.get(name);
+    if (hashValue) return hashValue;
+  }
+  
+  // Fallback to regular URL search params
   const url = new URL(window.location.href);
   return url.searchParams.get(name);
 }
 
 function initEventBus(pluginId: string) {
+  // For now, use URL fallback for EventBus naming - this will be updated once MessageChannel is ready
   const isSidebar = getUrlParam("applicationMode") === "sidebar";
   EventBusHandler.getInstance("Plugin EventBus " + pluginId + " " + (isSidebar ? "sidebar" : "main"));
 }
