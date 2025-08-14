@@ -4,7 +4,8 @@ import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from "../utils/endpoint";
 
 export interface StandaloneConfig {
   url: string,
-  key: string
+  key: string,
+  backendUrl?: string
 }
 
 export class StandaloneClient {
@@ -25,6 +26,7 @@ export class StandaloneClient {
       StandaloneClient.instance = new StandaloneClient({
         url: config?.SUPABASE_URL || DEFAULT_ENDPOINT,
         key: config?.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
+        backendUrl: config?.BACKEND_URL || 'https://api.rimori.se',
       });
     }
     return StandaloneClient.instance;
@@ -58,18 +60,32 @@ export class StandaloneClient {
     EventBus.respond("standalone", "global.supabase.requestAccess", async () => {
       const session = await supabase.auth.getSession();
       console.log("session", session);
-      const { data, error } = await supabase.functions.invoke("plugin-token", {
-        body: { pluginId },
-        headers: { authorization: `Bearer ${session.data.session?.access_token}` },
+      
+      // Call the NestJS backend endpoint instead of the Supabase edge function
+      const response = await fetch(`${config.backendUrl}/plugin/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.data.session?.access_token}`
+        },
+        body: JSON.stringify({
+          pluginId: pluginId
+        })
       });
-      if (error) {
-        throw new Error("Failed to get plugin token. " + error.message);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get plugin token. ${response.status}: ${errorText}`);
       }
+
+      const data = await response.json();
+      
       return {
         token: data.token,
         pluginId: pluginId,
         url: config.url,
         key: config.key,
+        backendUrl: config.backendUrl,
         tablePrefix: pluginId,
         expiration: new Date(Date.now() + 1000 * 60 * 60 * 1.5), // 1.5 hours
       }
