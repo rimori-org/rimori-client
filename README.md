@@ -335,6 +335,12 @@ The `db.from()` method provides access to the complete Supabase PostgREST API, s
 
 All operations automatically use your plugin's table prefix for security and isolation.
 
+**Column deprecation and removal (short policy)**
+
+- To remove a column, use a two-step process:
+  1. Mark the column with `deprecated: true` in your `rimori/db.config.ts` and release. The backend renames the column to `<name>_old`.
+  2. In a subsequent release, remove the column from the config. The backend drops `<name>_old`.
+
 **Example: CRUD Operations**
 
 ```typescript
