@@ -58,38 +58,19 @@ export class PluginController {
   }
 
   private initMessageChannel() {
-    console.log('[PluginController] Initializing MessageChannel');
     this.sendHello();
 
     window.addEventListener("message", (event: MessageEvent) => {
       const { type, pluginId, instanceId, queryParams, rimoriInfo } = event.data || {};
       const [transferredPort] = event.ports || [];
 
-      console.log('[PluginController] Received message:', { type, pluginId, hasPort: !!transferredPort });
-
       if (type !== "rimori:init" || !transferredPort || pluginId !== this.pluginId) {
-        if (type === "rimori:init") {
-          console.log('[PluginController] rimori:init received but conditions not met:', {
-            hasPort: !!transferredPort,
-            pluginIdMatch: pluginId === this.pluginId,
-            expectedPluginId: this.pluginId,
-            receivedPluginId: pluginId
-          });
-        }
         return;
       }
-
-      console.log('[PluginController] rimori:init accepted, setting up MessageChannel');
       
       this.instanceId = instanceId;
       this.queryParams = queryParams || {};
       this.port = transferredPort;
-      
-      console.log('[PluginController] MessageChannel data received:', {
-        instanceId,
-        queryParams,
-        hasRimoriInfo: !!rimoriInfo
-      });
       
       // Initialize Supabase client immediately with provided info
       if (rimoriInfo) {
@@ -97,7 +78,6 @@ export class PluginController {
         this.supabase = createClient(rimoriInfo.url, rimoriInfo.key, {
           accessToken: () => Promise.resolve(rimoriInfo.token)
         });
-        console.log('[PluginController] Supabase client initialized');
       }
 
       // Handle messages from parent
@@ -140,9 +120,7 @@ export class PluginController {
 
   private sendHello() {
     try {
-      console.log('[PluginController] Sending rimori:hello to parent', { pluginId: this.pluginId });
       window.parent.postMessage({ type: "rimori:hello", pluginId: this.pluginId }, "*");
-      console.log('[PluginController] rimori:hello sent successfully');
     } catch (e) {
       console.error("[PluginController] Error sending hello:", e);
     }
