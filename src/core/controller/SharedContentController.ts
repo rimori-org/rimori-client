@@ -59,7 +59,7 @@ export class SharedContentController {
       throw new Error('error fetching new assignments');
     }
 
-    console.log('newAssignments:', newAssignments);
+    // console.log('newAssignments:', newAssignments);
 
     if (!(options?.alwaysGenerateNew) && newAssignments.length > 0) {
       const index = Math.floor(Math.random() * newAssignments.length);
@@ -142,7 +142,15 @@ export class SharedContentController {
   }
 
   public async completeSharedContent(contentType: string, assignmentId: string) {
-    await this.supabase.from("shared_content_completed").insert({ content_type: contentType, id: assignmentId });
+    // Idempotent completion: upsert on (id, user_id) so repeated calls don't fail
+    const { error } = await this.supabase
+      .from("shared_content_completed")
+      .upsert({ content_type: contentType, id: assignmentId } as any, { onConflict: 'id' });
+
+    if (error) {
+      console.error('error completing shared content:', error);
+      throw new Error('error completing shared content');
+    }
   }
 
   /**

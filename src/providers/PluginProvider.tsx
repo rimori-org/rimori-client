@@ -25,26 +25,18 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
   const isSettings = applicationMode === "settings";
 
   useEffect(() => {
-    console.log("[PluginProvider] useEffect called", { pluginId });
     initEventBus(pluginId);
     
     // Check if we're in an iframe context - if not, we're standalone
     const standaloneDetected = window === window.parent;
-    console.log("[PluginProvider] Standalone detection", { 
-      standaloneDetected, 
-      windowEqualsParent: window === window.parent,
-      standaloneClient: !!standaloneClient 
-    });
     
     if (standaloneDetected && !standaloneClient) {
-      console.log("[PluginProvider] Initializing standalone client");
       StandaloneClient.getInstance().then(client => {
         client.needsLogin().then((needLogin) => setStandaloneClient(needLogin ? client : true));
       });
     }
 
     if ((!standaloneDetected && !plugin) || (standaloneDetected && standaloneClient === true)) {
-      console.log("[PluginProvider] Getting PluginController instance", { standaloneDetected });
       PluginController.getInstance(pluginId, standaloneDetected).then(client => {
         setPlugin(client);
         // Get applicationMode and theme from MessageChannel query params
