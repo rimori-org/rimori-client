@@ -275,16 +275,20 @@ export class RimoriClient {
        * @param contentType The type of shared content to fetch. E.g. assignments, exercises, etc.
        * @param generatorInstructions The instructions for the creation of new shared content. The object will automatically be extended with a tool property with a topic and keywords property to let a new unique topic be generated.
        * @param filter The optional additional filter for checking new shared content based on a column and value. This is useful if the aditional information stored on the shared content is used to further narrow down the kind of shared content wanted to be received. E.g. only adjective grammar exercises.
-       * @param privateTopic An optional flag to indicate if the topic should be private and only be visible to the user. This is useful if the topic is not meant to be shared with other users. Like for personal topics or if the content is based on the personal study goal.
+       * @param options An optional object with options for the new shared content.
+       * @param options.privateTopic An optional flag to indicate if the topic should be private and only be visible to the user. This is useful if the topic is not meant to be shared with other users. Like for personal topics or if the content is based on the personal study goal.
+       * @param options.skipDbSave An optional flag to indicate if the new shared content should not be saved to the database. This is useful if the new shared content is not meant to be saved to the database.
+       * @param options.alwaysGenerateNew An optional flag to indicate if the new shared content should always be generated even if there is already a content with the same filter. This is useful if the new shared content is not meant to be saved to the database.
+       * @param options.excludeIds An optional list of ids to exclude from the selection. This is useful if the new shared content is not meant to be saved to the database.
        * @returns The new shared content.
        */
       getNew: async <T = any>(
         contentType: string,
         generatorInstructions: SharedContentObjectRequest,
         filter?: SharedContentFilter,
-        privateTopic?: boolean,
+        options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
       ): Promise<SharedContent<T>> => {
-        return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, privateTopic);
+        return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, options);
       },
       /**
        * Create a new shared content item.
@@ -310,6 +314,20 @@ export class RimoriClient {
         */
       complete: async (contentType: string, assignmentId: string) => {
         return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
+      },
+      /**
+       /**
+        * Update the state of a shared content item for a specific user.
+        * Useful for marking content as completed, ongoing, hidden, liked, disliked, or bookmarked.
+        */
+      updateState: async (params: {
+        contentType: string
+        id: string
+        state?: 'completed' | 'ongoing' | 'hidden'
+        reaction?: 'liked' | 'disliked' | null
+        bookmarked?: boolean
+      }): Promise<void> => {
+        return await this.sharedContentController.updateSharedContentState(params);
       },
       /**
        * Remove a shared content item.

@@ -22,7 +22,11 @@ export class SharedContentController {
    * @param contentType - The type of content to fetch.
    * @param generatorInstructions - The instructions for the generator. The object needs to have a tool property with a topic and keywords property to let a new unique topic be generated.
    * @param filter - An optional filter to apply to the query.
-   * @param privateTopic - An optional flag to indicate if the topic should be private and only be visible to the user.
+   * @param options - Optional options.
+   * @param options.privateTopic - If the topic should be private and only be visible to the user.
+   * @param options.skipDbSave - If true, do not persist a newly generated content to the DB (default false).
+   * @param options.alwaysGenerateNew - If true, always generate a new content even if there is already a content with the same filter.
+   * @param options.excludeIds - Optional list of shared_content ids to exclude from selection.
    * @returns The new shared content.
    */
   public async getNewSharedContent<T>(
@@ -30,20 +34,25 @@ export class SharedContentController {
     generatorInstructions: SharedContentObjectRequest,
     //this filter is there if the content should be filtered additionally by a column and value
     filter?: SharedContentFilter,
-    privateTopic?: boolean,
+    options?: { privateTopic?: boolean, skipDbSave?: boolean, alwaysGenerateNew?: boolean, excludeIds?: string[] },
   ): Promise<SharedContent<T>> {
-    const query = this.supabase.from("shared_content")
-      .select("*, scc:shared_content_completed(id)")
+    let query = this.supabase.from("shared_content")
+      .select("*, scc:shared_content_completed(id, state)")
       .eq('content_type', contentType)
-      .is('scc.id', null)
-      .is('deleted_at', null)
-      .limit(10);
+      .not('scc.state', 'in', '("completed","ongoing","hidden")')
+      .is('deleted_at', null);
+
+    if (options?.excludeIds && options.excludeIds.length > 0) {
+      // Supabase expects raw PostgREST syntax like '("id1","id2")'.
+      const excludeList = `(${options.excludeIds.map((id) => `"${id}"`).join(',')})`;
+      query = query.not('id', 'in', excludeList);
+    }
 
     if (filter) {
       query.contains('data', filter);
     }
 
-    const { data: newAssignments, error } = await query;
+    const { data: newAssignments, error } = await query.limit(30);
 
     if (error) {
       console.error('error fetching new assignments:', error);
@@ -52,7 +61,7 @@ export class SharedContentController {
 
     console.log('newAssignments:', newAssignments);
 
-    if (!privateTopic && newAssignments.length > 0) {
+    if (!(options?.alwaysGenerateNew) && newAssignments.length > 0) {
       const index = Math.floor(Math.random() * newAssignments.length);
       return newAssignments[index];
     }
@@ -68,7 +77,11 @@ export class SharedContentController {
       title: instructions.title,
       keywords: instructions.keywords.map(({ text }: { text: string }) => text),
       data: { ...instructions, title: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
-      privateTopic,
+      privateTopic: options?.privateTopic,
+    }
+
+    if (options?.skipDbSave) {
+      return data;
     }
 
     return await this.createSharedContent(data);
@@ -130,6 +143,46 @@ export class SharedContentController {
 
   public async completeSharedContent(contentType: string, assignmentId: string) {
     await this.supabase.from("shared_content_completed").insert({ content_type: contentType, id: assignmentId });
+  }
+
+  /**
+   * Update state details for a shared content entry in shared_content_completed.
+   * Assumes table has columns: state ('completed'|'ongoing'|'hidden'), reaction ('liked'|'disliked'|null), bookmarked boolean.
+   * Upserts per (id, content_type, user).
+   * @param param
+   * @param param.contentType - The content type.
+   * @param param.id - The shared content id.
+   * @param param.state - The state to set.
+   * @param param.reaction - Optional reaction.
+   * @param param.bookmarked - Optional bookmark flag.
+   */
+  public async updateSharedContentState({
+    contentType,
+    id,
+    state,
+    reaction,
+    bookmarked,
+  }: {
+    contentType: string
+    id: string
+    state?: 'completed' | 'ongoing' | 'hidden'
+    reaction?: 'liked' | 'disliked' | null
+    bookmarked?: boolean
+  }): Promise<void> {
+    const payload: Record<string, unknown> = { content_type: contentType, id };
+    if (state !== undefined) payload.state = state;
+    if (reaction !== undefined) payload.reaction = reaction;
+    if (bookmarked !== undefined) payload.bookmarked = bookmarked;
+
+    // Prefer upsert, fall back to insert/update if upsert not allowed
+    const { error } = await this.supabase
+      .from('shared_content_completed')
+      .upsert(payload as any, { onConflict: 'id' });
+
+    if (error) {
+      console.error('error updating shared content state:', error);
+      throw new Error('error updating shared content state');
+    }
   }
 
   /**
