@@ -92,7 +92,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
     }
 
     if (finishReason !== 'tool-calls') {
-      onResponse(messageId, content.replace(/\\n/g, '\n'), true, toolInvocations);
+      onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"/g, '"'), true, toolInvocations);
       return;
     }
 

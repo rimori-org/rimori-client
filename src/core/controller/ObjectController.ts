@@ -98,7 +98,7 @@ export async function streamObject(backendUrl: string, request: ObjectRequest, o
           // console.log("AI response:", content);
 
           //content \n\n should be real line break when message is displayed
-          onResponse(messageId, content.replace(/\\n/g, '\n'), false);
+          onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"/g, '"'), false);
         } else if (command === 'd') {
           // console.log("AI usage:", JSON.parse(line.substring(2)));
           done = true;
@@ -111,5 +111,5 @@ export async function streamObject(backendUrl: string, request: ObjectRequest, o
       }
     }
   }
-  onResponse(messageId, content.replace(/\\n/g, '\n'), true, toolInvocations);
+  onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"/g, '"'), true, toolInvocations);
 }
