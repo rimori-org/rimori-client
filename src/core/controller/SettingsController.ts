@@ -36,6 +36,14 @@ export interface UserInfo {
   onboarding_completed: boolean;
   context_menu_on_select: boolean;
   user_name?: string;
+  /**
+   * ISO 3166-1 alpha-2 country code of user's location (exposed to plugins)
+   */
+  location_country: string;
+  /**
+   * Optional: nearest big city (>100,000) near user's location
+   */
+  location_city?: string;
 }
 
 export class SettingsController {
