@@ -17,7 +17,7 @@ interface Db {
     <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
     <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
   };
-  storage: SupabaseClient["storage"];
+  // storage: SupabaseClient["storage"];
 
   // functions: SupabaseClient["functions"];
   /**
@@ -75,10 +75,10 @@ export class RimoriClient {
     this.profile = info.profile;
 
     this.from = this.from.bind(this);
-
+    
     this.db = {
       from: this.from,
-      storage: this.superbase.storage,
+      // storage: this.superbase.storage,
       // functions: this.superbase.functions,
       tablePrefix: info.tablePrefix,
       getTableName: this.getTableName.bind(this),
@@ -242,6 +242,19 @@ export class RimoriClient {
       return generateObject(this.pluginController.getBackendUrl(), request, token);
     },
     // getSteamedObject: this.generateObjectStream,
+  }
+
+  public runtime = {
+    fetchBackend: async (url: string, options: RequestInit) => {
+      const token = await this.pluginController.getToken();
+      return fetch(this.pluginController.getBackendUrl() + url, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    }
   }
 
   public community = {
