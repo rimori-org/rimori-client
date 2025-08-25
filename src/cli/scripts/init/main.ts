@@ -15,6 +15,7 @@ import { updatePackageJson, type PackageJson } from './package-setup.js';
 import { transformAppRouter } from './router-transformer.js';
 import { updateTailwindConfig } from './tailwind-config.js';
 import { updateViteConfigBase } from './vite-config.js';
+import 'dotenv/config';
 
 /**
  * Main function that handles the complete plugin setup flow.
