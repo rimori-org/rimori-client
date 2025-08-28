@@ -213,11 +213,14 @@ export class RimoriClient {
     return this.superbase.from(this.getTableName(relation));
   }
 
-  private getTableName(type: string) {
-    if (type.startsWith("global_")) {
-      return type.replace("global_", "");
+  private getTableName(table: string) {
+    if (/[A-Z]/.test(table)) {
+      throw new Error("Table name cannot include uppercase letters. Please use snake_case for table names.");
     }
-    return this.db.tablePrefix + "_" + type;
+    if (table.startsWith("global_")) {
+      return table.replace("global_", "");
+    }
+    return this.db.tablePrefix + "_" + table;
   }
 
   public ai = {

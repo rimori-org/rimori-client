@@ -5,6 +5,7 @@ import { Plugin } from '../fromRimori/PluginTypes';
 import { RimoriClient } from "./RimoriClient";
 import { StandaloneClient } from './StandaloneClient';
 import { setTheme } from './ThemeSetter';
+import { Logger } from './Logger';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
@@ -133,6 +134,11 @@ export class PluginController {
       }
       PluginController.instance = new PluginController(pluginId, standalone);
       PluginController.client = await RimoriClient.getInstance(PluginController.instance);
+
+      //only init logger in workers and on main plugin pages
+      if(PluginController.instance.getQueryParam("applicationMode") !== "sidebar") {
+        Logger.getInstance(PluginController.client);
+      }
     }
     return PluginController.client;
   }

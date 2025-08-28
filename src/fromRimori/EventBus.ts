@@ -39,7 +39,7 @@ export class EventBusHandler {
   private listeners: Map<string, Set<Listeners<EventPayload>>> = new Map();
   private responseResolvers: Map<number, (value: EventBusMessage<unknown>) => void> = new Map();
   private static instance: EventBusHandler | null = null;
-  private debugEnabled: boolean = true;
+  private debugEnabled: boolean = false;
   private evName: string = "";
 
   private constructor() {
