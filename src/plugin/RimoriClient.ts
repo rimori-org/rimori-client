@@ -7,7 +7,7 @@ import { SettingsController, UserInfo } from "../core/controller/SettingsControl
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
-import { Plugin, Tool } from "../fromRimori/PluginTypes";
+import { MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { PluginController, RimoriInfo } from "./PluginController";
 
@@ -75,7 +75,7 @@ export class RimoriClient {
     this.profile = info.profile;
 
     this.from = this.from.bind(this);
-    
+
     this.db = {
       from: this.from,
       // storage: this.superbase.storage,
@@ -175,6 +175,12 @@ export class RimoriClient {
      */
     emitSidebarAction: (pluginId: string, actionKey: string, text?: string) => {
       this.event.emit("global.sidebar.triggerAction", { plugin_id: pluginId, action_key: actionKey, text });
+    },
+
+    onMainPanelAction: (callback: (data: MainPanelAction) => void) => {
+      // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
+      this.event.emit("action.requestMain")
+      this.event.on<MainPanelAction>("action.requestMain", ({ data }) => callback(data));
     }
   }
 
