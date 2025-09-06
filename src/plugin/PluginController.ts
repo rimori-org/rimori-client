@@ -28,7 +28,6 @@ export class PluginController {
   private static client: RimoriClient;
   private static instance: PluginController;
   private port: MessagePort | null = null;
-  private instanceId: string | null = null;
   private queryParams: Record<string, string> = {};
   private supabase: SupabaseClient | null = null;
   private rimoriInfo: RimoriInfo | null = null;
@@ -50,31 +49,23 @@ export class PluginController {
     //no need to forward messages to parent in standalone mode or worker context
     if (standalone) return;
 
-    // Workers don't do MessageChannel handshake - they communicate via EventBus only
-    if (typeof WorkerGlobalScope !== 'undefined') {
-      // In worker context, mark as ready immediately since we use EventBus directly
-      this.isMessageChannelReady = true;
-      return;
-    }
-
-    this.initMessageChannel();
+    this.initMessageChannel(typeof WorkerGlobalScope !== 'undefined');
   }
 
-  private initMessageChannel() {
-    this.sendHello();
-
-    window.addEventListener("message", (event: MessageEvent) => {
-      const { type, pluginId, instanceId, queryParams, rimoriInfo } = event.data || {};
+  private initMessageChannel(worker: boolean = false) {
+    const listener = (event: MessageEvent) => {
+      console.log("[PluginController] window message", { origin: event.origin, data: event.data });
+      const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
       const [transferredPort] = event.ports || [];
 
       if (type !== "rimori:init" || !transferredPort || pluginId !== this.pluginId) {
+        console.log("[PluginController] message ignored (not init or wrong plugin)", { type, pluginId, hasPort: !!transferredPort });
         return;
       }
-      
-      this.instanceId = instanceId;
+
       this.queryParams = queryParams || {};
       this.port = transferredPort;
-      
+
       // Initialize Supabase client immediately with provided info
       if (rimoriInfo) {
         this.rimoriInfo = rimoriInfo;
@@ -86,7 +77,8 @@ export class PluginController {
       // Handle messages from parent
       this.port.onmessage = ({ data }) => {
         const { event, type, eventId, response, error } = data || {};
-        
+
+        // no idea why this is needed but it works for now
         if (type === 'response' && eventId) {
           EventBus.emit(this.pluginId, response.topic, response.data, eventId);
         } else if (type === 'error' && eventId) {
@@ -100,7 +92,7 @@ export class PluginController {
       };
 
       // Set theme from MessageChannel query params
-      if (typeof WorkerGlobalScope === 'undefined') {
+      if (!worker) {
         const theme = this.queryParams['rm_theme'];
         setTheme(theme);
       }
@@ -114,16 +106,27 @@ export class PluginController {
 
       // Mark MessageChannel as ready and process pending requests
       this.isMessageChannelReady = true;
-      
+
       // Process any pending requests
       this.pendingRequests.forEach(request => request());
       this.pendingRequests = [];
-    });
+    };
+    if (worker) {
+      self.onmessage = listener;
+    } else {
+      window.addEventListener("message", listener);
+    }
+    this.sendHello(worker);
   }
 
-  private sendHello() {
+  private sendHello(isWorker: boolean = false) {
     try {
-      window.parent.postMessage({ type: "rimori:hello", pluginId: this.pluginId }, "*");
+      const payload = { type: "rimori:hello", pluginId: this.pluginId };
+      if (isWorker) {
+        self.postMessage(payload);
+      } else {
+        window.parent.postMessage(payload, "*");
+      }
     } catch (e) {
       console.error("[PluginController] Error sending hello:", e);
     }
@@ -138,7 +141,7 @@ export class PluginController {
       PluginController.client = await RimoriClient.getInstance(PluginController.instance);
 
       //only init logger in workers and on main plugin pages
-      if(PluginController.instance.getQueryParam("applicationMode") !== "sidebar") {
+      if (PluginController.instance.getQueryParam("applicationMode") !== "sidebar") {
         Logger.getInstance(PluginController.client);
       }
     }
@@ -147,10 +150,6 @@ export class PluginController {
 
   public getQueryParam(key: string): string | null {
     return this.queryParams[key] || null;
-  }
-
-  public getInstanceId(): string | null {
-    return this.instanceId;
   }
 
   public async getClient(): Promise<{ supabase: SupabaseClient, info: RimoriInfo }> {
@@ -189,7 +188,7 @@ export class PluginController {
             debug: false
           }
         };
-        
+
         return new Promise<{ supabase: SupabaseClient, info: RimoriInfo }>((resolve) => {
           // Listen for the response
           const originalOnMessage = self.onmessage;
@@ -205,7 +204,7 @@ export class PluginController {
               originalOnMessage.call(self, event);
             }
           };
-          
+
           // Send the request
           self.postMessage(requestEvent);
         });
