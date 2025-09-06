@@ -57,11 +57,11 @@ interface PluginInterface {
     /**
      * The plugin that is loaded in the main panel.
      */
-    activeInMainPanel?: ActivePlugin,
+    mainPanelPlugin?: ActivePlugin,
     /**
      * The plugin that is loaded in the side panel.
      */
-    activeInSidePanel?: ActivePlugin,
+    sidePanelPlugin?: ActivePlugin,
   };
   getUserInfo: () => UserInfo;
 }
