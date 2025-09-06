@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserInfo } from '../core/controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
-import { Plugin } from '../fromRimori/PluginTypes';
+import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
 import { RimoriClient } from "./RimoriClient";
 import { StandaloneClient } from './StandaloneClient';
 import { setTheme } from './ThemeSetter';
@@ -20,6 +20,8 @@ export interface RimoriInfo {
   pluginId: string
   installedPlugins: Plugin[]
   profile: UserInfo
+  mainPanelPlugin?: ActivePlugin
+  sidePanelPlugin?: ActivePlugin
 }
 
 export class PluginController {
@@ -240,6 +242,11 @@ export class PluginController {
     return this.rimoriInfo.token;
   }
 
+  /**
+   * Gets the Supabase URL.
+   * @returns The Supabase URL.
+   * @deprecated All endpoints should use the backend URL instead.
+   */
   public getSupabaseUrl() {
     if (!this.rimoriInfo) {
       throw new Error("Supabase info not found");

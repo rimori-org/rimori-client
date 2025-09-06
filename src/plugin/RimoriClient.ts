@@ -7,7 +7,7 @@ import { SettingsController, UserInfo } from "../core/controller/SettingsControl
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
-import { MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
+import { ActivePlugin, MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { PluginController, RimoriInfo } from "./PluginController";
 
@@ -44,11 +44,26 @@ interface PluginInterface {
    */
   getSettings: <T extends object>(defaultSettings: T) => Promise<T>;
   /**
-  * Fetches all installed plugins.
-  * @returns A promise that resolves to an array of plugins
-  */
-  getInstalled: () => Promise<Plugin[]>;
-  getUserInfo: () => Promise<UserInfo>;
+   * Retrieves information about plugins, including:
+   * - All installed plugins
+   * - The currently active plugin in the main panel
+   * - The currently active plugin in the side panel
+   */
+  getPluginInfo: () => {
+    /**
+     * All installed plugins.
+     */
+    installedPlugins: Plugin[],
+    /**
+     * The plugin that is loaded in the main panel.
+     */
+    activeInMainPanel?: ActivePlugin,
+    /**
+     * The plugin that is loaded in the side panel.
+     */
+    activeInSidePanel?: ActivePlugin,
+  };
+  getUserInfo: () => UserInfo;
 }
 
 export class RimoriClient {
@@ -58,21 +73,17 @@ export class RimoriClient {
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
   private accomplishmentHandler: AccomplishmentHandler;
-  private supabaseUrl: string;
-  private installedPlugins: Plugin[];
-  private profile: UserInfo;
+  private rimoriInfo: RimoriInfo;
   public plugin: PluginInterface;
   public db: Db;
 
   private constructor(supabase: SupabaseClient, info: RimoriInfo, pluginController: PluginController) {
+    this.rimoriInfo = info;
     this.superbase = supabase;
     this.pluginController = pluginController;
     this.settingsController = new SettingsController(supabase, info.pluginId);
     this.sharedContentController = new SharedContentController(this.superbase, this);
-    this.supabaseUrl = this.pluginController.getSupabaseUrl();
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
-    this.installedPlugins = info.installedPlugins;
-    this.profile = info.profile;
 
     this.from = this.from.bind(this);
 
@@ -91,11 +102,15 @@ export class RimoriClient {
       getSettings: async <T extends object>(defaultSettings: T): Promise<T> => {
         return await this.settingsController.getSettings<T>(defaultSettings);
       },
-      getInstalled: async (): Promise<Plugin[]> => {
-        return this.installedPlugins;
+      getUserInfo: (): UserInfo => {
+        return this.rimoriInfo.profile;
       },
-      getUserInfo: async (): Promise<UserInfo> => {
-        return this.profile;
+      getPluginInfo: () => {
+        return {
+          installedPlugins: this.rimoriInfo.installedPlugins,
+          mainPanelPlugin: this.rimoriInfo.mainPanelPlugin,
+          sidePanelPlugin: this.rimoriInfo.sidePanelPlugin,
+        }
       }
     }
   }
