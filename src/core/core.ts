@@ -12,4 +12,5 @@ export { SharedContent } from "./controller/SharedContentController";
 export { Message, OnLLMResponse, ToolInvocation } from "./controller/AIController";
 export { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from "../plugin/AccomplishmentHandler";
 export { Tool } from "../fromRimori/PluginTypes";
+export { SharedContentObjectRequest } from "./controller/SharedContentController";
 
