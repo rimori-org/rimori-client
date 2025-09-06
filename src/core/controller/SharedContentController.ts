@@ -43,8 +43,9 @@ export class SharedContentController {
       .is('deleted_at', null);
 
     if (options?.excludeIds && options.excludeIds.length > 0) {
+      const excludeIds = options.excludeIds.filter((id) => !id.startsWith('internal-temp-id-'));
       // Supabase expects raw PostgREST syntax like '("id1","id2")'.
-      const excludeList = `(${options.excludeIds.map((id) => `"${id}"`).join(',')})`;
+      const excludeList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
       query = query.not('id', 'in', excludeList);
     }
 
