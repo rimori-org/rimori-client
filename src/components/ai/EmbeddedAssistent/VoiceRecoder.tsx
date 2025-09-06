@@ -1,4 +1,4 @@
-import { usePlugin } from '../../../components';
+import { useRimori } from '../../../components';
 import { FaMicrophone, FaSpinner } from 'react-icons/fa6';
 import { AudioController } from '../../../plugin/AudioController';
 import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
@@ -17,7 +17,7 @@ export const VoiceRecorder = forwardRef(({ onVoiceRecorded, iconSize, className,
   const [isRecording, setIsRecording] = useState(false);
   const [internalIsProcessing, setInternalIsProcessing] = useState(false);
   const audioControllerRef = useRef<AudioController | null>(null);
-  const { ai, plugin } = usePlugin();
+  const { ai, plugin } = useRimori();
 
   // Ref for latest onVoiceRecorded callback
   const onVoiceRecordedRef = useRef(onVoiceRecorded);

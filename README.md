@@ -208,13 +208,13 @@ ReferenceError: process is not defined
 
 ## Core API - usePlugin Hook
 
-The `usePlugin()` hook is the main interface for accessing Rimori platform features:
+The `useRimori()` hook is the main interface for accessing Rimori platform features:
 
 ```typescript
-import { usePlugin } from "@rimori/client";
+import { useRimori } from "@rimori/client";
 
 const MyComponent = () => {
-  const client = usePlugin();
+  const client = useRimori();
   
   // Access all client features
   const { db, llm, event, community, plugin } = client;
@@ -226,7 +226,7 @@ const MyComponent = () => {
 ### Plugin Interface
 
 ```typescript
-const { plugin } = usePlugin();
+const { plugin } = useRimori();
 
 // Plugin information and settings
 plugin.pluginId: string                              // Current plugin ID
@@ -248,7 +248,7 @@ interface FlashcardSettings {
 }
 
 const FlashcardSettingsComponent = () => {
-  const { plugin } = usePlugin();
+  const { plugin } = useRimori();
   const [settings, setSettings] = useState<FlashcardSettings>();
 
   useEffect(() => {
@@ -317,7 +317,7 @@ const FlashcardSettingsComponent = () => {
 Access your plugin's dedicated database tables with full TypeScript support:
 
 ```typescript
-const { db } = usePlugin();
+const { db } = useRimori();
 
 // Database interface
 db.from(tableName)                    // Query builder for tables/views - supports ALL Supabase operations
@@ -353,7 +353,7 @@ interface StudySession {
 }
 
 const StudySessionManager = () => {
-  const { db } = usePlugin();
+  const { db } = useRimori();
   
   // Create a new study session
   const createSession = async (session: Omit<StudySession, 'id'>) => {
@@ -404,7 +404,7 @@ const StudySessionManager = () => {
 
 ```typescript
 const FileManager = () => {
-  const { db } = usePlugin();
+  const { db } = useRimori();
   
   const uploadFile = async (file: File) => {
     const fileName = `uploads/${Date.now()}-${file.name}`;
@@ -435,7 +435,7 @@ const FileManager = () => {
 Powerful AI/Language Model capabilities built-in:
 
 ```typescript
-const { llm } = usePlugin();
+const { llm } = useRimori();
 
 // Text generation
 llm.getText(messages: Message[], tools?: Tool[]): Promise<string>
@@ -504,7 +504,7 @@ const ChatAssistant = () => {
 
 ```typescript
 const QuizGenerator = () => {
-  const { llm } = usePlugin();
+  const { llm } = useRimori();
   
   const generateQuiz = async (topic: string) => {
     const quiz = await llm.getObject({
@@ -540,7 +540,7 @@ const QuizGenerator = () => {
 
 ```typescript
 const VoiceAssistant = () => {
-  const { llm } = usePlugin();
+  const { llm } = useRimori();
   
   const speakText = async (text: string) => {
     const audioBlob = await llm.getVoice(text, "alloy", 1, "en");
@@ -563,7 +563,7 @@ const VoiceAssistant = () => {
 Robust inter-plugin communication and platform integration:
 
 ```typescript
-const { event } = usePlugin();
+const { event } = useRimori();
 
 // Event methods
 event.emit(topic: string, data?: any, eventId?: number): void
@@ -584,7 +584,7 @@ event.emitSidebarAction(pluginId: string, actionKey: string, text?: string): voi
 
 ```typescript
 const PluginCommunicator = () => {
-  const { event } = usePlugin();
+  const { event } = useRimori();
   
   useEffect(() => {
     // Listen for messages from other plugins
@@ -634,7 +634,7 @@ const PluginCommunicator = () => {
 
 ```typescript
 const AccomplishmentTracker = () => {
-  const { event } = usePlugin();
+  const { event } = useRimori();
   
   const trackAccomplishment = () => {
     event.emitAccomplishment({
@@ -665,7 +665,7 @@ const AccomplishmentTracker = () => {
 
 ```typescript
 const SidebarIntegration = () => {
-  const { event } = usePlugin();
+  const { event } = useRimori();
   
   const openTranslator = (text: string) => {
     // Trigger translator plugin in sidebar
@@ -695,7 +695,7 @@ const SidebarIntegration = () => {
 Share and discover content created by other users:
 
 ```typescript
-const { community } = usePlugin();
+const { community } = useRimori();
 
 // Shared content methods
 community.sharedContent.get<T>(contentType: string, id: string): Promise<BasicAssignment<T>>
@@ -722,7 +722,7 @@ interface Exercise {
 }
 
 const ExerciseManager = () => {
-  const { community } = usePlugin();
+  const { community } = useRimori();
   const [exercises, setExercises] = useState<BasicAssignment<Exercise>[]>([]);
 
   // Load community exercises
@@ -1040,7 +1040,7 @@ import {
 import { HashRouter, Route, Routes } from 'react-router-dom';
 
 const StudyNotesPlugin = () => {
-  const { db, llm, plugin, community } = usePlugin();
+  const { db, llm, plugin, community } = useRimori();
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { messages, append } = useChat();

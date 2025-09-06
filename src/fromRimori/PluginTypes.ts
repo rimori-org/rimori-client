@@ -1,11 +1,13 @@
 // whole configuration of a plugin (from the database)
-export type Plugin = Omit<RimoriPluginConfig, 'context_menu_actions'> & {
+export type Plugin<T extends {} = {}> = Omit<RimoriPluginConfig<T>, 'context_menu_actions'> & {
   version: string;
   endpoint: string;
   assetEndpoint: string;
   context_menu_actions: MenuEntry[];
   release_channel: "alpha" | "beta" | "stable";
 }
+
+export type ActivePlugin = Plugin<{ active?: boolean }>
 
 // browsable page of a plugin
 export interface PluginPage {
@@ -70,7 +72,7 @@ export interface ContextMenuAction {
  * Rimori plugin structure representing the complete configuration
  * of a Rimori plugin with all metadata and configuration options.
  */
-export interface RimoriPluginConfig {
+export interface RimoriPluginConfig<T extends {} = {}> {
   id: string;
   /**
    * Basic information about the plugin including branding and core details.
@@ -92,9 +94,9 @@ export interface RimoriPluginConfig {
     /** Optional external URL where the plugin is hosted instead of the default CDN */
     external_hosted_url?: string;
     /** Array of main plugin pages that appear in the application's main navigation (can be disabled using the 'show' flag) */
-    main: PluginPage[];
+    main: (PluginPage & T)[];
     /** Array of sidebar pages that appear in the sidebar for quick access (can be disabled using the 'show' flag) */
-    sidebar: SidebarPage[];
+    sidebar: (SidebarPage & T)[];
     /** Optional path to the plugin's settings/configuration page */
     settings?: string;
     /** Optional array of event topics the plugin pages can listen to for cross-plugin communication */

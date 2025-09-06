@@ -4,7 +4,7 @@ import { AudioInputField } from './EmbeddedAssistent/AudioInputField';
 import { MessageSender } from './EmbeddedAssistent/TTS/MessageSender';
 import Markdown from 'react-markdown';
 import { useChat } from '../../hooks/UseChatHook';
-import { usePlugin } from '../../components';
+import { useRimori } from '../../components';
 import { FirstMessages, getFirstMessages } from './utils';
 
 interface Props {
@@ -16,7 +16,7 @@ interface Props {
 
 export function AssistantChat({ avatarImageUrl, voiceId, onComplete, autoStartConversation }: Props) {
     const [oralCommunication, setOralCommunication] = React.useState(true);
-    const { ai: llm, event } = usePlugin();
+    const { ai: llm, event } = useRimori();
     const sender = useMemo(() => new MessageSender(llm.getVoice, voiceId), []);
     const { messages, append, isLoading, setMessages } = useChat();
 

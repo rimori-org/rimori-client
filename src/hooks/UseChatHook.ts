@@ -1,12 +1,12 @@
 import React from "react";
 import { Tool } from "../fromRimori/PluginTypes";
-import { usePlugin } from "../providers/PluginProvider";
+import { useRimori } from "../providers/PluginProvider";
 import { Message, ToolInvocation } from "../core/controller/AIController";
 
 export function useChat(tools?: Tool[]) {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
-  const { ai } = usePlugin();
+  const { ai } = useRimori();
 
   const append = (appendMessages: Message[]) => {
     const allMessages = [...messages, ...appendMessages];

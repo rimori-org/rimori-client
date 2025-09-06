@@ -98,10 +98,10 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
   );
 };
 
-export const usePlugin = () => {
+export const useRimori = () => {
   const context = useContext(PluginContext);
   if (context === null) {
-    throw new Error('usePlugin must be used within an PluginProvider');
+    throw new Error('useRimori must be used within an PluginProvider');
   }
   return context;
 };

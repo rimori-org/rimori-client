@@ -44,13 +44,10 @@ const ContextMenu = ({ client }: { client: RimoriClient }) => {
   };
 
   useEffect(() => {
-    client.plugin.getInstalled().then(plugins => {
-      setActions(plugins.flatMap(p => p.context_menu_actions).filter(Boolean));
-    });
+    const actions = client.plugin.getPluginInfo().installedPlugins.flatMap(p => p.context_menu_actions).filter(Boolean);
+    setActions(actions);
+    setOpenOnTextSelect(client.plugin.getUserInfo().context_menu_on_select);
 
-    client.plugin.getUserInfo().then((userInfo) => {
-      setOpenOnTextSelect(userInfo.context_menu_on_select);
-    })
 
     EventBus.on<{ actions: MenuEntry[] }>("global.contextMenu.createActions", ({ data }) => {
       setActions([...data.actions, ...actions]);

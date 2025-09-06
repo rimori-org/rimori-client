@@ -4,7 +4,7 @@ import { MessageSender } from './EmbeddedAssistent/TTS/MessageSender';
 import { CircleAudioAvatar } from './EmbeddedAssistent/CircleAudioAvatar';
 import { Tool } from '../../fromRimori/PluginTypes';
 import { useChat } from '../../hooks/UseChatHook';
-import { usePlugin } from '../../components';
+import { useRimori } from '../../components';
 import { getFirstMessages } from './utils';
 import { FirstMessages } from './utils';
 
@@ -29,7 +29,7 @@ export function Avatar({
   circleSize = "300px",
   className
 }: Props) {
-  const { ai, event } = usePlugin();
+  const { ai, event } = useRimori();
   const [agentReplying, setAgentReplying] = useState(false);
   const [isProcessingMessage, setIsProcessingMessage] = useState(false);
   const sender = useMemo(() => new MessageSender(ai.getVoice, voiceId), [voiceId]);
