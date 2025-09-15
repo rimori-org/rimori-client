@@ -62,6 +62,22 @@ export class StandaloneClient {
       console.log("session", session);
       
       // Call the NestJS backend endpoint instead of the Supabase edge function
+      // get current guild id if any
+      let guildId: string | null = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('current_guild_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          guildId = (profile as { current_guild_id?: string | null } | null)?.current_guild_id || null;
+        }
+      } catch (_) {
+        guildId = null;
+      }
+
       const response = await fetch(`${config.backendUrl}/plugin/token`, {
         method: 'POST',
         headers: {
@@ -69,7 +85,8 @@ export class StandaloneClient {
           'Authorization': `Bearer ${session.data.session?.access_token}`
         },
         body: JSON.stringify({
-          pluginId: pluginId
+          pluginId: pluginId,
+          guildId: guildId
         })
       });
 
