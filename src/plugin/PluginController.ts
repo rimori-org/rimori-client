@@ -10,6 +10,12 @@ import { Logger } from './Logger';
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
 
+export interface Guild {
+  id: string,
+  longTermGoalOverride: string,
+  allowUserPluginSettings: boolean,
+}
+
 export interface RimoriInfo {
   url: string,
   key: string,
@@ -18,6 +24,7 @@ export interface RimoriInfo {
   expiration: Date,
   tablePrefix: string,
   pluginId: string
+  guild: Guild,
   installedPlugins: Plugin[]
   profile: UserInfo
   mainPanelPlugin?: ActivePlugin
@@ -211,6 +218,7 @@ export class PluginController {
       } else {
         // In main thread context, use EventBus
         const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
+        console.log({ data });
         this.rimoriInfo = data;
         this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
           accessToken: () => Promise.resolve(this.getToken())

@@ -81,7 +81,7 @@ export class RimoriClient {
     this.rimoriInfo = info;
     this.superbase = supabase;
     this.pluginController = pluginController;
-    this.settingsController = new SettingsController(supabase, info.pluginId);
+    this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(this.superbase, this);
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
 
