@@ -9,7 +9,7 @@ import { getFirstMessages } from './utils';
 import { FirstMessages } from './utils';
 
 interface Props {
-  voiceId: any;
+  voiceId: string;
   agentTools: Tool[];
   avatarImageUrl: string;
   circleSize?: string;
