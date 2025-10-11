@@ -98,18 +98,18 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
                 // Log the first message to understand the format
                 if (!content && !isToolCallMode) {
-                  console.log('First stream message received:', data);
+                  // console.log('First stream message received:', data);
                 }
 
                 switch (data.type) {
                   case 'start':
                     // Stream started, no action needed
-                    console.log('Stream started');
+                    // console.log('Stream started');
                     break;
 
                   case 'start-step':
                     // Step started, no action needed
-                    console.log('Step started');
+                    // console.log('Step started');
                     break;
 
                   case 'reasoning-start':
@@ -143,12 +143,12 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
                   case 'finish-step':
                     // Step finished, no action needed
-                    console.log('Step finished');
+                    // console.log('Step finished');
                     break;
 
                   case 'finish':
                     // Stream finished
-                    console.log('Stream finished');
+                    // console.log('Stream finished');
                     done = true;
                     break;
 
