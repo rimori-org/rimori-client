@@ -89,7 +89,7 @@ export class ChunkedAudioPlayer {
     }
 
     private playChunk(chunk: ArrayBuffer): Promise<void> {
-        console.log({queue: this.chunkQueue})
+        // console.log({queue: this.chunkQueue})
         if (!chunk) {
             return Promise.resolve();
         }
