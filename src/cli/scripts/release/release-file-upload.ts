@@ -52,7 +52,7 @@ export async function uploadDirectory(config: Config, release_id: string): Promi
       pathMapping[fileId] = relativePath;
 
       // Create a Blob with the file content and content type
-      const blob = new Blob([fileContent], { type: contentType });
+      const blob = new Blob([new Uint8Array(fileContent)], { type: contentType });
 
       // Add file to FormData with ID_filename format
       const fileName = `${fileId}_${path.basename(filePath)}`;
