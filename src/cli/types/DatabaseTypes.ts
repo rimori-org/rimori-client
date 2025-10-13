@@ -1,10 +1,16 @@
-
 // Database table structure definitions
 
 /**
  * Supported database column data types for table schema definitions.
  */
-type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid';
+type DbColumnType =
+  | 'decimal'
+  | 'integer'
+  | 'text'
+  | 'boolean'
+  | 'json'
+  | 'timestamp'
+  | 'uuid';
 
 /**
  * Foreign key relationship configuration with cascade delete support.
@@ -45,15 +51,15 @@ export interface DbColumnDefinition {
   // primary_key?: boolean;
   /** Restrictions for the column. If the column is restricted, the permission is further restricted. E.g. if the column is restricted to user, then the user can only read the column if they have the right permission.
    * Example: Denying users to update the column, but allowing the moderator to update the column.
-  */
+   */
   restrict?: {
     /** Restrictions for the user */
-    user: Partial<Omit<DbPermissionDefinition, 'delete'>>,
+    user: Partial<Omit<DbPermissionDefinition, 'delete'>>;
     /** Restrictions for the moderator */
-    moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>,
+    moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
     /** Restrictions for the maintainer */
     // maintainer?: Partial<DbPermissionDefinition>,
-  }
+  };
 }
 
 /**
@@ -80,8 +86,8 @@ export interface DbTableDefinition {
   description: string;
   /** Permissions for the table */
   permissions: {
-    user: DbPermissionDefinition,
-    moderator?: DbPermissionDefinition,
+    user: DbPermissionDefinition;
+    moderator?: DbPermissionDefinition;
     // maintainer?: DbPermissionDefinition,
   };
   /** Column definitions for the table */
@@ -98,7 +104,7 @@ export interface DbTableDefinition {
  *
  * Defines the permissions for a database table.
  */
-export type DbPermission = "NONE" | "OWN" | "ALL";
+export type DbPermission = 'NONE' | 'OWN' | 'ALL';
 
 /**
  * Permission definition for a database table.
@@ -114,4 +120,5 @@ export interface DbPermissionDefinition {
 /**
  * Full table definition that includes automatically generated fields.
  */
-export type FullTable<T extends Record<string, DbColumnDefinition>> = T & BaseTableStructure;
+export type FullTable<T extends Record<string, DbColumnDefinition>> = T &
+  BaseTableStructure;

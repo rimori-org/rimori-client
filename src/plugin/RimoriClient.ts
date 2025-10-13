@@ -6,6 +6,7 @@ import { generateObject, ObjectRequest } from "../core/controller/ObjectControll
 import { SettingsController, UserInfo } from "../core/controller/SettingsController";
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
+import { ExerciseController, CreateExerciseParams } from "../core/controller/ExerciseController";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
@@ -73,6 +74,7 @@ export class RimoriClient {
   private pluginController: PluginController;
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
+  private exerciseController: ExerciseController;
   private accomplishmentHandler: AccomplishmentHandler;
   private rimoriInfo: RimoriInfo;
   public plugin: PluginInterface;
@@ -84,6 +86,7 @@ export class RimoriClient {
     this.pluginController = pluginController;
     this.settingsController = new SettingsController(supabase, info.pluginId);
     this.sharedContentController = new SharedContentController(this.superbase, this);
+    this.exerciseController = new ExerciseController(supabase, pluginController);
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
 
     this.from = this.from.bind(this);
@@ -377,5 +380,34 @@ export class RimoriClient {
         return await this.sharedContentController.removeSharedContent(id);
       }
     }
+  }
+
+  public exercise = {
+    /**
+     * Fetches weekly exercises from the weekly_exercises view.
+     * Shows exercises for the current week that haven't expired.
+     * @returns Array of exercise objects.
+     */
+    view: async () => {
+      return this.exerciseController.viewWeeklyExercises();
+    },
+
+    /**
+     * Creates a new exercise via the backend API.
+     * @param params Exercise creation parameters.
+     * @returns Created exercise object.
+     */
+    add: async (params: CreateExerciseParams) => {
+      return this.exerciseController.addExercise(params);
+    },
+
+    /**
+     * Deletes an exercise via the backend API.
+     * @param id The exercise ID to delete.
+     * @returns Success status.
+     */
+    delete: async (id: string) => {
+      return this.exerciseController.deleteExercise(id);
+    },
   }
 }
