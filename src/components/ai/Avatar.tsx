@@ -44,6 +44,7 @@ export function Avatar({
   }, [isLoading]);
 
   useEffect(() => {
+    if (!voiceId) return; //at the beginning when being mounted the voiceId is undefined
     sender.setOnLoudnessChange((value) => event.emit('self.avatar.triggerLoudness', { loudness: value }));
     sender.setOnEndOfSpeech(() => setAgentReplying(false));
 
@@ -58,13 +59,13 @@ export function Avatar({
     } else if (autoStartConversation.userMessage) {
       append([{ role: 'user', content: autoStartConversation.userMessage, id: messages.length.toString() }]);
     }
-  }, [autoStartConversation]);
+  }, [autoStartConversation, voiceId]);
 
   useEffect(() => {
     if (lastMessage?.role === 'assistant') {
       sender.handleNewText(lastMessage.content, isLoading);
       if (lastMessage.toolCalls) {
-        console.log("unlocking mic",lastMessage)
+        // console.log("unlocking mic", lastMessage)
         setAgentReplying(false);
         setIsProcessingMessage(false);
       }

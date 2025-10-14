@@ -6,16 +6,18 @@ import { generateObject, ObjectRequest } from "../core/controller/ObjectControll
 import { SettingsController, UserInfo } from "../core/controller/SettingsController";
 import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
 import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
+import { ExerciseController, CreateExerciseParams } from "../core/controller/ExerciseController";
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
 import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
 import { PluginController, RimoriInfo } from "./PluginController";
+import { ClientServerOptions } from "@supabase/postgrest-js/dist/cjs/types/common/common";
 
 
 interface Db {
   from: {
-    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
-    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
+    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
+    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
   };
   // storage: SupabaseClient["storage"];
 
@@ -72,6 +74,7 @@ export class RimoriClient {
   private pluginController: PluginController;
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
+  private exerciseController: ExerciseController;
   private accomplishmentHandler: AccomplishmentHandler;
   private rimoriInfo: RimoriInfo;
   public plugin: PluginInterface;
@@ -83,16 +86,18 @@ export class RimoriClient {
     this.pluginController = pluginController;
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(this.superbase, this);
+    this.exerciseController = new ExerciseController(supabase, pluginController);
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
 
     this.from = this.from.bind(this);
+    this.getTableName = this.getTableName.bind(this);
 
     this.db = {
       from: this.from,
       // storage: this.superbase.storage,
       // functions: this.superbase.functions,
       tablePrefix: info.tablePrefix,
-      getTableName: this.getTableName.bind(this),
+      getTableName: this.getTableName,
     }
     this.plugin = {
       pluginId: info.pluginId,
@@ -225,12 +230,12 @@ export class RimoriClient {
   private from<
     TableName extends string & keyof GenericSchema['Tables'],
     Table extends GenericSchema['Tables'][TableName]
-  >(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>
+  >(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>
   private from<
     ViewName extends string & keyof GenericSchema['Views'],
     View extends GenericSchema['Views'][ViewName]
-  >(relation: ViewName): PostgrestQueryBuilder<GenericSchema, View, ViewName>
-  private from(relation: string): PostgrestQueryBuilder<GenericSchema, any, any> {
+  >(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>
+  private from(relation: string): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, any, any> {
     return this.superbase.from(this.getTableName(relation));
   }
 
@@ -375,5 +380,34 @@ export class RimoriClient {
         return await this.sharedContentController.removeSharedContent(id);
       }
     }
+  }
+
+  public exercise = {
+    /**
+     * Fetches weekly exercises from the weekly_exercises view.
+     * Shows exercises for the current week that haven't expired.
+     * @returns Array of exercise objects.
+     */
+    view: async () => {
+      return this.exerciseController.viewWeeklyExercises();
+    },
+
+    /**
+     * Creates a new exercise via the backend API.
+     * @param params Exercise creation parameters.
+     * @returns Created exercise object.
+     */
+    add: async (params: CreateExerciseParams) => {
+      return this.exerciseController.addExercise(params);
+    },
+
+    /**
+     * Deletes an exercise via the backend API.
+     * @param id The exercise ID to delete.
+     * @returns Success status.
+     */
+    delete: async (id: string) => {
+      return this.exerciseController.deleteExercise(id);
+    },
   }
 }

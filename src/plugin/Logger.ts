@@ -167,33 +167,79 @@ export class Logger {
   private overrideConsoleMethods(): void {
     // Override console.log
     console.log = (...args: any[]) => {
-      this.originalConsole.log(...args);
+      const { location, style } = this.getCallerLocation();
+      this.originalConsole.log(location, style, ...args);
       this.handleConsoleCall('info', args);
     };
 
     // Override console.info
     console.info = (...args: any[]) => {
-      this.originalConsole.info(...args);
+      const { location, style } = this.getCallerLocation();
+      this.originalConsole.info(location, style, ...args);
       this.handleConsoleCall('info', args);
     };
 
     // Override console.warn
     console.warn = (...args: any[]) => {
-      this.originalConsole.warn(...args);
+      const { location, style } = this.getCallerLocation();
+      this.originalConsole.warn(location, style, ...args);
       this.handleConsoleCall('warn', args);
     };
 
     // Override console.error
     console.error = (...args: any[]) => {
-      this.originalConsole.error(...args);
+      const { location, style } = this.getCallerLocation();
+      this.originalConsole.error(location, style, ...args);
       this.handleConsoleCall('error', args);
     };
 
     // Override console.debug
     console.debug = (...args: any[]) => {
-      this.originalConsole.debug(...args);
+      const { location, style } = this.getCallerLocation();
+      this.originalConsole.debug(location, style, ...args);
       this.handleConsoleCall('debug', args);
     };
+  }
+
+  /**
+   * Get caller information from stack trace.
+   * @returns Object with location string and CSS style, or empty values for production
+   */
+  private getCallerLocation(): { location: string; style: string } {
+    const emptyResult = { location: "", style: "" };
+    const style = "color: #0063A2; font-weight: bold;";
+
+    if (this.isProduction) return emptyResult;
+
+    try {
+      const stack = new Error().stack;
+      if (!stack) return emptyResult;
+
+      const stackLines = stack.split('\n');
+      // Skip the first 3 lines: Error, getCallerLocation, overrideConsoleMethods wrapper
+      const callerLine = stackLines[3];
+
+      if (!callerLine) return emptyResult;
+
+      // Extract file name and line number from stack trace
+      // Format: "at functionName (file:line:column)" or "at file:line:column"
+      const match = callerLine.match(/(?:at\s+.*?\s+\()?([^/\\(]+\.(?:ts|tsx|js|jsx)):(\d+):(\d+)\)?/);
+
+      if (match) {
+        const [, fileName, lineNumber] = match;
+        return { style, location: `%c[${fileName}:${lineNumber}]` };
+      }
+
+      // Fallback: try to extract just the file name
+      const simpleMatch = callerLine.match(/([^/\\]+\.(?:ts|tsx|js|jsx))/);
+      if (simpleMatch) {
+        return { style, location: `%c[${simpleMatch[1]}]` };
+      }
+
+      return emptyResult;
+    } catch (error) {
+      return emptyResult;
+    }
   }
 
   /**
@@ -226,9 +272,14 @@ export class Logger {
     }
 
     // Convert console arguments to message and data
-    const message = args.map(arg =>
-      typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-    ).join(' ');
+    const message = args.map(arg => {
+      if (typeof arg !== "object") return arg;
+      try {
+        return JSON.stringify(arg);
+      } catch (error: any) {
+        return "Error adding object to log: " + error.message + " " + String(arg);
+      }
+    }).join(' ');
 
     const data = args.length > 1 ? args.slice(1) : undefined;
 

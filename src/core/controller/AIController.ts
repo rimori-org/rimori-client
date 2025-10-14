@@ -71,10 +71,10 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
         if (value) {
           const chunk = decoder.decode(value, { stream: true });
           buffer += chunk;
-          
+
           // Split by lines, but handle incomplete lines
           const lines = buffer.split('\n');
-          
+
           // Keep the last line in buffer if it's incomplete
           if (lines.length > 1) {
             buffer = lines.pop() || "";
@@ -82,11 +82,11 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
           for (const line of lines) {
             if (line.trim() === '') continue;
-            
+
             // Handle the new streaming format
             if (line.startsWith('data: ')) {
               const dataStr = line.substring(6); // Remove 'data: ' prefix
-              
+
               // Handle [DONE] marker
               if (dataStr === '[DONE]') {
                 done = true;
@@ -95,39 +95,39 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
               try {
                 const data = JSON.parse(dataStr);
-                
+
                 // Log the first message to understand the format
                 if (!content && !isToolCallMode) {
-                  console.log('First stream message received:', data);
+                  // console.log('First stream message received:', data);
                 }
-                
+
                 switch (data.type) {
                   case 'start':
                     // Stream started, no action needed
-                    console.log('Stream started');
+                    // console.log('Stream started');
                     break;
-                    
+
                   case 'start-step':
                     // Step started, no action needed
-                    console.log('Step started');
+                    // console.log('Step started');
                     break;
-                    
+
                   case 'reasoning-start':
                     // Reasoning started, no action needed
                     console.log('Reasoning started:', data.id);
                     break;
-                    
+
                   case 'reasoning-end':
                     // Reasoning ended, no action needed
                     console.log('Reasoning ended:', data.id);
                     break;
-                    
+
                   case 'text-start':
                     // Text generation started, store the ID
                     currentTextId = data.id;
                     console.log('Text generation started:', data.id);
                     break;
-                    
+
                   case 'text-delta':
                     // Text delta received, append to content
                     if (data.delta) {
@@ -135,73 +135,75 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
                       onResponse(messageId, content, false);
                     }
                     break;
-                    
+
                   case 'text-end':
                     // Text generation ended
                     console.log('Text generation ended:', data.id);
                     break;
-                    
+
                   case 'finish-step':
                     // Step finished, no action needed
-                    console.log('Step finished');
+                    // console.log('Step finished');
                     break;
-                    
+
                   case 'finish':
                     // Stream finished
-                    console.log('Stream finished');
+                    // console.log('Stream finished');
                     done = true;
                     break;
-                    
+
                   // Additional message types that might be present in the AI library
                   case 'tool-call':
+                  case 'tool-input-available': //for now input calls should be handled the same way as tool calls
                     // Tool call initiated
                     console.log('Tool call initiated:', data);
                     isToolCallMode = true;
-                    if (data.toolCallId && data.toolName && data.args) {
+                    if (data.toolCallId && data.toolName && (data.args || data.input)) {
                       toolInvocations.push({
                         toolCallId: data.toolCallId,
                         toolName: data.toolName,
-                        args: data.args
+                        args: data.args || data.input
                       });
                     }
                     break;
-                    
+
+                  case 'tool-input-delta': //for now input calls should be handled the same way as tool calls
                   case 'tool-call-delta':
                     // Tool call delta (for streaming tool calls)
                     console.log('Tool call delta:', data);
                     break;
-                    
+
                   case 'tool-call-end':
                     // Tool call completed
                     console.log('Tool call completed:', data);
                     break;
-                    
+
                   case 'tool-result':
                     // Tool execution result
                     console.log('Tool result:', data);
                     break;
-                    
+
                   case 'error':
                     // Error occurred
                     console.error('Stream error:', data);
                     break;
-                    
+
                   case 'usage':
                     // Usage information
                     console.log('Usage info:', data);
                     break;
-                    
+
                   case 'model':
                     // Model information
                     console.log('Model info:', data);
                     break;
-                    
+
                   case 'stop':
                     // Stop signal
                     console.log('Stop signal received');
                     done = true;
                     break;
-                    
+
                   default:
                     // Unknown type, log for debugging
                     console.log('Unknown stream type:', data.type, data);
@@ -225,14 +227,14 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
           id: messageId,
           role: "assistant",
           content: content,
-          toolCalls: toolInvocations.length > 0 ? toolInvocations: undefined,
+          toolCalls: toolInvocations.length > 0 ? toolInvocations : undefined,
         });
       }
 
       // Handle tool call scenario if tools were provided
       if (tools.length > 0 && toolInvocations.length > 0) {
         console.log('Tool calls detected, executing tools...');
-        
+
         const toolResults: Message[] = [];
         for (const toolInvocation of toolInvocations) {
           const tool = tools.find(t => t.name === toolInvocation.toolName);
@@ -254,7 +256,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
             }
           }
         }
-        
+
         if (toolResults.length > 0) {
           currentMessages.push(...toolResults);
           // Continue the loop to handle the next response
@@ -273,7 +275,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
       onResponse(messageId, content, true, toolInvocations);
       return;
-      
+
     } catch (error) {
       console.error('Error in streamChatGPT:', error);
       onResponse(messageId, `Error: ${error instanceof Error ? error.message : String(error)}`, true, []);
