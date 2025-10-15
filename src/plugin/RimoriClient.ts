@@ -1,23 +1,31 @@
-import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
-import { generateText, Message, OnLLMResponse, streamChatGPT } from "../core/controller/AIController";
-import { generateObject, ObjectRequest } from "../core/controller/ObjectController";
-import { SettingsController, UserInfo } from "../core/controller/SettingsController";
-import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
-import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
-import { ExerciseController, CreateExerciseParams } from "../core/controller/ExerciseController";
-import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
-import { ActivePlugin, MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
-import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
-import { PluginController, RimoriInfo } from "./PluginController";
-import { ClientServerOptions } from "@supabase/postgrest-js/dist/cjs/types/common/common";
-
+import { PostgrestQueryBuilder } from '@supabase/postgrest-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { GenericSchema } from '@supabase/supabase-js/dist/module/lib/types';
+import { generateText, Message, OnLLMResponse, streamChatGPT } from '../core/controller/AIController';
+import { generateObject, ObjectRequest } from '../core/controller/ObjectController';
+import { SettingsController, UserInfo } from '../core/controller/SettingsController';
+import {
+  SharedContent,
+  SharedContentController,
+  SharedContentFilter,
+  SharedContentObjectRequest,
+} from '../core/controller/SharedContentController';
+import { getSTTResponse, getTTSResponse } from '../core/controller/VoiceController';
+import { ExerciseController, CreateExerciseParams } from '../core/controller/ExerciseController';
+import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
+import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
+import { AccomplishmentHandler, AccomplishmentPayload } from './AccomplishmentHandler';
+import { PluginController, RimoriInfo } from './PluginController';
+import { ClientServerOptions } from '@supabase/postgrest-js/dist/cjs/types/common/common';
 
 interface Db {
   from: {
-    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
-    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
+    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(
+      relation: TableName,
+    ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
+    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+      relation: ViewName,
+    ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
   };
   // storage: SupabaseClient["storage"];
 
@@ -42,7 +50,7 @@ interface PluginInterface {
    * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
    * @param defaultSettings The default settings to use if no settings are found.
    * @param genericSettings The type of settings to get.
-   * @returns The settings for the plugin. 
+   * @returns The settings for the plugin.
    */
   getSettings: <T extends object>(defaultSettings: T) => Promise<T>;
   /**
@@ -55,15 +63,15 @@ interface PluginInterface {
     /**
      * All installed plugins.
      */
-    installedPlugins: Plugin[],
+    installedPlugins: Plugin[];
     /**
      * The plugin that is loaded in the main panel.
      */
-    mainPanelPlugin?: ActivePlugin,
+    mainPanelPlugin?: ActivePlugin;
     /**
      * The plugin that is loaded in the side panel.
      */
-    sidePanelPlugin?: ActivePlugin,
+    sidePanelPlugin?: ActivePlugin;
   };
   getUserInfo: () => UserInfo;
 }
@@ -98,7 +106,7 @@ export class RimoriClient {
       // functions: this.superbase.functions,
       tablePrefix: info.tablePrefix,
       getTableName: this.getTableName,
-    }
+    };
     this.plugin = {
       pluginId: info.pluginId,
       setSettings: async (settings: any) => {
@@ -115,14 +123,14 @@ export class RimoriClient {
           installedPlugins: this.rimoriInfo.installedPlugins,
           mainPanelPlugin: this.rimoriInfo.mainPanelPlugin,
           sidePanelPlugin: this.rimoriInfo.sidePanelPlugin,
-        }
-      }
-    }
+        };
+      },
+    };
   }
 
   public event = {
     /**
-     * Emit an event to Rimori or a plugin. 
+     * Emit an event to Rimori or a plugin.
      * The topic schema is:
      * {pluginId}.{eventId}
      * Check out the event bus documentation for more information.
@@ -153,7 +161,10 @@ export class RimoriClient {
      */
     on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>) => {
       const topics = Array.isArray(topic) ? topic : [topic];
-      return EventBus.on<T>(topics.map(t => this.pluginController.getGlobalEventTopic(t)), callback);
+      return EventBus.on<T>(
+        topics.map((t) => this.pluginController.getGlobalEventTopic(t)),
+        callback,
+      );
     },
     /**
      * Subscribe to an event once.
@@ -168,9 +179,16 @@ export class RimoriClient {
      * @param topic The topic to respond to.
      * @param data The data to respond with.
      */
-    respond: <T = EventPayload>(topic: string | string[], data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
+    respond: <T = EventPayload>(
+      topic: string | string[],
+      data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>),
+    ) => {
       const topics = Array.isArray(topic) ? topic : [topic];
-      EventBus.respond(this.plugin.pluginId, topics.map(t => this.pluginController.getGlobalEventTopic(t)), data);
+      EventBus.respond(
+        this.plugin.pluginId,
+        topics.map((t) => this.pluginController.getGlobalEventTopic(t)),
+        data,
+      );
     },
     /**
      * Emit an accomplishment.
@@ -184,7 +202,10 @@ export class RimoriClient {
      * @param accomplishmentTopic The topic to subscribe to.
      * @param callback The callback to call when the accomplishment is emitted.
      */
-    onAccomplishment: (accomplishmentTopic: string, callback: (payload: EventBusMessage<AccomplishmentPayload>) => void) => {
+    onAccomplishment: (
+      accomplishmentTopic: string,
+      callback: (payload: EventBusMessage<AccomplishmentPayload>) => void,
+    ) => {
       this.accomplishmentHandler.subscribe(accomplishmentTopic, callback);
     },
     /**
@@ -194,21 +215,21 @@ export class RimoriClient {
      * @param text Optional text to be used for the action like for example text that the translator would look up.
      */
     emitSidebarAction: (pluginId: string, actionKey: string, text?: string) => {
-      this.event.emit("global.sidebar.triggerAction", { plugin_id: pluginId, action_key: actionKey, text });
+      this.event.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
     },
 
     onMainPanelAction: (callback: (data: MainPanelAction) => void) => {
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
-      this.event.emit("action.requestMain")
-      this.event.on<MainPanelAction>("action.requestMain", ({ data }) => callback(data));
-    }
-  }
+      this.event.emit('action.requestMain');
+      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => callback(data));
+    },
+  };
 
   public navigation = {
     toDashboard: () => {
-      this.event.emit("global.navigation.triggerToDashboard");
-    }
-  }
+      this.event.emit('global.navigation.triggerToDashboard');
+    },
+  };
 
   /**
    * Get a query parameter value that was passed via MessageChannel
@@ -229,36 +250,37 @@ export class RimoriClient {
 
   private from<
     TableName extends string & keyof GenericSchema['Tables'],
-    Table extends GenericSchema['Tables'][TableName]
-  >(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>
-  private from<
-    ViewName extends string & keyof GenericSchema['Views'],
-    View extends GenericSchema['Views'][ViewName]
-  >(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>
+    Table extends GenericSchema['Tables'][TableName],
+  >(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
+  private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+    relation: ViewName,
+  ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
   private from(relation: string): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, any, any> {
     return this.superbase.from(this.getTableName(relation));
   }
 
   private getTableName(table: string) {
     if (/[A-Z]/.test(table)) {
-      throw new Error("Table name cannot include uppercase letters. Please use snake_case for table names.");
+      throw new Error('Table name cannot include uppercase letters. Please use snake_case for table names.');
     }
-    if (table.startsWith("global_")) {
-      return table.replace("global_", "");
+    if (table.startsWith('global_')) {
+      return table.replace('global_', '');
     }
-    return this.db.tablePrefix + "_" + table;
+    return this.db.tablePrefix + '_' + table;
   }
 
   public ai = {
     getText: async (messages: Message[], tools?: Tool[]): Promise<string> => {
       const token = await this.pluginController.getToken();
-      return generateText(this.pluginController.getBackendUrl(), messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);
+      return generateText(this.pluginController.getBackendUrl(), messages, tools || [], token).then(
+        ({ messages }) => messages[0].content[0].text,
+      );
     },
     getSteamedText: async (messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]) => {
       const token = await this.pluginController.getToken();
       streamChatGPT(this.pluginController.getBackendUrl(), messages, tools || [], onMessage, token);
     },
-    getVoice: async (text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> => {
+    getVoice: async (text: string, voice = 'alloy', speed = 1, language?: string): Promise<Blob> => {
       const token = await this.pluginController.getToken();
       return getTTSResponse(this.pluginController.getBackendUrl(), { input: text, voice, speed, language }, token);
     },
@@ -271,7 +293,7 @@ export class RimoriClient {
       return generateObject(this.pluginController.getBackendUrl(), request, token);
     },
     // getSteamedObject: this.generateObjectStream,
-  }
+  };
 
   public runtime = {
     fetchBackend: async (url: string, options: RequestInit) => {
@@ -280,11 +302,11 @@ export class RimoriClient {
         ...options,
         headers: {
           ...options.headers,
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-    }
-  }
+    },
+  };
 
   public community = {
     /**
@@ -309,7 +331,11 @@ export class RimoriClient {
        * @param limit The optional limit for the number of results.
        * @returns The list of shared content items.
        */
-      getList: async <T = any>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<SharedContent<T>[]> => {
+      getList: async <T = any>(
+        contentType: string,
+        filter?: SharedContentFilter,
+        limit?: number,
+      ): Promise<SharedContent<T>[]> => {
         return await this.sharedContentController.getSharedContentList(contentType, filter, limit);
       },
       /**
@@ -330,7 +356,12 @@ export class RimoriClient {
         filter?: SharedContentFilter,
         options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
       ): Promise<SharedContent<T>> => {
-        return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, options);
+        return await this.sharedContentController.getNewSharedContent(
+          contentType,
+          generatorInstructions,
+          filter,
+          options,
+        );
       },
       /**
        * Create a new shared content item.
@@ -350,10 +381,10 @@ export class RimoriClient {
         return await this.sharedContentController.updateSharedContent(id, content);
       },
       /**
-        * Complete a shared content item.
-        * @param contentType The type of shared content to complete. E.g. assignments, exercises, etc.
-        * @param assignmentId The id of the shared content item to complete.
-        */
+       * Complete a shared content item.
+       * @param contentType The type of shared content to complete. E.g. assignments, exercises, etc.
+       * @param assignmentId The id of the shared content item to complete.
+       */
       complete: async (contentType: string, assignmentId: string) => {
         return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
       },
@@ -363,11 +394,11 @@ export class RimoriClient {
         * Useful for marking content as completed, ongoing, hidden, liked, disliked, or bookmarked.
         */
       updateState: async (params: {
-        contentType: string
-        id: string
-        state?: 'completed' | 'ongoing' | 'hidden'
-        reaction?: 'liked' | 'disliked' | null
-        bookmarked?: boolean
+        contentType: string;
+        id: string;
+        state?: 'completed' | 'ongoing' | 'hidden';
+        reaction?: 'liked' | 'disliked' | null;
+        bookmarked?: boolean;
       }): Promise<void> => {
         return await this.sharedContentController.updateSharedContentState(params);
       },
@@ -378,9 +409,9 @@ export class RimoriClient {
        */
       remove: async (id: string): Promise<SharedContent<any>> => {
         return await this.sharedContentController.removeSharedContent(id);
-      }
-    }
-  }
+      },
+    },
+  };
 
   public exercise = {
     /**
@@ -409,5 +440,5 @@ export class RimoriClient {
     delete: async (id: string) => {
       return this.exerciseController.deleteExercise(id);
     },
-  }
+  };
 }

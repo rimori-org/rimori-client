@@ -62,7 +62,7 @@ export class Logger {
       info: console.info,
       warn: console.warn,
       error: console.error,
-      debug: console.debug
+      debug: console.debug,
     };
 
     // Override console methods globally
@@ -82,8 +82,8 @@ export class Logger {
       const logs = {
         logs: this.logs,
         pluginId: rimori.plugin.pluginId,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      };
       this.logs = [];
       this.logIdCounter = 0;
       return logs;
@@ -129,7 +129,7 @@ export class Logger {
     if (typeof window === 'undefined' || typeof history === 'undefined') return;
 
     // Clear logs on browser back/forward
-    window.addEventListener('popstate', () => this.logs = []);
+    window.addEventListener('popstate', () => (this.logs = []));
 
     // Override history methods to clear logs on programmatic navigation
     const originalPushState = history.pushState;
@@ -158,7 +158,7 @@ export class Logger {
     setInterval(checkUrlChange, 100);
 
     // Also listen for hash changes (for hash-based routing)
-    window.addEventListener('hashchange', () => this.logs = []);
+    window.addEventListener('hashchange', () => (this.logs = []));
   }
 
   /**
@@ -206,8 +206,8 @@ export class Logger {
    * @returns Object with location string and CSS style, or empty values for production
    */
   private getCallerLocation(): { location: string; style: string } {
-    const emptyResult = { location: "", style: "" };
-    const style = "color: #0063A2; font-weight: bold;";
+    const emptyResult = { location: '', style: '' };
+    const style = 'color: #0063A2; font-weight: bold;';
 
     if (this.isProduction) return emptyResult;
 
@@ -251,7 +251,7 @@ export class Logger {
         this.mousePosition = {
           x: event.clientX,
           y: event.clientY,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       };
 
@@ -272,14 +272,16 @@ export class Logger {
     }
 
     // Convert console arguments to message and data
-    const message = args.map(arg => {
-      if (typeof arg !== "object") return arg;
-      try {
-        return JSON.stringify(arg);
-      } catch (error: any) {
-        return "Error adding object to log: " + error.message + " " + String(arg);
-      }
-    }).join(' ');
+    const message = args
+      .map((arg) => {
+        if (typeof arg !== 'object') return arg;
+        try {
+          return JSON.stringify(arg);
+        } catch (error: any) {
+          return 'Error adding object to log: ' + error.message + ' ' + String(arg);
+        }
+      })
+      .join(' ');
 
     const data = args.length > 1 ? args.slice(1) : undefined;
 
@@ -299,7 +301,7 @@ export class Logger {
       onLine: navigator.onLine,
       screenResolution: `${screen.width}x${screen.height}`,
       windowSize: `${window.innerWidth}x${window.innerHeight}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -324,7 +326,12 @@ export class Logger {
    * @param data - Additional data
    * @returns Log entry
    */
-  private async createLogEntry(level: LogLevel, message: string, data?: any, forceScreenshot?: boolean): Promise<LogEntry> {
+  private async createLogEntry(
+    level: LogLevel,
+    message: string,
+    data?: any,
+    forceScreenshot?: boolean,
+  ): Promise<LogEntry> {
     const context: Partial<LogEntry['context']> = {};
 
     // Add URL if available
@@ -335,7 +342,7 @@ export class Logger {
         level,
         message,
         data,
-      }
+      };
     }
 
     context.url = window.location.href;
@@ -346,7 +353,7 @@ export class Logger {
 
     // Add screenshot and mouse position if level is error or warn
     if (level === 'error' || level === 'warn' || forceScreenshot) {
-      context.screenshot = await this.captureScreenshot() || undefined;
+      context.screenshot = (await this.captureScreenshot()) || undefined;
       context.mousePosition = this.mousePosition || undefined;
     }
 
@@ -356,7 +363,7 @@ export class Logger {
       level,
       message,
       data,
-      context: context as LogEntry['context']
+      context: context as LogEntry['context'],
     };
   }
 

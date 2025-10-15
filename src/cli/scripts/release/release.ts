@@ -38,9 +38,9 @@ const config = {
   release_channel: releaseChannel,
   plugin_id: pluginId,
   token: RIMORI_TOKEN,
-  domain: process.env.RIMORI_BACKEND_URL || "https://api.rimori.se",
+  domain: process.env.RIMORI_BACKEND_URL || 'https://api.rimori.se',
   rimori_client_version: packageJson.dependencies['@rimori/client'].replace('^', ''),
-}
+};
 
 export type Config = typeof config;
 
@@ -61,7 +61,7 @@ async function releaseProcess(): Promise<void> {
     // Then release the plugin
     await releasePlugin(config, release_id);
   } catch (error: any) {
-    console.log("❌ Error:", error.message);
+    console.log('❌ Error:', error.message);
     process.exit(1);
   }
 }

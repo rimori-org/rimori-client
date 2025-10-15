@@ -66,7 +66,7 @@ dialog::backdrop {
   ul {
     @apply list-disc pl-8;
 
-    li>p {
+    li > p {
       @apply mb-1;
     }
   }
@@ -74,7 +74,7 @@ dialog::backdrop {
   ol {
     @apply list-decimal pl-7;
 
-    li>p {
+    li > p {
       @apply mb-1;
     }
   }

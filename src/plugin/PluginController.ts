@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserInfo } from '../core/controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
-import { RimoriClient } from "./RimoriClient";
+import { RimoriClient } from './RimoriClient';
 import { StandaloneClient } from './StandaloneClient';
 import { setTheme } from './ThemeSetter';
 import { Logger } from './Logger';
@@ -11,24 +11,24 @@ import { Logger } from './Logger';
 declare const WorkerGlobalScope: any;
 
 export interface Guild {
-  id: string,
-  longTermGoalOverride: string,
-  allowUserPluginSettings: boolean,
+  id: string;
+  longTermGoalOverride: string;
+  allowUserPluginSettings: boolean;
 }
 
 export interface RimoriInfo {
-  url: string,
-  key: string,
-  backendUrl: string,
-  token: string,
-  expiration: Date,
-  tablePrefix: string,
-  pluginId: string
-  guild: Guild,
-  installedPlugins: Plugin[]
-  profile: UserInfo
-  mainPanelPlugin?: ActivePlugin
-  sidePanelPlugin?: ActivePlugin
+  url: string;
+  key: string;
+  backendUrl: string;
+  token: string;
+  expiration: Date;
+  tablePrefix: string;
+  pluginId: string;
+  guild: Guild;
+  installedPlugins: Plugin[];
+  profile: UserInfo;
+  mainPanelPlugin?: ActivePlugin;
+  sidePanelPlugin?: ActivePlugin;
 }
 
 export class PluginController {
@@ -61,12 +61,16 @@ export class PluginController {
 
   private initMessageChannel(worker: boolean = false) {
     const listener = (event: MessageEvent) => {
-      console.log("[PluginController] window message", { origin: event.origin, data: event.data });
+      console.log('[PluginController] window message', { origin: event.origin, data: event.data });
       const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
       const [transferredPort] = event.ports || [];
 
-      if (type !== "rimori:init" || !transferredPort || pluginId !== this.pluginId) {
-        console.log("[PluginController] message ignored (not init or wrong plugin)", { type, pluginId, hasPort: !!transferredPort });
+      if (type !== 'rimori:init' || !transferredPort || pluginId !== this.pluginId) {
+        console.log('[PluginController] message ignored (not init or wrong plugin)', {
+          type,
+          pluginId,
+          hasPort: !!transferredPort,
+        });
         return;
       }
 
@@ -77,7 +81,7 @@ export class PluginController {
       if (rimoriInfo) {
         this.rimoriInfo = rimoriInfo;
         this.supabase = createClient(rimoriInfo.url, rimoriInfo.key, {
-          accessToken: () => Promise.resolve(rimoriInfo.token)
+          accessToken: () => Promise.resolve(rimoriInfo.token),
         });
       }
 
@@ -105,8 +109,8 @@ export class PluginController {
       }
 
       // Forward plugin events to parent (only after MessageChannel is ready)
-      EventBus.on("*", (ev) => {
-        if (ev.sender === this.pluginId && !ev.topic.startsWith("self.")) {
+      EventBus.on('*', (ev) => {
+        if (ev.sender === this.pluginId && !ev.topic.startsWith('self.')) {
           this.port?.postMessage({ event: ev });
         }
       });
@@ -115,27 +119,27 @@ export class PluginController {
       this.isMessageChannelReady = true;
 
       // Process any pending requests
-      this.pendingRequests.forEach(request => request());
+      this.pendingRequests.forEach((request) => request());
       this.pendingRequests = [];
     };
     if (worker) {
       self.onmessage = listener;
     } else {
-      window.addEventListener("message", listener);
+      window.addEventListener('message', listener);
     }
     this.sendHello(worker);
   }
 
   private sendHello(isWorker: boolean = false) {
     try {
-      const payload = { type: "rimori:hello", pluginId: this.pluginId };
+      const payload = { type: 'rimori:hello', pluginId: this.pluginId };
       if (isWorker) {
         self.postMessage(payload);
       } else {
-        window.parent.postMessage(payload, "*");
+        window.parent.postMessage(payload, '*');
       }
     } catch (e) {
-      console.error("[PluginController] Error sending hello:", e);
+      console.error('[PluginController] Error sending hello:', e);
     }
   }
 
@@ -148,7 +152,7 @@ export class PluginController {
       PluginController.client = await RimoriClient.getInstance(PluginController.instance);
 
       //only init logger in workers and on main plugin pages
-      if (PluginController.instance.getQueryParam("applicationMode") !== "sidebar") {
+      if (PluginController.instance.getQueryParam('applicationMode') !== 'sidebar') {
         Logger.getInstance(PluginController.client);
       }
     }
@@ -159,7 +163,7 @@ export class PluginController {
     return this.queryParams[key] || null;
   }
 
-  public async getClient(): Promise<{ supabase: SupabaseClient, info: RimoriInfo }> {
+  public async getClient(): Promise<{ supabase: SupabaseClient; info: RimoriInfo }> {
     // Return cached client if valid
     if (this.supabase && this.rimoriInfo && this.rimoriInfo.expiration > new Date()) {
       return { supabase: this.supabase, info: this.rimoriInfo };
@@ -167,7 +171,7 @@ export class PluginController {
 
     // If MessageChannel is not ready yet, queue the request
     if (!this.isMessageChannelReady) {
-      return new Promise<{ supabase: SupabaseClient, info: RimoriInfo }>((resolve) => {
+      return new Promise<{ supabase: SupabaseClient; info: RimoriInfo }>((resolve) => {
         this.pendingRequests.push(async () => {
           const result = await this.getClient();
           resolve(result);
@@ -192,18 +196,18 @@ export class PluginController {
             sender: this.pluginId,
             topic: 'global.supabase.requestAccess',
             data: {},
-            debug: false
-          }
+            debug: false,
+          },
         };
 
-        return new Promise<{ supabase: SupabaseClient, info: RimoriInfo }>((resolve) => {
+        return new Promise<{ supabase: SupabaseClient; info: RimoriInfo }>((resolve) => {
           // Listen for the response
           const originalOnMessage = self.onmessage;
           self.onmessage = (event) => {
             if (event.data?.topic === 'global.supabase.requestAccess' && event.data?.eventId === eventId) {
               this.rimoriInfo = event.data.data;
               this.supabase = createClient(this.rimoriInfo!.url, this.rimoriInfo!.key, {
-                accessToken: () => Promise.resolve(this.getToken())
+                accessToken: () => Promise.resolve(this.getToken()),
               });
               self.onmessage = originalOnMessage; // Restore original handler
               resolve({ supabase: this.supabase, info: this.rimoriInfo! });
@@ -217,11 +221,11 @@ export class PluginController {
         });
       } else {
         // In main thread context, use EventBus
-        const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
+        const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
         console.log({ data });
         this.rimoriInfo = data;
         this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
-          accessToken: () => Promise.resolve(this.getToken())
+          accessToken: () => Promise.resolve(this.getToken()),
         });
       }
     }
@@ -236,13 +240,16 @@ export class PluginController {
 
     // If we don't have rimoriInfo, request it
     if (!this.rimoriInfo) {
-      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
+      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
       this.rimoriInfo = data;
       return this.rimoriInfo.token;
     }
 
     // If token is expired, request fresh access
-    const { data } = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
+    const { data } = await EventBus.request<{ token: string; expiration: Date }>(
+      this.pluginId,
+      'global.supabase.requestAccess',
+    );
     this.rimoriInfo.token = data.token;
     this.rimoriInfo.expiration = data.expiration;
 
@@ -256,7 +263,7 @@ export class PluginController {
    */
   public getSupabaseUrl() {
     if (!this.rimoriInfo) {
-      throw new Error("Supabase info not found");
+      throw new Error('Supabase info not found');
     }
 
     return this.rimoriInfo.url;
@@ -264,30 +271,31 @@ export class PluginController {
 
   public getBackendUrl() {
     if (!this.rimoriInfo) {
-      throw new Error("Rimori info not found");
+      throw new Error('Rimori info not found');
     }
     return this.rimoriInfo.backendUrl;
   }
 
   public getGlobalEventTopic(preliminaryTopic: string) {
-    if (preliminaryTopic.startsWith("global.")) {
+    if (preliminaryTopic.startsWith('global.')) {
       return preliminaryTopic;
     }
-    if (preliminaryTopic.startsWith("self.")) {
+    if (preliminaryTopic.startsWith('self.')) {
       return preliminaryTopic;
     }
-    const topicParts = preliminaryTopic.split(".");
+    const topicParts = preliminaryTopic.split('.');
     if (topicParts.length === 3) {
-      if (!topicParts[0].startsWith("pl") && topicParts[0] !== "global") {
+      if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
         throw new Error("The event topic must start with the plugin id or 'global'.");
       }
       return preliminaryTopic;
     } else if (topicParts.length > 3) {
-      throw new Error(`The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`);
+      throw new Error(
+        `The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`,
+      );
     }
 
-    const topicRoot = this.rimoriInfo?.pluginId ?? "global";
+    const topicRoot = this.rimoriInfo?.pluginId ?? 'global';
     return `${topicRoot}.${preliminaryTopic}`;
   }
-
 }

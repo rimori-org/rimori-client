@@ -26,8 +26,8 @@ export function Avatar({
   autoStartConversation,
   children,
   isDarkTheme = false,
-  circleSize = "300px",
-  className
+  circleSize = '300px',
+  className,
 }: Props) {
   const { ai, event } = useRimori();
   const [agentReplying, setAgentReplying] = useState(false);
@@ -36,7 +36,7 @@ export function Avatar({
   const { messages, append, isLoading, lastMessage, setMessages } = useChat(agentTools);
 
   useEffect(() => {
-    console.log("messages", messages);
+    console.log('messages', messages);
   }, [messages]);
 
   useEffect(() => {
@@ -74,23 +74,26 @@ export function Avatar({
 
   return (
     <div className={`md:pb-8 ${className || ''}`}>
-      <CircleAudioAvatar
-        width={circleSize}
-        className='mx-auto'
-        imageUrl={avatarImageUrl}
-        isDarkTheme={isDarkTheme} />
+      <CircleAudioAvatar width={circleSize} className="mx-auto" imageUrl={avatarImageUrl} isDarkTheme={isDarkTheme} />
       {children}
       <VoiceRecorder
-        iconSize='30'
-        className='w-16 h-16 shadow-lg rounded-full bg-gray-400 dark:bg-gray-800'
+        iconSize="30"
+        className="w-16 h-16 shadow-lg rounded-full bg-gray-400 dark:bg-gray-800"
         disabled={agentReplying}
         loading={isProcessingMessage}
         enablePushToTalk={true}
         onVoiceRecorded={(message) => {
           setAgentReplying(true);
-          append([{ role: 'user', content: "Message(" + Math.floor((messages.length + 1) / 2) + "): " + message, id: messages.length.toString() }]);
+          append([
+            {
+              role: 'user',
+              content: 'Message(' + Math.floor((messages.length + 1) / 2) + '): ' + message,
+              id: messages.length.toString(),
+            },
+          ]);
         }}
-        onRecordingStatusChange={(running) => !running && setIsProcessingMessage(true)} />
+        onRecordingStatusChange={(running) => !running && setIsProcessingMessage(true)}
+      />
     </div>
   );
-};
+}

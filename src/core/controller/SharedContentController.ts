@@ -1,12 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { RimoriClient } from "../../plugin/RimoriClient";
-import { ObjectRequest } from "./ObjectController";
+import { RimoriClient } from '../../plugin/RimoriClient';
+import { ObjectRequest } from './ObjectController';
 
 export interface SharedContentObjectRequest extends ObjectRequest {
-  fixedProperties?: Record<string, string | number | boolean>
+  fixedProperties?: Record<string, string | number | boolean>;
 }
 
-export type SharedContentFilter = Record<string, string | number | boolean>
+export type SharedContentFilter = Record<string, string | number | boolean>;
 
 export class SharedContentController {
   private supabase: SupabaseClient;
@@ -34,10 +34,11 @@ export class SharedContentController {
     generatorInstructions: SharedContentObjectRequest,
     //this filter is there if the content should be filtered additionally by a column and value
     filter?: SharedContentFilter,
-    options?: { privateTopic?: boolean, skipDbSave?: boolean, alwaysGenerateNew?: boolean, excludeIds?: string[] },
+    options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
   ): Promise<SharedContent<T>> {
-    let query = this.supabase.from("shared_content")
-      .select("*, scc:shared_content_completed(id, state)")
+    let query = this.supabase
+      .from('shared_content')
+      .select('*, scc:shared_content_completed(id, state)')
       .eq('content_type', contentType)
       .not('scc.state', 'in', '("completed","ongoing","hidden")')
       .is('deleted_at', null);
@@ -62,7 +63,7 @@ export class SharedContentController {
 
     // console.log('newAssignments:', newAssignments);
 
-    if (!(options?.alwaysGenerateNew) && newAssignments.length > 0) {
+    if (!options?.alwaysGenerateNew && newAssignments.length > 0) {
       const index = Math.floor(Math.random() * newAssignments.length);
       return newAssignments[index];
     }
@@ -73,13 +74,13 @@ export class SharedContentController {
 
     //create the shared content object
     const data: SharedContent<T> = {
-      id: "internal-temp-id-" + Math.random().toString(36).substring(2, 15),
+      id: 'internal-temp-id-' + Math.random().toString(36).substring(2, 15),
       contentType,
       title: instructions.title,
       keywords: instructions.keywords.map(({ text }: { text: string }) => text),
       data: { ...instructions, title: undefined, keywords: undefined, ...generatorInstructions.fixedProperties },
       privateTopic: options?.privateTopic,
-    }
+    };
 
     if (options?.skipDbSave) {
       return data;
@@ -88,7 +89,11 @@ export class SharedContentController {
     return await this.createSharedContent(data);
   }
 
-  private async generateNewAssignment(contentType: string, generatorInstructions: SharedContentObjectRequest, filter?: SharedContentFilter): Promise<any> {
+  private async generateNewAssignment(
+    contentType: string,
+    generatorInstructions: SharedContentObjectRequest,
+    filter?: SharedContentFilter,
+  ): Promise<any> {
     const fullInstructions = await this.getGeneratorInstructions(contentType, generatorInstructions, filter);
 
     console.log('fullInstructions:', fullInstructions);
@@ -96,29 +101,34 @@ export class SharedContentController {
     return await this.rimoriClient.ai.getObject(fullInstructions);
   }
 
-  private async getGeneratorInstructions(contentType: string, generatorInstructions: ObjectRequest, filter?: SharedContentFilter): Promise<ObjectRequest> {
+  private async getGeneratorInstructions(
+    contentType: string,
+    generatorInstructions: ObjectRequest,
+    filter?: SharedContentFilter,
+  ): Promise<ObjectRequest> {
     const completedTopics = await this.getCompletedTopics(contentType, filter);
 
     generatorInstructions.instructions += `
     The following topics are already taken: ${completedTopics.join(', ')}`;
 
     generatorInstructions.tool.title = {
-      type: "string",
-      description: "What the topic is about. Short. ",
-    }
+      type: 'string',
+      description: 'What the topic is about. Short. ',
+    };
     generatorInstructions.tool.keywords = {
-      type: [{ text: { type: "string" } }],
-      description: "Keywords around the topic of the assignment.",
-    }
+      type: [{ text: { type: 'string' } }],
+      description: 'Keywords around the topic of the assignment.',
+    };
     return generatorInstructions;
   }
 
   private async getCompletedTopics(contentType: string, filter?: SharedContentFilter): Promise<string[]> {
-    const query = this.supabase.from("shared_content")
-      .select("title, keywords, scc:shared_content_completed(id)")
+    const query = this.supabase
+      .from('shared_content')
+      .select('title, keywords, scc:shared_content_completed(id)')
       .eq('content_type', contentType)
       .not('scc.id', 'is', null)
-      .is('deleted_at', null)
+      .is('deleted_at', null);
 
     if (filter) {
       query.contains('data', filter);
@@ -134,7 +144,13 @@ export class SharedContentController {
   }
 
   public async getSharedContent<T>(contentType: string, id: string): Promise<SharedContent<T>> {
-    const { data, error } = await this.supabase.from("shared_content").select().eq('content_type', contentType).eq('id', id).is('deleted_at', null).single();
+    const { data, error } = await this.supabase
+      .from('shared_content')
+      .select()
+      .eq('content_type', contentType)
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single();
     if (error) {
       console.error('error fetching shared content:', error);
       throw new Error('error fetching shared content');
@@ -145,7 +161,7 @@ export class SharedContentController {
   public async completeSharedContent(contentType: string, assignmentId: string) {
     // Idempotent completion: upsert on (id, user_id) so repeated calls don't fail
     const { error } = await this.supabase
-      .from("shared_content_completed")
+      .from('shared_content_completed')
       .upsert({ content_type: contentType, id: assignmentId } as any, { onConflict: 'id' });
 
     if (error) {
@@ -172,11 +188,11 @@ export class SharedContentController {
     reaction,
     bookmarked,
   }: {
-    contentType: string
-    id: string
-    state?: 'completed' | 'ongoing' | 'hidden'
-    reaction?: 'liked' | 'disliked' | null
-    bookmarked?: boolean
+    contentType: string;
+    id: string;
+    state?: 'completed' | 'ongoing' | 'hidden';
+    reaction?: 'liked' | 'disliked' | null;
+    bookmarked?: boolean;
   }): Promise<void> {
     const payload: Record<string, unknown> = { content_type: contentType, id };
     if (state !== undefined) payload.state = state;
@@ -184,9 +200,7 @@ export class SharedContentController {
     if (bookmarked !== undefined) payload.bookmarked = bookmarked;
 
     // Prefer upsert, fall back to insert/update if upsert not allowed
-    const { error } = await this.supabase
-      .from('shared_content_completed')
-      .upsert(payload as any, { onConflict: 'id' });
+    const { error } = await this.supabase.from('shared_content_completed').upsert(payload as any, { onConflict: 'id' });
 
     if (error) {
       console.error('error updating shared content state:', error);
@@ -201,8 +215,17 @@ export class SharedContentController {
    * @param limit - Optional limit for the number of results.
    * @returns Array of shared content matching the criteria.
    */
-  public async getSharedContentList<T>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<SharedContent<T>[]> {
-    const query = this.supabase.from("shared_content").select("*").eq('content_type', contentType).is('deleted_at', null).limit(limit ?? 30);
+  public async getSharedContentList<T>(
+    contentType: string,
+    filter?: SharedContentFilter,
+    limit?: number,
+  ): Promise<SharedContent<T>[]> {
+    const query = this.supabase
+      .from('shared_content')
+      .select('*')
+      .eq('content_type', contentType)
+      .is('deleted_at', null)
+      .limit(limit ?? 30);
 
     if (filter) {
       query.contains('data', filter);
@@ -229,14 +252,23 @@ export class SharedContentController {
    * @returns The inserted shared content.
    * @throws {Error} if insertion fails.
    */
-  public async createSharedContent<T>({ contentType, title, keywords, data, privateTopic }: Omit<SharedContent<T>, 'id'>): Promise<SharedContent<T>> {
-    const { data: newContent, error } = await this.supabase.from("shared_content").insert({
-      private: privateTopic,
-      content_type: contentType,
-      title,
-      keywords,
-      data,
-    }).select();
+  public async createSharedContent<T>({
+    contentType,
+    title,
+    keywords,
+    data,
+    privateTopic,
+  }: Omit<SharedContent<T>, 'id'>): Promise<SharedContent<T>> {
+    const { data: newContent, error } = await this.supabase
+      .from('shared_content')
+      .insert({
+        private: privateTopic,
+        content_type: contentType,
+        title,
+        keywords,
+        data,
+      })
+      .select();
 
     if (error) {
       console.error('error inserting shared content:', error);
@@ -262,7 +294,11 @@ export class SharedContentController {
     if (updates.data) updateData.data = updates.data;
     if (updates.privateTopic !== undefined) updateData.private = updates.privateTopic;
 
-    const { data: updatedContent, error } = await this.supabase.from("shared_content").update(updateData).eq('id', id).select();
+    const { data: updatedContent, error } = await this.supabase
+      .from('shared_content')
+      .update(updateData)
+      .eq('id', id)
+      .select();
 
     if (error) {
       console.error('error updating shared content:', error);
@@ -284,7 +320,7 @@ export class SharedContentController {
    */
   public async removeSharedContent(id: string): Promise<SharedContent<any>> {
     const { data: deletedContent, error } = await this.supabase
-      .from("shared_content")
+      .from('shared_content')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
       .select();

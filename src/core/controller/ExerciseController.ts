@@ -1,5 +1,5 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { PluginController } from "../../plugin/PluginController";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { PluginController } from '../../plugin/PluginController';
 
 export type TriggerAction = { action_key: string } & Record<string, string | number | boolean>;
 
@@ -57,17 +57,14 @@ export class ExerciseController {
    */
   public async addExercise(params: CreateExerciseParams): Promise<Exercise> {
     const token = await this.pluginController.getToken();
-    const response = await fetch(
-      `${this.pluginController.getBackendUrl()}/exercises`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(params),
-      }
-    );
+    const response = await fetch(`${this.pluginController.getBackendUrl()}/exercises`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(params),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -84,15 +81,12 @@ export class ExerciseController {
    */
   public async deleteExercise(id: string): Promise<{ success: boolean; message: string }> {
     const token = await this.pluginController.getToken();
-    const response = await fetch(
-      `${this.pluginController.getBackendUrl()}/exercises/${id}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`${this.pluginController.getBackendUrl()}/exercises/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -102,4 +96,3 @@ export class ExerciseController {
     return await response.json();
   }
 }
-

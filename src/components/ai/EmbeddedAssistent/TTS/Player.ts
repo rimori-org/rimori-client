@@ -1,5 +1,4 @@
 export class ChunkedAudioPlayer {
-
   private audioContext!: AudioContext;
   private chunkQueue: ArrayBuffer[] = [];
   private isPlaying = false;
@@ -9,10 +8,10 @@ export class ChunkedAudioPlayer {
   private isMonitoring = false;
   private handle = 0;
   private volume = 1.0;
-  private loudnessCallback: (value: number) => void = () => { };
+  private loudnessCallback: (value: number) => void = () => {};
   private currentIndex = 0;
   private startedPlaying = false;
-  private onEndOfSpeech: () => void = () => { };
+  private onEndOfSpeech: () => void = () => {};
 
   constructor() {
     this.init();

@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -25,7 +25,12 @@
   "scripts": {
     "build": "tsc && sass src/style.scss:dist/style.css",
     "dev": "tsc -w  --preserveWatchOutput",
-    "css-dev": "sass --watch src/style.scss:dist/style.css"
+    "css-dev": "sass --watch src/style.scss:dist/style.css",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "yarn lint && yarn format:check"
   },
   "peerDependencies": {
     "react": "^18.0.0",
@@ -39,7 +44,8 @@
     "html2canvas": "1.4.1",
     "react-icons": "5.4.0",
     "react-markdown": "10.1.0",
-    "tiptap-markdown": "0.8.10"
+    "tiptap-markdown": "0.8.10",
+    "prettier": "^3.6.2"
   },
   "devDependencies": {
     "form-data": "^4.0.2",

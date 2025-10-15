@@ -10,8 +10,8 @@ export class MessageSender {
   private voiceBackend: VoiceBackend;
 
   constructor(voiceBackend: VoiceBackend, voice: string) {
-    if (voice?.split("_").length !== 2) {
-      throw new Error("Invalid voice id format '" + voice + "'. Voice id needs to look like <provider>_<voice_id>")
+    if (voice?.split('_').length !== 2) {
+      throw new Error("Invalid voice id format '" + voice + "'. Voice id needs to look like <provider>_<voice_id>");
     }
     this.voiceBackend = voiceBackend;
     this.voice = voice;

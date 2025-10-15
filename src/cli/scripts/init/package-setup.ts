@@ -51,11 +51,7 @@ export function getRimoriClientVersion(): string {
  * @param param.isUpgrade - Whether this is an upgrade operation.
  * @throws {Error} if plugin directory doesn't exist or package.json is missing.
  */
-export function updatePackageJson({
-  pluginId,
-  port,
-  isUpgrade = false,
-}: PackageSetupParams): void {
+export function updatePackageJson({ pluginId, port, isUpgrade = false }: PackageSetupParams): void {
   // Get the plugin repo name from the current directory
   const pluginRepoName = path.basename(process.cwd());
   console.log(`Setting up plugin: ${pluginRepoName}`);
@@ -93,18 +89,18 @@ export function updatePackageJson({
   }
   packageJson.scripts = {
     ...packageJson.scripts,
-    "dev": `vite --port ${port || 3000}`,
-    "build": "yarn run check && vite build",
-    "check": "tsc --project tsconfig.app.json --noEmit --pretty",
-    "release:alpha": "yarn build && yarn rimori-release alpha",
-    "release:beta": "yarn build && yarn rimori-release beta",
-    "release:stable": "yarn build && yarn rimori-release stable",
-    "dev:worker": "VITE_MINIFY=false vite build --watch --config worker/vite.config.ts",
-    "build:worker": "vite build --config worker/vite.config.ts",
+    dev: `vite --port ${port || 3000}`,
+    build: 'yarn run check && vite build',
+    check: 'tsc --project tsconfig.app.json --noEmit --pretty',
+    'release:alpha': 'yarn build && yarn rimori-release alpha',
+    'release:beta': 'yarn build && yarn rimori-release beta',
+    'release:stable': 'yarn build && yarn rimori-release stable',
+    'dev:worker': 'VITE_MINIFY=false vite build --watch --config worker/vite.config.ts',
+    'build:worker': 'vite build --config worker/vite.config.ts',
   };
   packageJson.dependencies = {
     ...packageJson.dependencies,
-    "@rimori/client": rimoriClientVersion,
+    '@rimori/client': rimoriClientVersion,
   };
 
   // Write the updated package.json back to file
@@ -114,4 +110,4 @@ export function updatePackageJson({
   } catch (error) {
     throw new Error(`Failed to update package.json: ${error}`);
   }
-} 
+}

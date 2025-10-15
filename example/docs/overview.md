@@ -9,7 +9,7 @@ Simple Flashcards uses proven spaced repetition algorithms to help you memorize 
 ## 🎯 Perfect for
 
 - **Language learners** building vocabulary with audio pronunciation
-- **Students** memorizing facts, formulas, and definitions  
+- **Students** memorizing facts, formulas, and definitions
 - **Professionals** learning technical terms and concepts
 - **Anyone** who wants to remember information long-term
 

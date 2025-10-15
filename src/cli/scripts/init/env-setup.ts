@@ -41,4 +41,4 @@ export function updateGitignore(): void {
   } else {
     console.log('.env already in .gitignore, skipping update');
   }
-} 
+}

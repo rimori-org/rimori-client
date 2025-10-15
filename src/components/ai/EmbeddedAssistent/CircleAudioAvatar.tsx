@@ -8,7 +8,12 @@ interface CircleAudioAvatarProps {
   isDarkTheme?: boolean;
 }
 
-export function CircleAudioAvatar({ imageUrl, className, isDarkTheme = false, width = "150px" }: CircleAudioAvatarProps) {
+export function CircleAudioAvatar({
+  imageUrl,
+  className,
+  isDarkTheme = false,
+  width = '150px',
+}: CircleAudioAvatarProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentLoudnessRef = useRef(0);
   const targetLoudnessRef = useRef(0);
@@ -31,7 +36,7 @@ export function CircleAudioAvatar({ imageUrl, className, isDarkTheme = false, wi
             if (currentLoudnessRef.current > targetLoudnessRef.current) {
               currentLoudnessRef.current = Math.max(
                 targetLoudnessRef.current,
-                currentLoudnessRef.current - decayRate * currentLoudnessRef.current
+                currentLoudnessRef.current - decayRate * currentLoudnessRef.current,
               );
             } else {
               currentLoudnessRef.current = targetLoudnessRef.current;
@@ -63,7 +68,12 @@ export function CircleAudioAvatar({ imageUrl, className, isDarkTheme = false, wi
     }
   }, [imageUrl]);
 
-  const draw = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, image: HTMLImageElement, loudness: number) => {
+  const draw = (
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    image: HTMLImageElement,
+    loudness: number,
+  ) => {
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -94,5 +104,4 @@ export function CircleAudioAvatar({ imageUrl, className, isDarkTheme = false, wi
   };
 
   return <canvas ref={canvasRef} className={className} width={500} height={500} style={{ width }} />;
-};
-
+}

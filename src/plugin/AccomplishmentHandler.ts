@@ -1,11 +1,11 @@
-import { EventBus, EventBusMessage } from "../fromRimori/EventBus";
+import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 
 export type AccomplishmentMessage = EventBusMessage<MicroAccomplishmentPayload>;
 
-export const skillCategories = ["reading", "listening", "speaking", "writing", "learning", "community"] as const;
+export const skillCategories = ['reading', 'listening', 'speaking', 'writing', 'learning', 'community'] as const;
 
 interface BaseAccomplishmentPayload {
-  type: "micro" | "macro";
+  type: 'micro' | 'macro';
   skillCategory: (typeof skillCategories)[number];
   /*
   what is the accomplishment? e.g. chapter, flashcard, story, etc.
@@ -25,11 +25,11 @@ interface BaseAccomplishmentPayload {
 }
 
 export interface MicroAccomplishmentPayload extends BaseAccomplishmentPayload {
-  type: "micro";
+  type: 'micro';
 }
 
 export interface MacroAccomplishmentPayload extends BaseAccomplishmentPayload {
-  type: "macro";
+  type: 'macro';
   errorRatio: number;
   durationMinutes: number;
 }
@@ -43,14 +43,17 @@ export class AccomplishmentHandler {
     this.pluginId = pluginId;
   }
 
-  emitAccomplishment(payload: Omit<AccomplishmentPayload, "type">) {
-    const accomplishmentPayload = { ...payload, type: "durationMinutes" in payload ? "macro" : "micro" } as AccomplishmentPayload;
+  emitAccomplishment(payload: Omit<AccomplishmentPayload, 'type'>) {
+    const accomplishmentPayload = {
+      ...payload,
+      type: 'durationMinutes' in payload ? 'macro' : 'micro',
+    } as AccomplishmentPayload;
 
     this.validateAccomplishment(accomplishmentPayload);
 
     const sanitizedPayload = this.sanitizeAccomplishment(accomplishmentPayload);
 
-    const topic = "global.accomplishment.trigger" + (accomplishmentPayload.type === "macro" ? "Macro" : "Micro");
+    const topic = 'global.accomplishment.trigger' + (accomplishmentPayload.type === 'macro' ? 'Macro' : 'Micro');
 
     EventBus.emit(this.pluginId, topic, sanitizedPayload);
   }
@@ -62,53 +65,59 @@ export class AccomplishmentHandler {
 
     //regex validate accomplishmentKeyword
     if (!/^[a-z_-]+$/.test(payload.accomplishmentKeyword)) {
-      throw new Error(`The accomplishment keyword: ${payload.accomplishmentKeyword} is invalid. Only lowercase letters, minuses and underscores are allowed`);
+      throw new Error(
+        `The accomplishment keyword: ${payload.accomplishmentKeyword} is invalid. Only lowercase letters, minuses and underscores are allowed`,
+      );
     }
 
     //description is required
     if (payload.description.length < 10) {
-      throw new Error("Description is too short");
+      throw new Error('Description is too short');
     }
 
     //check that the type is valid
-    if (!["micro", "macro"].includes(payload.type)) {
-      throw new Error("Invalid accomplishment type " + payload.type);
+    if (!['micro', 'macro'].includes(payload.type)) {
+      throw new Error('Invalid accomplishment type ' + payload.type);
     }
 
     //durationMinutes is required
-    if (payload.type === "macro" && payload.durationMinutes < 4) {
-      throw new Error("The duration must be at least 4 minutes");
+    if (payload.type === 'macro' && payload.durationMinutes < 4) {
+      throw new Error('The duration must be at least 4 minutes');
     }
 
     //errorRatio is required
-    if (payload.type === "macro" && (payload.errorRatio < 0 || payload.errorRatio > 1)) {
-      throw new Error("The error ratio must be between 0 and 1");
+    if (payload.type === 'macro' && (payload.errorRatio < 0 || payload.errorRatio > 1)) {
+      throw new Error('The error ratio must be between 0 and 1');
     }
 
     //regex check meta data key
     if (payload.meta) {
-      payload.meta.forEach(meta => {
+      payload.meta.forEach((meta) => {
         if (!/^[a-z_]+$/.test(meta.key)) {
-          throw new Error("Invalid meta data key " + meta.key + ", only lowercase letters and underscores are allowed");
+          throw new Error('Invalid meta data key ' + meta.key + ', only lowercase letters and underscores are allowed');
         }
       });
     }
   }
 
   private sanitizeAccomplishment(payload: AccomplishmentPayload) {
-    payload.description = payload.description.replace(/[^\x20-\x7E]/g, "");
+    payload.description = payload.description.replace(/[^\x20-\x7E]/g, '');
 
     payload.meta?.forEach((meta) => {
-      meta.description = meta.description.replace(/[^\x20-\x7E]/g, "");
+      meta.description = meta.description.replace(/[^\x20-\x7E]/g, '');
     });
 
     return payload;
   }
 
   private getDecoupledTopic(topic: string) {
-    const [plugin, skillCategory, accomplishmentKeyword] = topic.split(".");
+    const [plugin, skillCategory, accomplishmentKeyword] = topic.split('.');
 
-    return { plugin: plugin || "*", skillCategory: skillCategory || "*", accomplishmentKeyword: accomplishmentKeyword || "*" };
+    return {
+      plugin: plugin || '*',
+      skillCategory: skillCategory || '*',
+      accomplishmentKeyword: accomplishmentKeyword || '*',
+    };
   }
 
   /**
@@ -116,30 +125,39 @@ export class AccomplishmentHandler {
    * @param accomplishmentTopic - The topic of the accomplishment event. The pattern can be any pattern of plugin.skillCategory.accomplishmentKeyword or an * as wildcard for any plugin, skill category or accomplishment keyword
    * @param callback - The callback function to be called when the accomplishment event is triggered
    */
-  subscribe(accomplishmentTopics = "*" as string | string[], callback: (payload: EventBusMessage<AccomplishmentPayload>) => void) {
-    if (typeof accomplishmentTopics === "string") {
+  subscribe(
+    accomplishmentTopics = '*' as string | string[],
+    callback: (payload: EventBusMessage<AccomplishmentPayload>) => void,
+  ) {
+    if (typeof accomplishmentTopics === 'string') {
       accomplishmentTopics = [accomplishmentTopics];
     }
 
     accomplishmentTopics.forEach((accomplishmentTopic) => {
-      const topicLength = accomplishmentTopic.split(".").length
+      const topicLength = accomplishmentTopic.split('.').length;
       if (topicLength === 1) {
-        accomplishmentTopic += ".*.*"
+        accomplishmentTopic += '.*.*';
       } else if (topicLength === 2) {
-        accomplishmentTopic += ".*"
+        accomplishmentTopic += '.*';
       } else if (topicLength !== 3) {
-        throw new Error("Invalid accomplishment topic pattern. The pattern must be plugin.skillCategory.accomplishmentKeyword or an * as wildcard for any plugin, skill category or accomplishment keyword");
+        throw new Error(
+          'Invalid accomplishment topic pattern. The pattern must be plugin.skillCategory.accomplishmentKeyword or an * as wildcard for any plugin, skill category or accomplishment keyword',
+        );
       }
 
-      EventBus.on<AccomplishmentPayload>(["global.accomplishment.triggerMicro", "global.accomplishment.triggerMacro"], (event) => {
-        const { plugin, skillCategory, accomplishmentKeyword } = this.getDecoupledTopic(accomplishmentTopic);
+      EventBus.on<AccomplishmentPayload>(
+        ['global.accomplishment.triggerMicro', 'global.accomplishment.triggerMacro'],
+        (event) => {
+          const { plugin, skillCategory, accomplishmentKeyword } = this.getDecoupledTopic(accomplishmentTopic);
 
-        if (plugin !== "*" && event.sender !== plugin) return;
-        if (skillCategory !== "*" && event.data.skillCategory !== skillCategory) return;
-        if (accomplishmentKeyword !== "*" && event.data.accomplishmentKeyword !== accomplishmentKeyword) return;
+          if (plugin !== '*' && event.sender !== plugin) return;
+          if (skillCategory !== '*' && event.data.skillCategory !== skillCategory) return;
+          if (accomplishmentKeyword !== '*' && event.data.accomplishmentKeyword !== accomplishmentKeyword) return;
 
-        callback(event);
-      }, [this.pluginId]);
+          callback(event);
+        },
+        [this.pluginId],
+      );
     });
   }
 }

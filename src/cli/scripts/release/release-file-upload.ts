@@ -69,7 +69,7 @@ export async function uploadDirectory(config: Config, release_id: string): Promi
   // Upload to the release endpoint
   const response = await fetch(`${config.domain}/release/${release_id}/files`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${config.token}` },
+    headers: { Authorization: `Bearer ${config.token}` },
     body: formData,
   });
 

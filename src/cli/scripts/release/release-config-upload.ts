@@ -26,7 +26,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
     // Transpile TypeScript to JavaScript
     const result = ts.transpile(configContent, {
       target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ES2020
+      module: ts.ModuleKind.ES2020,
     });
 
     // Create a temporary file to import the transpiled code
@@ -44,7 +44,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
       // Clean up temp file even on error
       try {
         await fs.promises.unlink(tempFile);
-      } catch (e) { }
+      } catch (e) {}
       throw error;
     }
 
@@ -67,7 +67,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.token}`
+          Authorization: `Bearer ${config.token}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -87,8 +87,8 @@ export async function sendConfiguration(config: Config): Promise<string> {
         throw new Error('Configuration upload failed');
       }
     } catch (e) {
-      console.log("error", e);
-      throw new Error("Error sending configuration");
+      console.log('error', e);
+      throw new Error('Error sending configuration');
     }
   } catch (error: any) {
     console.error('❌ Error sending configuration:', error.message);
@@ -101,14 +101,14 @@ export async function releasePlugin(config: Config, release_id: string): Promise
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.token}`
+      Authorization: `Bearer ${config.token}`,
     },
-    body: JSON.stringify({ plugin_id: config.plugin_id })
+    body: JSON.stringify({ plugin_id: config.plugin_id }),
   });
 
   if (!response.ok) {
-    console.log("Response:", await response.text());
-    throw new Error("Failed to release plugin");
+    console.log('Response:', await response.text());
+    throw new Error('Failed to release plugin');
   }
-  console.log("✅ Plugin released successfully");
+  console.log('✅ Plugin released successfully');
 }

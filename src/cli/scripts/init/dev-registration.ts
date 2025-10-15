@@ -31,7 +31,7 @@ export async function askForCredentials(): Promise<UserCredentials> {
       const passwordRl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
-        terminal: false
+        terminal: false,
       });
 
       process.stdout.write('Enter your password: ');
@@ -113,10 +113,7 @@ export async function askForPort(): Promise<number> {
  * @returns Promise resolving to JWT access token.
  * @throws {Error} if authentication fails.
  */
-export async function authenticateWithSupabase({
-  email,
-  password,
-}: UserCredentials): Promise<string> {
+export async function authenticateWithSupabase({ email, password }: UserCredentials): Promise<string> {
   console.log('🔐 Authenticating with Supabase...');
 
   // Initialize Supabase client (you may need to adjust the URL and key)
@@ -159,13 +156,13 @@ export async function registerDeveloper(jwtToken: string, port: number): Promise
   try {
     const currentFolderName = path.basename(process.cwd());
     const body: any = { port, pluginName: currentFolderName };
-    const backendUrl = process.env.RIMORI_BACKEND_URL || "https://api.rimori.se";
+    const backendUrl = process.env.RIMORI_BACKEND_URL || 'https://api.rimori.se';
 
     const response = await fetch(backendUrl + '/developer/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`,
+        Authorization: `Bearer ${jwtToken}`,
       },
       body: JSON.stringify(body),
     });
@@ -189,4 +186,4 @@ export async function registerDeveloper(jwtToken: string, port: number): Promise
     console.error(error);
     throw new Error(`Developer registration failed: ${error}`);
   }
-} 
+}

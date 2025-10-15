@@ -40,11 +40,11 @@ Before initializing your plugin, ensure you have:
 
 ### Initializing a New Plugin
 
-Open Lovable and vibe code the look of your plugin. 
+Open Lovable and vibe code the look of your plugin.
 
 Then connect it to your Github account.
 
-Clone the git repository: 
+Clone the git repository:
 
 ```bash
 git clone ...
@@ -88,6 +88,7 @@ yarn dev
 ```
 
 Rimori client comes pre-configured with:
+
 - ✅ **Hot reload** for instant development feedback
 - ✅ **TypeScript support** with full type safety
 - ✅ **TailwindCSS** for modern styling
@@ -111,7 +112,7 @@ During plugin initialization, convenient release scripts are automatically added
 ```bash
 # Quick release commands (build + release)
 yarn release:alpha     # Build and release to alpha channel
-yarn release:beta      # Build and release to beta channel  
+yarn release:beta      # Build and release to beta channel
 yarn release:stable    # Build and release to stable channel
 ```
 
@@ -125,7 +126,7 @@ yarn build
 
 # Then release to different channels
 yarn rimori-release alpha    # For alpha testing
-yarn rimori-release beta     # For beta releases  
+yarn rimori-release beta     # For beta releases
 yarn rimori-release stable   # For production releases
 ```
 
@@ -149,6 +150,7 @@ The `rimori-release` command performs a complete release workflow:
 ### Automatic Configuration
 
 During plugin initialization, the following are automatically configured:
+
 - `RIMORI_TOKEN`: Your authentication token (stored in `.env`)
 - `r_id`: Your unique plugin ID (stored in `package.json`)
 - **Release scripts**: `yarn release:alpha`, `yarn release:beta`, `yarn release:stable`
@@ -166,6 +168,7 @@ If you encounter release issues:
 #### Worker Process Errors
 
 If you encounter errors like:
+
 ```
 ReferenceError: process is not defined
 ```
@@ -180,10 +183,11 @@ ReferenceError: process is not defined
    - Utility libraries that check for environment variables
 
 2. **Verify Rimori Client imports**: Ensure you're importing from `@rimori/client/core` and not from `@rimori/client`:
+
    ```typescript
    // ✅ Correct - import from rimori client
    import { RimoriClient } from '@rimori/client/core';
-   
+
    // ❌ Incorrect - direct imports that might access process.env directly or through their dependencies
    import { Avatar } from '@rimori/client';
    import { useQuery } from '@tanstack/react-query';
@@ -195,16 +199,11 @@ ReferenceError: process is not defined
    - Routing libraries
    - Any library that checks `process.env.NODE_ENV`
 
-
 **Solution**: Use only `@rimori/client/core` exports in your worker code. The Rimori client provides all necessary functionality without requiring Node.js globals.
 
 **Note**: The worker bundling order is determined by the build system and cannot be controlled. Libraries that access `process.env` will always cause this error in the worker context.
 
-
-
-
-
-```
+````
 
 ## Core API - usePlugin Hook
 
@@ -215,13 +214,13 @@ import { useRimori } from "@rimori/client";
 
 const MyComponent = () => {
   const client = useRimori();
-  
+
   // Access all client features
   const { db, llm, event, community, plugin } = client;
-  
+
   return <div>My Plugin Content</div>;
 };
-```
+````
 
 ### Plugin Interface
 
@@ -260,11 +259,11 @@ const FlashcardSettingsComponent = () => {
         enableAudioPronunciation: true,
         difficultyAlgorithm: 'spaced-repetition'
       };
-      
+
       const currentSettings = await plugin.getSettings(defaultSettings);
       setSettings(currentSettings);
     };
-    
+
     loadSettings();
   }, []);
 
@@ -278,19 +277,19 @@ const FlashcardSettingsComponent = () => {
     <div className="flashcard-settings">
       <label>
         Daily Goal: {settings?.dailyGoal} cards
-        <input 
-          type="range" 
-          min="5" 
-          max="100" 
-          value={settings?.dailyGoal} 
+        <input
+          type="range"
+          min="5"
+          max="100"
+          value={settings?.dailyGoal}
           onChange={(e) => updateSettings({ dailyGoal: parseInt(e.target.value) })}
         />
       </label>
-      
+
       <label>
         Review Interval:
-        <select 
-          value={settings?.reviewInterval} 
+        <select
+          value={settings?.reviewInterval}
           onChange={(e) => updateSettings({ reviewInterval: e.target.value as any })}
         >
           <option value="easy">Easy (longer intervals)</option>
@@ -298,10 +297,10 @@ const FlashcardSettingsComponent = () => {
           <option value="hard">Hard (shorter intervals)</option>
         </select>
       </label>
-      
+
       <label>
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           checked={settings?.enableAudioPronunciation}
           onChange={(e) => updateSettings({ enableAudioPronunciation: e.target.checked })}
         />
@@ -327,6 +326,7 @@ db.getTableName(table: string): string  // Get full table name with prefix
 ```
 
 The `db.from()` method provides access to the complete Supabase PostgREST API, supporting all database operations including:
+
 - **CRUD Operations**: `insert()`, `select()`, `update()`, `delete()`, `upsert()`
 - **Filtering**: `eq()`, `neq()`, `gt()`, `gte()`, `lt()`, `lte()`, `like()`, `ilike()`, `is()`, `in()`, `contains()`, `containedBy()`, `rangeLt()`, `rangeGt()`, `rangeGte()`, `rangeLte()`, `rangeAdjacent()`, `overlaps()`, `textSearch()`, `match()`, `not()`, `or()`, `filter()`
 - **Modifiers**: `order()`, `limit()`, `range()`, `single()`, `maybe_single()`, `csv()`, `geojson()`, `explain()`
@@ -354,7 +354,7 @@ interface StudySession {
 
 const StudySessionManager = () => {
   const { db } = useRimori();
-  
+
   // Create a new study session
   const createSession = async (session: Omit<StudySession, 'id'>) => {
     const { data, error } = await db
@@ -362,7 +362,7 @@ const StudySessionManager = () => {
       .insert(session)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   };
@@ -374,7 +374,7 @@ const StudySessionManager = () => {
       .select('*')
       .eq('user_id', userId)
       .order('completed_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   };
@@ -387,7 +387,7 @@ const StudySessionManager = () => {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   };
@@ -405,14 +405,14 @@ const StudySessionManager = () => {
 ```typescript
 const FileManager = () => {
   const { db } = useRimori();
-  
+
   const uploadFile = async (file: File) => {
     const fileName = `uploads/${Date.now()}-${file.name}`;
-    
+
     const { data, error } = await db.storage
       .from('plugin-files')
       .upload(fileName, file);
-    
+
     if (error) throw error;
     return data;
   };
@@ -421,7 +421,7 @@ const FileManager = () => {
     const { data, error } = await db.storage
       .from('plugin-files')
       .download(filePath);
-    
+
     if (error) throw error;
     return data;
   };
@@ -464,12 +464,12 @@ const ChatAssistant = () => {
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    
+
     append([{
       role: 'user',
       content: input
     }]);
-    
+
     setInput('');
   };
 
@@ -483,7 +483,7 @@ const ChatAssistant = () => {
         ))}
         {isLoading && <div className="message assistant">Thinking...</div>}
       </div>
-      
+
       <div className="input-area">
         <input
           value={input}
@@ -505,7 +505,7 @@ const ChatAssistant = () => {
 ```typescript
 const QuizGenerator = () => {
   const { llm } = useRimori();
-  
+
   const generateQuiz = async (topic: string) => {
     const quiz = await llm.getObject({
       schema: {
@@ -528,7 +528,7 @@ const QuizGenerator = () => {
       },
       prompt: `Create a quiz about ${topic} with 5 multiple choice questions.`
     });
-    
+
     return quiz;
   };
 
@@ -541,7 +541,7 @@ const QuizGenerator = () => {
 ```typescript
 const VoiceAssistant = () => {
   const { llm } = useRimori();
-  
+
   const speakText = async (text: string) => {
     const audioBlob = await llm.getVoice(text, "alloy", 1, "en");
     const audioUrl = URL.createObjectURL(audioBlob);
@@ -585,7 +585,7 @@ event.emitSidebarAction(pluginId: string, actionKey: string, text?: string): voi
 ```typescript
 const PluginCommunicator = () => {
   const { event } = useRimori();
-  
+
   useEffect(() => {
     // Listen for messages from other plugins
     const unsubscribe = event.on('flashcards.newCard', (message) => {
@@ -617,7 +617,7 @@ const PluginCommunicator = () => {
     const response = await event.request('flashcards.getStats', {
       timeframe: 'week'
     });
-    
+
     console.log('Flashcard stats:', response.data);
   };
 
@@ -635,7 +635,7 @@ const PluginCommunicator = () => {
 ```typescript
 const AccomplishmentTracker = () => {
   const { event } = useRimori();
-  
+
   const trackAccomplishment = () => {
     event.emitAccomplishment({
       type: 'study_milestone',
@@ -666,7 +666,7 @@ const AccomplishmentTracker = () => {
 ```typescript
 const SidebarIntegration = () => {
   const { event } = useRimori();
-  
+
   const openTranslator = (text: string) => {
     // Trigger translator plugin in sidebar
     event.emitSidebarAction('translator', 'translate', text);
@@ -745,7 +745,7 @@ const ExerciseManager = () => {
         questionCount: exercise.questions.length
       }
     });
-    
+
     return newExercise;
   };
 
@@ -777,7 +777,7 @@ const ExerciseManager = () => {
       },
       { column: 'difficulty', value: 'beginner' }
     );
-    
+
     return aiExercise;
   };
 
@@ -804,6 +804,7 @@ const ExerciseManager = () => {
 Pre-built React components for common functionality:
 
 ### MarkdownEditor
+
 Rich text editor with markdown support:
 
 ```typescript
@@ -811,7 +812,7 @@ import { MarkdownEditor } from "@rimori/client";
 
 const EditorExample = () => {
   const [content, setContent] = useState('');
-  
+
   return (
     <MarkdownEditor
       value={content}
@@ -823,6 +824,7 @@ const EditorExample = () => {
 ```
 
 ### CRUDModal
+
 Modal component for create/update operations:
 
 ```typescript
@@ -831,7 +833,7 @@ import { CRUDModal } from "@rimori/client";
 const DataManager = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  
+
   return (
     <CRUDModal
       isOpen={isOpen}
@@ -853,6 +855,7 @@ const DataManager = () => {
 ```
 
 ### Spinner
+
 Loading indicator component:
 
 ```typescript
@@ -860,16 +863,17 @@ import { Spinner } from "@rimori/client";
 
 const LoadingExample = () => {
   const [isLoading, setIsLoading] = useState(true);
-  
+
   if (isLoading) {
     return <Spinner size="large" />;
   }
-  
+
   return <div>Content loaded!</div>;
 };
 ```
 
 ### PlayButton
+
 Audio playback component:
 
 ```typescript
@@ -894,12 +898,12 @@ import { Avatar, Assistant } from "@rimori/client";
 const AIInterface = () => {
   return (
     <div>
-      <Avatar 
+      <Avatar
         name="AI Assistant"
         status="online"
         size="large"
       />
-      
+
       <Assistant
         onMessage={(message) => console.log('AI message:', message)}
         placeholder="Ask the AI assistant..."
@@ -912,6 +916,7 @@ const AIInterface = () => {
 ## Hooks
 
 ### useChat
+
 Manage AI chat conversations:
 
 ```typescript
@@ -950,20 +955,22 @@ const ChatExample = () => {
 ## Utilities
 
 ### difficultyConverter
+
 Convert between different difficulty representations:
 
 ```typescript
-import { difficultyConverter } from "@rimori/client";
+import { difficultyConverter } from '@rimori/client';
 
 const difficulty = difficultyConverter.toNumber('intermediate'); // Returns: 2
 const difficultyText = difficultyConverter.toString(3); // Returns: 'advanced'
 ```
 
 ### PluginUtils
+
 Various utility functions:
 
 ```typescript
-import { PluginUtils } from "@rimori/client";
+import { PluginUtils } from '@rimori/client';
 
 // Utility functions for common plugin operations
 const utils = PluginUtils.getInstance();
@@ -971,10 +978,11 @@ const utils = PluginUtils.getInstance();
 ```
 
 ### Language Utilities
+
 Language detection and processing:
 
 ```typescript
-import { Language } from "@rimori/client";
+import { Language } from '@rimori/client';
 
 // Language-related utility functions
 const languageCode = Language.detectLanguage(text);
@@ -986,7 +994,7 @@ const isSupported = Language.isSupported('es');
 The package is fully typed with comprehensive TypeScript definitions:
 
 ```typescript
-import type { 
+import type {
   MainPanelAction,
   Message,
   Tool,
@@ -994,8 +1002,8 @@ import type {
   AccomplishmentPayload,
   SharedContent,
   BasicAssignment,
-  UserInfo
-} from "@rimori/client";
+  UserInfo,
+} from '@rimori/client';
 
 // All interfaces and types are exported for use in your plugin
 interface MyPluginData extends SharedContent<any> {
@@ -1030,12 +1038,12 @@ export interface SharedContent<T> {
 
 ```typescript
 import React, { useState, useEffect } from 'react';
-import { 
-  PluginProvider, 
-  usePlugin, 
-  MarkdownEditor, 
+import {
+  PluginProvider,
+  usePlugin,
+  MarkdownEditor,
   Spinner,
-  useChat 
+  useChat
 } from '@rimori/client';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 
@@ -1065,9 +1073,9 @@ const StudyNotesPlugin = () => {
       content,
       created_at: new Date().toISOString()
     }).select().single();
-    
+
     setNotes([data, ...notes]);
-    
+
     // Share with community
     await community.sharedContent.create({
       content_type: 'study_notes',
@@ -1080,7 +1088,7 @@ const StudyNotesPlugin = () => {
     const summary = await llm.getText([
       { role: 'user', content: `Summarize this study note: ${noteContent}` }
     ]);
-    
+
     return summary;
   };
 
@@ -1089,11 +1097,11 @@ const StudyNotesPlugin = () => {
   return (
     <div className="study-notes-plugin">
       <h1>Study Notes</h1>
-      
+
       <div className="notes-grid">
         {notes.map(note => (
           <div key={note.id} className="note-card">
-            <MarkdownEditor 
+            <MarkdownEditor
               value={note.content}
               onChange={(content) => {/* Update logic */}}
             />
@@ -1139,5 +1147,3 @@ export default App;
 3. **Type Safety**: Use TypeScript interfaces for all data structures
 4. **Event Cleanup**: Always unsubscribe from events in useEffect cleanup
 5. **Responsive Design**: Use TailwindCSS classes for responsive layouts
-
-

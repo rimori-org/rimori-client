@@ -62,7 +62,7 @@ Speed up your review sessions with keyboard shortcuts that eliminate the need fo
 - **Spacebar** - Reveal the answer when studying the front of a card
 - **Number keys 1-4** - Rate your recall (Again, Hard, Good, Easy respectively)
 - **5 key** - Play audio for the front of the card (if language tags are present)
-- **h key** - Play audio for the back of the card (if language tags are present) 
+- **h key** - Play audio for the back of the card (if language tags are present)
 - **v key** - Edit the current flashcard during review
 
 These shortcuts allow you to maintain focus and rhythm during your learning sessions.
@@ -109,15 +109,18 @@ To get the most out of your flashcard learning:
 ## Troubleshooting Common Issues
 
 **Audio not playing when expected?**
+
 - Verify that your device volume is turned up and not muted
 - Check that the flashcard has proper language tags (e.g., `lang:en` for English)
 - Try refreshing the page if audio features seem unresponsive
 
 **Flashcards not saving properly?**
+
 - Ensure you have a stable internet connection for data synchronization
 - Verify you clicked the save icon after entering card content
 - Try creating the card again if the first attempt failed
 
 **Progress not updating correctly?**
+
 - Refresh the page to ensure you're seeing the latest data
 - Check that you're rating cards rather than just viewing them

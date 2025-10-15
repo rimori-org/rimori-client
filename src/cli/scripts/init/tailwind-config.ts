@@ -21,16 +21,10 @@ export function updateTailwindConfig(): void {
 
     // Set darkMode to "class" if it exists, otherwise add it
     if (updatedContent.includes('darkMode:')) {
-      updatedContent = updatedContent.replace(
-        /darkMode:\s*\[?"[^"]*"?\]?,?/g,
-        'darkMode: ["class"],'
-      );
+      updatedContent = updatedContent.replace(/darkMode:\s*\[?"[^"]*"?\]?,?/g, 'darkMode: ["class"],');
     } else {
       // Add darkMode after the opening brace
-      updatedContent = updatedContent.replace(
-        /export default \{/,
-        'export default {\n  darkMode: ["class"],'
-      );
+      updatedContent = updatedContent.replace(/export default \{/, 'export default {\n  darkMode: ["class"],');
     }
 
     // Add Rimori client package to content array if not already present
@@ -38,31 +32,28 @@ export function updateTailwindConfig(): void {
       // Find the content array and add the Rimori client path
       if (updatedContent.includes('content:')) {
         // More precise regex to handle the content array properly
-        updatedContent = updatedContent.replace(
-          /(content:\s*\[)([\s\S]*?)(\])/,
-          (match, start, content, end) => {
-            // Clean up any existing double commas first
-            let cleanContent = content.replace(/,\s*,/g, ',');
+        updatedContent = updatedContent.replace(/(content:\s*\[)([\s\S]*?)(\])/, (match, start, content, end) => {
+          // Clean up any existing double commas first
+          let cleanContent = content.replace(/,\s*,/g, ',');
 
-            // Remove trailing comma and whitespace
-            cleanContent = cleanContent.replace(/,\s*$/, '');
+          // Remove trailing comma and whitespace
+          cleanContent = cleanContent.replace(/,\s*$/, '');
 
-            // Add the new path with proper formatting
-            const newPath = '"node_modules/@rimori/client/dist/components/**/*.{js,jsx}"';
+          // Add the new path with proper formatting
+          const newPath = '"node_modules/@rimori/client/dist/components/**/*.{js,jsx}"';
 
-            // If content is not empty, add comma before new entry
-            if (cleanContent.trim()) {
-              return `${start}${cleanContent},\n    ${newPath}\n  ${end}`;
-            } else {
-              return `${start}\n    ${newPath}\n  ${end}`;
-            }
+          // If content is not empty, add comma before new entry
+          if (cleanContent.trim()) {
+            return `${start}${cleanContent},\n    ${newPath}\n  ${end}`;
+          } else {
+            return `${start}\n    ${newPath}\n  ${end}`;
           }
-        );
+        });
       } else {
         // Add content array if it doesn't exist
         updatedContent = updatedContent.replace(
           /darkMode: \["class"\],/,
-          'darkMode: ["class"],\n  content: [\n    "./src/**/*.{js,jsx,ts,tsx}",\n    "node_modules/@rimori/client/dist/components/**/*.{js,jsx}"\n  ],'
+          'darkMode: ["class"],\n  content: [\n    "./src/**/*.{js,jsx,ts,tsx}",\n    "node_modules/@rimori/client/dist/components/**/*.{js,jsx}"\n  ],',
         );
       }
     }
@@ -72,4 +63,4 @@ export function updateTailwindConfig(): void {
   } catch (error) {
     console.warn(`Warning: Could not update tailwind.config.ts: ${error instanceof Error ? error.message : error}`);
   }
-} 
+}

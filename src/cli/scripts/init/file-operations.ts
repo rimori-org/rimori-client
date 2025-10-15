@@ -55,4 +55,4 @@ export function copyPluginFiles(): void {
   }
 
   console.log('Plugin file copying completed.');
-} 
+}
