@@ -26,11 +26,8 @@
     "build": "tsc && sass src/style.scss:dist/style.css",
     "dev": "tsc -w  --preserveWatchOutput",
     "css-dev": "sass --watch src/style.scss:dist/style.css",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check": "yarn lint && yarn format:check"
+    "lint": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "peerDependencies": {
     "react": "^18.0.0",
