@@ -16,16 +16,15 @@ import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRi
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
 import { AccomplishmentHandler, AccomplishmentPayload } from './AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
-import { ClientServerOptions } from '@supabase/postgrest-js/dist/cjs/types/common/common';
 
 interface Db {
   from: {
     <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(
       relation: TableName,
-    ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
+    ): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
     <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
       relation: ViewName,
-    ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
+    ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
   };
   // storage: SupabaseClient["storage"];
 
@@ -251,11 +250,11 @@ export class RimoriClient {
   private from<
     TableName extends string & keyof GenericSchema['Tables'],
     Table extends GenericSchema['Tables'][TableName],
-  >(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
+  >(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
   private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
     relation: ViewName,
-  ): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
-  private from(relation: string): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, any, any> {
+  ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
+  private from(relation: string): PostgrestQueryBuilder<GenericSchema, any, any> {
     return this.superbase.from(this.getTableName(relation));
   }
 
