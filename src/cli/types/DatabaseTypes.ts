@@ -3,7 +3,14 @@
 /**
  * Supported database column data types for table schema definitions.
  */
-type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid';
+type DbColumnType =
+  | 'decimal'
+  | 'integer'
+  | 'text'
+  | 'boolean'
+  | 'json'
+  | 'timestamp'
+  | 'uuid';
 
 /**
  * Foreign key relationship configuration with cascade delete support.
@@ -113,4 +120,5 @@ export interface DbPermissionDefinition {
 /**
  * Full table definition that includes automatically generated fields.
  */
-export type FullTable<T extends Record<string, DbColumnDefinition>> = T & BaseTableStructure;
+export type FullTable<T extends Record<string, DbColumnDefinition>> = T &
+  BaseTableStructure;
