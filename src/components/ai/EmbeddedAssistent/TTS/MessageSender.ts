@@ -18,9 +18,9 @@ export class MessageSender {
   }
 
   private getCompletedSentences(currentText: string, isLoading: boolean): string[] {
-    // Split the text based on the following characters: .,?!
+    // Split the text based on the following characters: .?!
     // Only split on : when followed by a space
-    const pattern = /(.+?[,.?!]|.+?:\s+|.+?\n+)/g;
+    const pattern = /(.+?[.?!]|.+?:\s+|.+?\n+)/g;
     const result: string[] = [];
     let match;
     while ((match = pattern.exec(currentText)) !== null) {
