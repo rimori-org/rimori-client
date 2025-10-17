@@ -1,6 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { LanguageLevel } from '../../utils/difficultyConverter';
-import { Language } from '../../utils/Language';
 import { Guild } from '../core';
 
 export interface Buddy {
@@ -10,6 +9,14 @@ export interface Buddy {
   avatarUrl: string;
   voiceId: string;
   aiPersonality: string;
+}
+
+export interface Language {
+  code: string;
+  name: string;
+  native: string;
+  capitalized: string;
+  uppercase: string;
 }
 
 export interface UserInfo {
