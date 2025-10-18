@@ -45,13 +45,61 @@ const config = {
 export type Config = typeof config;
 
 /**
+ * Detect available translation languages from public/locales directory
+ */
+async function detectTranslationLanguages(): Promise<string[]> {
+  const localesPath = './public/locales';
+  
+  try {
+    await fs.promises.access(localesPath);
+  } catch (e) {
+    console.log('⚠️ No locales directory found, no translations available');
+    return [];
+  }
+
+  try {
+    const files = await fs.promises.readdir(localesPath);
+    
+    // Filter out local- files and only include .json files
+    const translationFiles = files.filter(file => 
+      file.endsWith('.json') && 
+      !file.startsWith('local-')
+    );
+
+    if (translationFiles.length === 0) {
+      console.log('⚠️ No translation files found (excluding local- files)');
+      return [];
+    }
+
+    // Extract language codes from filenames (e.g., en.json -> en)
+    const languages = translationFiles.map(file => file.replace('.json', ''));
+    
+    console.log(`🌐 Found ${languages.length} translation languages: ${languages.join(', ')}`);
+    return languages;
+  } catch (error: any) {
+    console.error(`❌ Error reading locales directory:`, error.message);
+    return [];
+  }
+}
+
+/**
  * Main release process
  */
 async function releaseProcess(): Promise<void> {
   try {
     console.log(`🚀 Releasing ${config.plugin_id} to ${config.release_channel}...`);
+    
+    // Detect available translation languages
+    const availableLanguages = await detectTranslationLanguages();
+    
+    // Add languages to config
+    const configWithLanguages = {
+      ...config,
+      provided_languages: availableLanguages.length > 0 ? availableLanguages.join(',') : null,
+    };
+    
     // First send the configuration
-    const release_id = await sendConfiguration(config);
+    const release_id = await sendConfiguration(configWithLanguages);
 
     await dbUpdate(config, release_id);
 
@@ -60,6 +108,13 @@ async function releaseProcess(): Promise<void> {
 
     // Then release the plugin
     await releasePlugin(config, release_id);
+    
+    // Inform user about translation processing
+    if (availableLanguages.length > 0) {
+      console.log('🌐 Translation processing: Your translations are being processed asynchronously.');
+      console.log('   The system will automatically detect if your English content has changed');
+      console.log('   and process translations accordingly. You can check the status later.');
+    }
   } catch (error: any) {
     console.log('❌ Error:', error.message);
     process.exit(1);
