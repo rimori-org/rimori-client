@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 import { Config } from './release.js';
+import { detectTranslationLanguages } from './detect-translation-languages.js';
 
 /**
  * Read and send the rimori configuration to the release endpoint
@@ -52,6 +53,9 @@ export async function sendConfiguration(config: Config): Promise<string> {
       throw new Error('Configuration object is empty or undefined');
     }
 
+    // Detect available translation languages
+    const availableLanguages = await detectTranslationLanguages();
+
     console.log(`🚀 Sending configuration...`);
 
     const requestBody = {
@@ -60,6 +64,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
       plugin_id: config.plugin_id,
       release_channel: config.release_channel,
       rimori_client_version: config.rimori_client_version,
+      provided_languages: availableLanguages.join(','),
     };
 
     try {
