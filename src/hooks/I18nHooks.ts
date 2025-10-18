@@ -21,12 +21,12 @@ export function useTranslation(): { t: TranslatorFn; ready: boolean } {
     // return zero-width space if translator is not initialized to keep text space occupied
     if (!translatorInstance) return '\u200B'; // zero-width space
 
-    try {
-      return translatorInstance.t(key, options);
-    } catch (error) {
-      console.error('Translation error:', error);
-      return key;
+    const result = translatorInstance.t(key, options);
+    if (!result) {
+      console.error(`Translation key not found: ${key}`);
+      return '\u200B'; // zero-width space
     }
+    return result;
   };
 
   return { t: safeT, ready: translatorInstance !== null };
