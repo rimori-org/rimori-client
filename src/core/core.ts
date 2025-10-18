@@ -6,7 +6,7 @@ export * from '../utils/difficultyConverter';
 export * from '../utils/PluginUtils';
 export * from '../worker/WorkerSetup';
 export { EventBusMessage } from '../fromRimori/EventBus';
-export { Buddy, UserInfo } from './controller/SettingsController';
+export { Buddy, UserInfo, Language } from './controller/SettingsController';
 export { SharedContent } from './controller/SharedContentController';
 export { Exercise, TriggerAction } from './controller/ExerciseController';
 export { Message, OnLLMResponse, ToolInvocation } from './controller/AIController';

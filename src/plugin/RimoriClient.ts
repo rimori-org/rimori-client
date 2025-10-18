@@ -16,6 +16,7 @@ import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRi
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
 import { AccomplishmentHandler, AccomplishmentPayload } from './AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
+import { Translator } from './TranslationController';
 
 interface Db {
   from: {
@@ -73,6 +74,7 @@ interface PluginInterface {
     sidePanelPlugin?: ActivePlugin;
   };
   getUserInfo: () => UserInfo;
+  getTranslator: () => Promise<Translator>;
 }
 
 export class RimoriClient {
@@ -84,6 +86,7 @@ export class RimoriClient {
   private exerciseController: ExerciseController;
   private accomplishmentHandler: AccomplishmentHandler;
   private rimoriInfo: RimoriInfo;
+  private translator: Translator;
   public plugin: PluginInterface;
   public db: Db;
 
@@ -95,6 +98,7 @@ export class RimoriClient {
     this.sharedContentController = new SharedContentController(this.superbase, this);
     this.exerciseController = new ExerciseController(supabase, pluginController);
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
+    this.translator = new Translator(info.profile.mother_tongue.code);
 
     this.from = this.from.bind(this);
     this.getTableName = this.getTableName.bind(this);
@@ -108,7 +112,7 @@ export class RimoriClient {
     };
     this.plugin = {
       pluginId: info.pluginId,
-      setSettings: async (settings: any) => {
+      setSettings: async (settings: any): Promise<void> => {
         await this.settingsController.setSettings(settings);
       },
       getSettings: async <T extends object>(defaultSettings: T): Promise<T> => {
@@ -123,6 +127,10 @@ export class RimoriClient {
           mainPanelPlugin: this.rimoriInfo.mainPanelPlugin,
           sidePanelPlugin: this.rimoriInfo.sidePanelPlugin,
         };
+      },
+      getTranslator: async (): Promise<Translator> => {
+        await this.translator.initialize();
+        return this.translator;
       },
     };
   }
