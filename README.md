@@ -952,6 +952,122 @@ const ChatExample = () => {
 };
 ```
 
+### useTranslation
+
+Internationalization (i18n) support built on i18next:
+
+```typescript
+import { useTranslation } from "@rimori/client";
+
+const TranslatedComponent = () => {
+  const { t, ready } = useTranslation();
+ 
+  if (!ready) {
+    return <div>Loading translations...</div>;
+  }
+ 
+  return (
+    <div>
+      <h1>{t('discussion.title')}</h1>
+      <p>{t('discussion.whatToTalkAbout')}</p>
+    </div>
+  );
+};
+```
+
+## Translation Feature
+
+Rimori includes a comprehensive internationalization (i18n) system built on i18next that allows plugins to support multiple languages with minimal developer effort.
+
+### How it works
+
+- **Developer Focus**: Developers only need to ensure their interface works in English
+- **Automatic Translations**: With every release, translations for all other languages are generated automatically
+- **Local Testing**: For local development, you can test translations by:
+  1. Setting your user language to a non-English locale (e.g., German)
+  2. Creating a local translation file with "local-" prefix (e.g., `local-de.json`) in the `public/locales/` directory
+  3. The translator will automatically use the local translation file in development mode
+- **Manual Translations**: If developers want to manually translate files, they should place the language file manually in the `public/locales/` folder with the language code as filename (e.g., `de.json`, `fr.json`)
+
+### Usage
+
+#### Using the Hook (Recommended)
+
+```typescript
+import { useTranslation } from "@rimori/client";
+
+function MyComponent() {
+  const { t, ready } = useTranslation();
+ 
+  if (!ready) {
+    return <div>Loading translations...</div>;
+  }
+ 
+  return (
+    <div>
+      <h1>{t('discussion.title')}</h1>
+      <p>{t('discussion.whatToTalkAbout')}</p>
+    </div>
+  );
+}
+```
+
+#### Using the Translator Instance
+
+```typescript
+import { useRimori } from "@rimori/client";
+
+const { plugin } = useRimori();
+const translator = await plugin.getTranslator()
+
+const translatedText = translator.t("discussion.title");
+```
+
+### Translation File Structure
+
+- **Location**: `public/locales/`
+- **Production Files**: Must be named `{language}.json` (e.g., `en.json`, `de.json`, `fr.json`)
+- **Local Development Files**: Must be named `local-{language}.json` (e.g., `local-de.json`, `local-fr.json`)
+- **Format**: Standard JSON with nested objects for organization
+- **English Requirement**: `en.json` is required as the base language
+- **Release Process**: Files starting with "local-" are ignored during the release process
+
+Example translation file structure:
+
+```json
+{
+  "discussion": {
+    "title": "Discussion",
+    "whatToTalkAbout": "What do you want to talk about?",
+    "topics": {
+      "everyday": {
+        "title": "Everyday Conversations",
+        "description": "Ordering coffee, asking for directions, etc."
+      }
+    }
+  }
+}
+```
+
+### Features
+
+- **I18next Support**: All i18next features work with these translations including:
+  - Variable interpolation: `{{name}}`
+  - Pluralization
+  - Fallback mechanisms
+- **Automatic Fallback**: If a translation is missing, it falls back to English
+- **Development Mode**: Local translation files are prioritized in development
+- **Production Ready**: Automatic translation generation for production releases
+
+### Limitations
+
+- Only one translation file per language is allowed
+- Namespaces are not supported
+- Production translation files must be named `{language}.json` and placed in `public/locales/`
+- Local development files must be named `local-{language}.json` and placed in `public/locales/`
+- English (`en.json`) is required as the base language
+- Local files (prefixed with "local-") are ignored during the release process
+
 ## Utilities
 
 ### difficultyConverter
