@@ -39,11 +39,13 @@ export class Translator {
 
   private getTranslationUrl(language: string): string {
     // For localhost development, use local- prefix for non-English languages
-    const isLocalhost = window.location.hostname === 'localhost';
-    const isEnglish = language === 'en';
-    const filename = isLocalhost && !isEnglish ? `local-${language}` : language;
+    if (window.location.hostname === 'localhost') {
+      const filename = language !== 'en' ? `local-${language}` : language;
 
-    return `${window.location.origin}/locales/${filename}.json`;
+      return `${window.location.origin}/locales/${filename}.json`;
+    }
+
+    return `./locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {
