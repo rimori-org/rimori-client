@@ -41,7 +41,7 @@ export interface ObjectRequest {
   instructions: string;
 }
 
-export async function generateObject(backendUrl: string, request: ObjectRequest, token: string) {
+export async function generateObject<T = any>(backendUrl: string, request: ObjectRequest, token: string): Promise<T> {
   return await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
@@ -85,7 +85,7 @@ export async function streamObject(
 
   let content = '';
   let done = false;
-  let toolInvocations: any[] = [];
+  const toolInvocations: any[] = [];
   while (!done) {
     const { value } = await reader.read();
 

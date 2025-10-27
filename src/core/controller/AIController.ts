@@ -38,7 +38,7 @@ export async function streamChatGPT(
   token: string,
 ) {
   const messageId = Math.random().toString(36).substring(3);
-  let currentMessages: Message[] = [...messages];
+  const currentMessages: Message[] = [...messages];
 
   console.log('Starting streamChatGPT with:', {
     messageId,
@@ -71,7 +71,7 @@ export async function streamChatGPT(
 
       let content = '';
       let done = false;
-      let toolInvocations: { toolCallId: string; toolName: string; args: any }[] = [];
+      const toolInvocations: { toolCallId: string; toolName: string; args: any }[] = [];
       let currentTextId = '';
       let isToolCallMode = false;
       let buffer = ''; // Buffer for incomplete chunks

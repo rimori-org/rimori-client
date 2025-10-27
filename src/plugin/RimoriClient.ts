@@ -225,10 +225,14 @@ export class RimoriClient {
       this.event.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
     },
 
-    onMainPanelAction: (callback: (data: MainPanelAction) => void) => {
+    onMainPanelAction: (callback: (data: MainPanelAction) => void, actionsToListen: string[] = []) => {
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestMain');
-      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => callback(data));
+      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
+        if (actionsToListen.includes(data.action)) {
+          callback(data);
+        }
+      });
     },
   };
 
@@ -295,9 +299,9 @@ export class RimoriClient {
       const token = await this.pluginController.getToken();
       return getSTTResponse(this.pluginController.getBackendUrl(), file, token);
     },
-    getObject: async (request: ObjectRequest): Promise<any> => {
+    getObject: async <T = any>(request: ObjectRequest): Promise<T> => {
       const token = await this.pluginController.getToken();
-      return generateObject(this.pluginController.getBackendUrl(), request, token);
+      return generateObject<T>(this.pluginController.getBackendUrl(), request, token);
     },
     // getSteamedObject: this.generateObjectStream,
   };

@@ -42,7 +42,7 @@ plugin.event.emit('pl123456789.flashcard.createLangCard', {
 
 ```javascript
 // Request word translation
-const translation = await plugin.event.request('pl123456789.lookup.requestBasic', {
+const translation = await plugin.event.request('pl123456789.lookup.request', {
   word: 'laufen',
   language: 'de', // optional
 });
