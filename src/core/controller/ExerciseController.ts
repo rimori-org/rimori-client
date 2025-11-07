@@ -1,5 +1,4 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { PluginController } from '../../plugin/PluginController';
 
 export type TriggerAction = { action_key: string } & Record<string, string | number | boolean>;
 
@@ -28,11 +27,9 @@ export interface Exercise {
 
 export class ExerciseController {
   private supabase: SupabaseClient;
-  private pluginController: PluginController;
 
-  constructor(supabase: SupabaseClient, pluginController: PluginController) {
+  constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
-    this.pluginController = pluginController;
   }
 
   /**
@@ -52,12 +49,13 @@ export class ExerciseController {
 
   /**
    * Creates a new exercise via the backend API.
+   * @param token The token to use for authentication.
+   * @param backendUrl The URL of the backend API.
    * @param params Exercise creation parameters.
    * @returns Created exercise object.
    */
-  public async addExercise(params: CreateExerciseParams): Promise<Exercise> {
-    const token = await this.pluginController.getToken();
-    const response = await fetch(`${this.pluginController.getBackendUrl()}/exercises`, {
+  public async addExercise(token: string, backendUrl: string, params: CreateExerciseParams): Promise<Exercise> {
+    const response = await fetch(`${backendUrl}/exercises`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,12 +74,17 @@ export class ExerciseController {
 
   /**
    * Deletes an exercise via the backend API.
-   * @param id The exercise ID to delete.
+   * @param token The token to use for authentication.
+   * @param backendUrl The URL of the backend API.
+   * @param exerciseId The exercise ID to delete.
    * @returns Success status.
    */
-  public async deleteExercise(id: string): Promise<{ success: boolean; message: string }> {
-    const token = await this.pluginController.getToken();
-    const response = await fetch(`${this.pluginController.getBackendUrl()}/exercises/${id}`, {
+  public async deleteExercise(
+    token: string,
+    backendUrl: string,
+    id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${backendUrl}/exercises/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

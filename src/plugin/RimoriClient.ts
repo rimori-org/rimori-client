@@ -17,6 +17,12 @@ import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/Plugi
 import { AccomplishmentHandler, AccomplishmentPayload } from '../core/controller/AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
 import { Translator } from '../core/controller/TranslationController';
+import { Logger } from './Logger';
+import { setTheme } from '../../../react-client/plugin/ThemeSetter';
+import { StandaloneClient } from './StandaloneClient';
+
+// Add declaration for WorkerGlobalScope
+declare const WorkerGlobalScope: any;
 
 interface Db {
   from: {
@@ -43,40 +49,6 @@ interface Db {
   getTableName: (table: string) => string;
 }
 
-interface PluginInterface {
-  pluginId: string;
-  setSettings: (settings: any) => Promise<void>;
-  /**
-   * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
-   * @param defaultSettings The default settings to use if no settings are found.
-   * @param genericSettings The type of settings to get.
-   * @returns The settings for the plugin.
-   */
-  getSettings: <T extends object>(defaultSettings: T) => Promise<T>;
-  /**
-   * Retrieves information about plugins, including:
-   * - All installed plugins
-   * - The currently active plugin in the main panel
-   * - The currently active plugin in the side panel
-   */
-  getPluginInfo: () => {
-    /**
-     * All installed plugins.
-     */
-    installedPlugins: Plugin[];
-    /**
-     * The plugin that is loaded in the main panel.
-     */
-    mainPanelPlugin?: ActivePlugin;
-    /**
-     * The plugin that is loaded in the side panel.
-     */
-    sidePanelPlugin?: ActivePlugin;
-  };
-  getUserInfo: () => UserInfo;
-  getTranslator: () => Promise<Translator>;
-}
-
 export class RimoriClient {
   private static instance: RimoriClient;
   private superbase: SupabaseClient;
@@ -87,51 +59,92 @@ export class RimoriClient {
   private accomplishmentHandler: AccomplishmentHandler;
   private rimoriInfo: RimoriInfo;
   private translator: Translator;
-  public plugin: PluginInterface;
-  public db: Db;
 
-  private constructor(supabase: SupabaseClient, info: RimoriInfo, pluginController: PluginController) {
-    this.rimoriInfo = info;
+  private constructor(controller: PluginController, supabase: SupabaseClient, info: RimoriInfo) {
     this.superbase = supabase;
-    this.pluginController = pluginController;
+    this.pluginController = controller;
+    this.rimoriInfo = info;
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(this.superbase, this);
-    this.exerciseController = new ExerciseController(supabase, pluginController);
+    this.exerciseController = new ExerciseController(supabase);
     this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
     this.translator = new Translator(info.profile.mother_tongue.code);
 
     this.from = this.from.bind(this);
     this.getTableName = this.getTableName.bind(this);
 
-    this.db = {
-      from: this.from,
-      // storage: this.superbase.storage,
-      // functions: this.superbase.functions,
-      tablePrefix: info.tablePrefix,
-      getTableName: this.getTableName,
-    };
-    this.plugin = {
-      pluginId: info.pluginId,
+    //only init logger in workers and on main plugin pages
+    if (this.getQueryParam('applicationMode') !== 'sidebar') {
+      Logger.getInstance(this);
+    }
+  }
+
+  public get plugin() {
+    return {
+      pluginId: this.rimoriInfo.pluginId,
+      /**
+       * Set the settings for the plugin.
+       * @param settings The settings to set.
+       */
       setSettings: async (settings: any): Promise<void> => {
         await this.settingsController.setSettings(settings);
       },
+      /**
+       * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
+       * @param defaultSettings The default settings to use if no settings are found.
+       * @param genericSettings The type of settings to get.
+       * @returns The settings for the plugin.
+       */
       getSettings: async <T extends object>(defaultSettings: T): Promise<T> => {
         return await this.settingsController.getSettings<T>(defaultSettings);
       },
       getUserInfo: (): UserInfo => {
         return this.rimoriInfo.profile;
       },
-      getPluginInfo: () => {
+      /**
+       * Retrieves information about plugins, including:
+       * - All installed plugins
+       * - The currently active plugin in the main panel
+       * - The currently active plugin in the side panel
+       */
+      getPluginInfo: (): {
+        /**
+         * All installed plugins.
+         */
+        installedPlugins: Plugin[];
+        /**
+         * The plugin that is loaded in the main panel.
+         */
+        mainPanelPlugin?: ActivePlugin;
+        /**
+         * The plugin that is loaded in the side panel.
+         */
+        sidePanelPlugin?: ActivePlugin;
+      } => {
         return {
           installedPlugins: this.rimoriInfo.installedPlugins,
           mainPanelPlugin: this.rimoriInfo.mainPanelPlugin,
           sidePanelPlugin: this.rimoriInfo.sidePanelPlugin,
         };
       },
+      /**
+       * Get the translator for the plugin.
+       * @returns The translator for the plugin.
+       */
       getTranslator: async (): Promise<Translator> => {
         await this.translator.initialize();
         return this.translator;
       },
+    };
+  }
+
+  public get db(): Db {
+    return {
+      from: this.from,
+      // storage: this.superbase.storage,
+      // functions: this.superbase.functions,
+      tablePrefix: this.rimoriInfo.tablePrefix,
+      getTableName: this.getTableName,
     };
   }
 
@@ -251,10 +264,20 @@ export class RimoriClient {
     return this.pluginController.getQueryParam(key);
   }
 
-  public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
+  public static async getInstance(pluginId?: string): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
-      const client = await pluginController.getClient();
-      RimoriClient.instance = new RimoriClient(client.supabase, client.info, pluginController);
+      if (!pluginId) {
+        throw new Error('Plugin ID is required');
+      }
+      const controller = new PluginController(pluginId, false);
+
+      if (typeof WorkerGlobalScope === 'undefined') {
+        // In standalone mode, use URL fallback. In iframe mode, theme will be set after MessageChannel init
+        // setTheme();
+        // await StandaloneClient.initListeners(pluginId);
+      }
+      const client = await controller.getClient();
+      RimoriClient.instance = new RimoriClient(controller, client.supabase, client.info);
     }
     return RimoriClient.instance;
   }
@@ -440,7 +463,9 @@ export class RimoriClient {
      * @returns Created exercise object.
      */
     add: async (params: CreateExerciseParams) => {
-      return this.exerciseController.addExercise(params);
+      const token = await this.pluginController.getToken();
+      const backendUrl = this.pluginController.getBackendUrl();
+      return this.exerciseController.addExercise(token, backendUrl, params);
     },
 
     /**
@@ -449,7 +474,9 @@ export class RimoriClient {
      * @returns Success status.
      */
     delete: async (id: string) => {
-      return this.exerciseController.deleteExercise(id);
+      const token = await this.pluginController.getToken();
+      const backendUrl = this.pluginController.getBackendUrl();
+      return this.exerciseController.deleteExercise(token, backendUrl, id);
     },
   };
 }

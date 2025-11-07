@@ -2,10 +2,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserInfo } from '../core/controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
-import { RimoriClient } from './RimoriClient';
-import { StandaloneClient } from './StandaloneClient';
-import { setTheme } from '../../../react-client/plugin/ThemeSetter';
-import { Logger } from './Logger';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
@@ -32,26 +28,17 @@ export interface RimoriInfo {
 }
 
 export class PluginController {
-  private static client: RimoriClient;
-  private static instance: PluginController;
   private port: MessagePort | null = null;
   private queryParams: Record<string, string> = {};
   private supabase: SupabaseClient | null = null;
   private rimoriInfo: RimoriInfo | null = null;
   private pluginId: string;
-  private isMessageChannelReady: boolean = false;
+  private isMessageChannelReady = false;
   private pendingRequests: Array<() => void> = [];
 
-  private constructor(pluginId: string, standalone: boolean) {
+  public constructor(pluginId: string, standalone: boolean) {
     this.pluginId = pluginId;
     this.getClient = this.getClient.bind(this);
-
-    if (typeof WorkerGlobalScope === 'undefined') {
-      // In standalone mode, use URL fallback. In iframe mode, theme will be set after MessageChannel init
-      if (standalone) {
-        setTheme();
-      }
-    }
 
     //no need to forward messages to parent in standalone mode or worker context
     if (standalone) return;
@@ -59,7 +46,7 @@ export class PluginController {
     this.initMessageChannel(typeof WorkerGlobalScope !== 'undefined');
   }
 
-  private initMessageChannel(worker: boolean = false) {
+  private initMessageChannel(worker = false) {
     const listener = (event: MessageEvent) => {
       console.log('[PluginController] window message', { origin: event.origin, data: event.data });
       const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
@@ -105,7 +92,8 @@ export class PluginController {
       // Set theme from MessageChannel query params
       if (!worker) {
         const theme = this.queryParams['rm_theme'];
-        setTheme(theme);
+        // setTheme(theme);
+        console.log('TODO: set theme from MessageChannel query params');
       }
 
       // Forward plugin events to parent (only after MessageChannel is ready)
@@ -130,7 +118,7 @@ export class PluginController {
     this.sendHello(worker);
   }
 
-  private sendHello(isWorker: boolean = false) {
+  private sendHello(isWorker = false): void {
     try {
       const payload = { type: 'rimori:hello', pluginId: this.pluginId };
       if (isWorker) {
@@ -141,22 +129,6 @@ export class PluginController {
     } catch (e) {
       console.error('[PluginController] Error sending hello:', e);
     }
-  }
-
-  public static async getInstance(pluginId: string, standalone = false): Promise<RimoriClient> {
-    if (!PluginController.instance) {
-      if (standalone) {
-        await StandaloneClient.initListeners(pluginId);
-      }
-      PluginController.instance = new PluginController(pluginId, standalone);
-      PluginController.client = await RimoriClient.getInstance(PluginController.instance);
-
-      //only init logger in workers and on main plugin pages
-      if (PluginController.instance.getQueryParam('applicationMode') !== 'sidebar') {
-        Logger.getInstance(PluginController.client);
-      }
-    }
-    return PluginController.client;
   }
 
   public getQueryParam(key: string): string | null {
