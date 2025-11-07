@@ -12,7 +12,7 @@ export default [
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    files: ['**/*.{ts,js}'],
+    files: ['**/*.{ts,tsx,js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
