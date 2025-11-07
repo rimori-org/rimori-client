@@ -4,7 +4,7 @@ import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
 import { RimoriClient } from './RimoriClient';
 import { StandaloneClient } from './StandaloneClient';
-import { setTheme } from './ThemeSetter';
+import { setTheme } from '../../../react-client/plugin/ThemeSetter';
 import { Logger } from './Logger';
 
 // Add declaration for WorkerGlobalScope

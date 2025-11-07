@@ -14,7 +14,7 @@ import { getSTTResponse, getTTSResponse } from '../core/controller/VoiceControll
 import { ExerciseController, CreateExerciseParams } from '../core/controller/ExerciseController';
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
-import { AccomplishmentHandler, AccomplishmentPayload } from './AccomplishmentHandler';
+import { AccomplishmentHandler, AccomplishmentPayload } from '../core/controller/AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
 import { Translator } from './TranslationController';
 

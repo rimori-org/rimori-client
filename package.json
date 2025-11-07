@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "1.4.10",
+  "version": "2.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -12,38 +12,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./core": {
-      "types": "./dist/core/core.d.ts",
-      "default": "./dist/core/core.js"
-    },
-    "./components": {
-      "types": "./dist/components.d.ts",
-      "default": "./dist/components.js"
     }
   },
   "scripts": {
-    "build": "tsc && sass src/style.scss:dist/style.css",
+    "build": "tsc",
     "dev": "tsc -w  --preserveWatchOutput",
-    "css-dev": "sass --watch src/style.scss:dist/style.css",
     "lint": "eslint . --fix",
     "format": "prettier --write ."
   },
-  "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
   "dependencies": {
     "@supabase/supabase-js": "2.49.4",
-    "@tiptap/react": "2.10.3",
-    "@tiptap/starter-kit": "2.10.3",
     "dotenv": "16.5.0",
-    "html2canvas": "1.4.1",
-    "i18next": "^25.6.0",
-    "prettier": "^3.6.2",
-    "react-icons": "5.4.0",
-    "react-markdown": "10.1.0",
-    "tiptap-markdown": "0.8.10"
+    "i18next": "^25.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
@@ -51,9 +31,8 @@
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "^7.0.0",
     "eslint-plugin-react-refresh": "^0.4.23",
-    "form-data": "^4.0.2",
     "globals": "^16.4.0",
-    "node-fetch": "^3.3.2",
+    "prettier": "^3.6.2",
     "sass": "^1.82.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.46.0"

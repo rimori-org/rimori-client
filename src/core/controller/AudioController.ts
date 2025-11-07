@@ -1,4 +1,4 @@
-import { EventBus } from '../fromRimori/EventBus';
+import { EventBus } from '../../fromRimori/EventBus';
 
 /**
  * AudioController is a class that provides methods to record audio. It is a wrapper around the Capacitor Voice Recorder plugin. For more information, see https://github.com/tchvu3/capacitor-voice-recorder.

@@ -10,5 +10,9 @@
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "../react-client/src/utils/PluginUtils.ts",
+    "../react-client/plugin/ThemeSetter.ts"
+  ]
 }
