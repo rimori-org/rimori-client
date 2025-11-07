@@ -823,55 +823,6 @@ const EditorExample = () => {
 };
 ```
 
-### CRUDModal
-
-Modal component for create/update operations:
-
-```typescript
-import { CRUDModal } from "@rimori/client";
-
-const DataManager = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-
-  return (
-    <CRUDModal
-      isOpen={isOpen}
-      onClose={() => setIsOpen(false)}
-      title={editItem ? "Edit Item" : "Create Item"}
-      onSave={(data) => {
-        // Handle save logic
-        console.log('Saving:', data);
-        setIsOpen(false);
-      }}
-      initialData={editItem}
-    >
-      {/* Your form content */}
-      <input placeholder="Item name" />
-      <textarea placeholder="Description" />
-    </CRUDModal>
-  );
-};
-```
-
-### Spinner
-
-Loading indicator component:
-
-```typescript
-import { Spinner } from "@rimori/client";
-
-const LoadingExample = () => {
-  const [isLoading, setIsLoading] = useState(true);
-
-  if (isLoading) {
-    return <Spinner size="large" />;
-  }
-
-  return <div>Content loaded!</div>;
-};
-```
-
 ### PlayButton
 
 Audio playback component:

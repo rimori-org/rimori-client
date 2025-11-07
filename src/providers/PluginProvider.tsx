@@ -71,15 +71,6 @@ export const PluginProvider: React.FC<PluginProviderProps> = ({ children, plugin
     return () => clearInterval(interval);
   }, [plugin]);
 
-  //detect page height change
-  useEffect(() => {
-    const body = document.body;
-    const handleResize = () => plugin?.event.emit('session.triggerHeightChange', body.clientHeight);
-    body.addEventListener('resize', handleResize);
-    handleResize();
-    return () => body.removeEventListener('resize', handleResize);
-  }, [plugin]);
-
   if (standaloneClient instanceof StandaloneClient) {
     return (
       <StandaloneAuth
