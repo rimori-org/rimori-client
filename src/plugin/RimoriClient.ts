@@ -18,36 +18,11 @@ import { AccomplishmentController, AccomplishmentPayload } from '../controller/A
 import { RimoriCommunicationHandler, RimoriInfo } from './CommunicationHandler';
 import { Translator } from '../controller/TranslationController';
 import { Logger } from './Logger';
-import { setTheme } from '../../../react-client/plugin/ThemeSetter';
+import { setTheme } from '../../../react-client/src/plugin/ThemeSetter';
 import { StandaloneClient } from './StandaloneClient';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
-
-interface Db {
-  from: {
-    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(
-      relation: TableName,
-    ): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
-    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
-      relation: ViewName,
-    ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
-  };
-  // storage: SupabaseClient["storage"];
-
-  // functions: SupabaseClient["functions"];
-  /**
-   * The table prefix for of database tables of the plugin.
-   */
-  tablePrefix: string;
-  /**
-   * Get the table name for a given plugin table.
-   * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
-   * @param table The plugin table name to get the full table name for.
-   * @returns The full table name.
-   */
-  getTableName: (table: string) => string;
-}
 
 export class RimoriClient {
   private static instance: RimoriClient;
@@ -61,17 +36,14 @@ export class RimoriClient {
   private translator: Translator;
 
   private constructor(controller: RimoriCommunicationHandler, supabase: SupabaseClient, info: RimoriInfo) {
+    this.rimoriInfo = info;
     this.superbase = supabase;
     this.pluginController = controller;
-    this.rimoriInfo = info;
-    this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
-    this.sharedContentController = new SharedContentController(this.superbase, this);
     this.exerciseController = new ExerciseController(supabase);
     this.accomplishmentHandler = new AccomplishmentController(info.pluginId);
+    this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
+    this.sharedContentController = new SharedContentController(supabase, this);
     this.translator = new Translator(info.profile.mother_tongue.code);
-
-    this.from = this.from.bind(this);
-    this.getTableName = this.getTableName.bind(this);
 
     //only init logger in workers and on main plugin pages
     if (this.getQueryParam('applicationMode') !== 'sidebar') {
@@ -138,13 +110,39 @@ export class RimoriClient {
     };
   }
 
-  public get db(): Db {
+  public get db() {
     return {
-      from: this.from,
+      //     private from<
+      //   TableName extends string & keyof GenericSchema['Tables'],
+      //   Table extends GenericSchema['Tables'][TableName],
+      // >(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
+      // private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+      //   relation: ViewName,
+      // ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
+      from: (relation: string): PostgrestQueryBuilder<GenericSchema, any, any> => {
+        return this.superbase.from(this.db.getTableName(relation));
+      },
       // storage: this.superbase.storage,
       // functions: this.superbase.functions,
+      /**
+       * The table prefix for of database tables of the plugin.
+       */
       tablePrefix: this.rimoriInfo.tablePrefix,
-      getTableName: this.getTableName,
+      /**
+       * Get the table name for a given plugin table.
+       * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
+       * @param table The plugin table name to get the full table name for.
+       * @returns The full table name.
+       */
+      getTableName: (table: string): string => {
+        if (/[A-Z]/.test(table)) {
+          throw new Error('Table name cannot include uppercase letters. Please use snake_case for table names.');
+        }
+        if (table.startsWith('global_')) {
+          return table.replace('global_', '');
+        }
+        return this.db.tablePrefix + '_' + table;
+      },
     };
   }
 
@@ -250,7 +248,7 @@ export class RimoriClient {
   };
 
   public navigation = {
-    toDashboard: () => {
+    toDashboard: (): void => {
       this.event.emit('global.navigation.triggerToDashboard');
     },
   };
@@ -266,9 +264,8 @@ export class RimoriClient {
 
   public static async getInstance(pluginId?: string): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
-      if (!pluginId) {
-        throw new Error('Plugin ID is required');
-      }
+      if (!pluginId) throw new Error('Plugin ID is required');
+
       const controller = new RimoriCommunicationHandler(pluginId, false);
 
       if (typeof WorkerGlobalScope === 'undefined') {
@@ -280,27 +277,6 @@ export class RimoriClient {
       RimoriClient.instance = new RimoriClient(controller, client.supabase, client.info);
     }
     return RimoriClient.instance;
-  }
-
-  private from<
-    TableName extends string & keyof GenericSchema['Tables'],
-    Table extends GenericSchema['Tables'][TableName],
-  >(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
-  private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
-    relation: ViewName,
-  ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
-  private from(relation: string): PostgrestQueryBuilder<GenericSchema, any, any> {
-    return this.superbase.from(this.getTableName(relation));
-  }
-
-  private getTableName(table: string) {
-    if (/[A-Z]/.test(table)) {
-      throw new Error('Table name cannot include uppercase letters. Please use snake_case for table names.');
-    }
-    if (table.startsWith('global_')) {
-      return table.replace('global_', '');
-    }
-    return this.db.tablePrefix + '_' + table;
   }
 
   public ai = {
