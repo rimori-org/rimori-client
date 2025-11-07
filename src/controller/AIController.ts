@@ -1,4 +1,4 @@
-import { Tool } from '../../fromRimori/PluginTypes';
+import { Tool } from '../fromRimori/PluginTypes';
 
 export interface ToolInvocation {
   toolCallId: string;

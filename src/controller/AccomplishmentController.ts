@@ -1,4 +1,4 @@
-import { EventBus, EventBusMessage } from '../../fromRimori/EventBus';
+import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 
 export type AccomplishmentMessage = EventBusMessage<MicroAccomplishmentPayload>;
 
@@ -36,7 +36,7 @@ export interface MacroAccomplishmentPayload extends BaseAccomplishmentPayload {
 
 export type AccomplishmentPayload = MicroAccomplishmentPayload | MacroAccomplishmentPayload;
 
-export class AccomplishmentHandler {
+export class AccomplishmentController {
   private pluginId: string;
 
   public constructor(pluginId: string) {

@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { RimoriClient } from '../../plugin/RimoriClient';
+import { RimoriClient } from '../plugin/RimoriClient';
 import { ObjectRequest } from './ObjectController';
 
 export interface SharedContentObjectRequest extends ObjectRequest {

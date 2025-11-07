@@ -14,7 +14,7 @@ import { getSTTResponse, getTTSResponse } from '../controller/VoiceController';
 import { ExerciseController, CreateExerciseParams } from '../controller/ExerciseController';
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
-import { AccomplishmentHandler, AccomplishmentPayload } from '../controller/AccomplishmentHandler';
+import { AccomplishmentController, AccomplishmentPayload } from '../controller/AccomplishmentController';
 import { PluginController, RimoriInfo } from './PluginController';
 import { Translator } from '../controller/TranslationController';
 import { Logger } from './Logger';
@@ -56,7 +56,7 @@ export class RimoriClient {
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
   private exerciseController: ExerciseController;
-  private accomplishmentHandler: AccomplishmentHandler;
+  private accomplishmentHandler: AccomplishmentController;
   private rimoriInfo: RimoriInfo;
   private translator: Translator;
 
@@ -67,7 +67,7 @@ export class RimoriClient {
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(this.superbase, this);
     this.exerciseController = new ExerciseController(supabase);
-    this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
+    this.accomplishmentHandler = new AccomplishmentController(info.pluginId);
     this.translator = new Translator(info.profile.mother_tongue.code);
 
     this.from = this.from.bind(this);
