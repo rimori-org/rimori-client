@@ -16,7 +16,7 @@ import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRi
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
 import { AccomplishmentHandler, AccomplishmentPayload } from '../core/controller/AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
-import { Translator } from './TranslationController';
+import { Translator } from '../core/controller/TranslationController';
 
 interface Db {
   from: {

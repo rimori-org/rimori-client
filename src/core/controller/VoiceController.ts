@@ -1,4 +1,4 @@
-export async function getSTTResponse(backendUrl: string, audio: Blob, token: string) {
+export async function getSTTResponse(backendUrl: string, audio: Blob, token: string): Promise<string> {
   const formData = new FormData();
   formData.append('file', audio);
 
@@ -14,7 +14,7 @@ export async function getSTTResponse(backendUrl: string, audio: Blob, token: str
     });
 }
 
-export async function getTTSResponse(backendUrl: string, request: TTSRequest, token: string) {
+export async function getTTSResponse(backendUrl: string, request: TTSRequest, token: string): Promise<Blob> {
   return await fetch(`${backendUrl}/voice/tts`, {
     method: 'POST',
     headers: {

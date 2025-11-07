@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { LanguageLevel } from '../../utils/difficultyConverter';
-import { Guild } from '../core';
+import { Guild } from '../../plugin/PluginController';
 
 export interface Buddy {
   id: string;
