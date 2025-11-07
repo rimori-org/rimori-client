@@ -15,7 +15,7 @@ import { ExerciseController, CreateExerciseParams } from '../controller/Exercise
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../controller/AccomplishmentController';
-import { PluginController, RimoriInfo } from './PluginController';
+import { RimoriCommunicationHandler, RimoriInfo } from './CommunicationHandler';
 import { Translator } from '../controller/TranslationController';
 import { Logger } from './Logger';
 import { setTheme } from '../../../react-client/plugin/ThemeSetter';
@@ -52,7 +52,7 @@ interface Db {
 export class RimoriClient {
   private static instance: RimoriClient;
   private superbase: SupabaseClient;
-  private pluginController: PluginController;
+  private pluginController: RimoriCommunicationHandler;
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
   private exerciseController: ExerciseController;
@@ -60,7 +60,7 @@ export class RimoriClient {
   private rimoriInfo: RimoriInfo;
   private translator: Translator;
 
-  private constructor(controller: PluginController, supabase: SupabaseClient, info: RimoriInfo) {
+  private constructor(controller: RimoriCommunicationHandler, supabase: SupabaseClient, info: RimoriInfo) {
     this.superbase = supabase;
     this.pluginController = controller;
     this.rimoriInfo = info;
@@ -269,7 +269,7 @@ export class RimoriClient {
       if (!pluginId) {
         throw new Error('Plugin ID is required');
       }
-      const controller = new PluginController(pluginId, false);
+      const controller = new RimoriCommunicationHandler(pluginId, false);
 
       if (typeof WorkerGlobalScope === 'undefined') {
         // In standalone mode, use URL fallback. In iframe mode, theme will be set after MessageChannel init

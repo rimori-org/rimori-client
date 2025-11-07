@@ -27,7 +27,7 @@ export interface RimoriInfo {
   sidePanelPlugin?: ActivePlugin;
 }
 
-export class PluginController {
+export class RimoriCommunicationHandler {
   private port: MessagePort | null = null;
   private queryParams: Record<string, string> = {};
   private supabase: SupabaseClient | null = null;

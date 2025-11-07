@@ -1,5 +1,5 @@
 // Re-export everything
-export * from './plugin/PluginController';
+export * from './plugin/CommunicationHandler';
 export * from './cli/types/DatabaseTypes';
 export * from './utils/difficultyConverter';
 export * from './fromRimori/PluginTypes';
