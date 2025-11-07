@@ -1,22 +1,22 @@
 import { PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { GenericSchema } from '@supabase/supabase-js/dist/module/lib/types';
-import { generateText, Message, OnLLMResponse, streamChatGPT } from '../core/controller/AIController';
-import { generateObject, ObjectRequest } from '../core/controller/ObjectController';
-import { SettingsController, UserInfo } from '../core/controller/SettingsController';
+import { generateText, Message, OnLLMResponse, streamChatGPT } from '../controller/AIController';
+import { generateObject, ObjectRequest } from '../controller/ObjectController';
+import { SettingsController, UserInfo } from '../controller/SettingsController';
 import {
   SharedContent,
   SharedContentController,
   SharedContentFilter,
   SharedContentObjectRequest,
-} from '../core/controller/SharedContentController';
-import { getSTTResponse, getTTSResponse } from '../core/controller/VoiceController';
-import { ExerciseController, CreateExerciseParams } from '../core/controller/ExerciseController';
+} from '../controller/SharedContentController';
+import { getSTTResponse, getTTSResponse } from '../controller/VoiceController';
+import { ExerciseController, CreateExerciseParams } from '../controller/ExerciseController';
 import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
-import { AccomplishmentHandler, AccomplishmentPayload } from '../core/controller/AccomplishmentHandler';
+import { AccomplishmentHandler, AccomplishmentPayload } from '../controller/AccomplishmentHandler';
 import { PluginController, RimoriInfo } from './PluginController';
-import { Translator } from '../core/controller/TranslationController';
+import { Translator } from '../controller/TranslationController';
 import { Logger } from './Logger';
 import { setTheme } from '../../../react-client/plugin/ThemeSetter';
 import { StandaloneClient } from './StandaloneClient';
