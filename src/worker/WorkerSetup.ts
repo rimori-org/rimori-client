@@ -31,5 +31,5 @@ export async function setupWorker(
   await init(rimoriClient);
   console.debug('[Worker] Worker initialized.');
 
-  self.postMessage({ type: 'rimori:acknowledged', pluginId: pluginId });
+  rimoriClient.event.emit('self.rimori.triggerInitFinished');
 }

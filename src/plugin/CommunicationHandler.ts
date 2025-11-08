@@ -46,7 +46,7 @@ export class RimoriCommunicationHandler {
     this.initMessageChannel(typeof WorkerGlobalScope !== 'undefined');
   }
 
-  private initMessageChannel(worker = false) {
+  private initMessageChannel(worker = false): void {
     const listener = (event: MessageEvent) => {
       console.log('[PluginController] window message', { origin: event.origin, data: event.data });
       const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
@@ -91,9 +91,9 @@ export class RimoriCommunicationHandler {
 
       // Set theme from MessageChannel query params
       if (!worker) {
-        const theme = this.queryParams['rm_theme'];
+        // const theme = this.queryParams['rm_theme'];
         // setTheme(theme);
-        console.log('TODO: set theme from MessageChannel query params');
+        // console.log('TODO: set theme from MessageChannel query params');
       }
 
       // Forward plugin events to parent (only after MessageChannel is ready)
@@ -116,6 +116,9 @@ export class RimoriCommunicationHandler {
       window.addEventListener('message', listener);
     }
     this.sendHello(worker);
+    EventBus.on('self.rimori.triggerInitFinished', () => {
+      this.sendFinishedInit(worker);
+    });
   }
 
   private sendHello(isWorker = false): void {
@@ -128,6 +131,19 @@ export class RimoriCommunicationHandler {
       }
     } catch (e) {
       console.error('[PluginController] Error sending hello:', e);
+    }
+  }
+
+  private sendFinishedInit(isWorker = false): void {
+    try {
+      const payload = { type: 'rimori:acknowledged', pluginId: this.pluginId };
+      if (isWorker) {
+        self.postMessage(payload);
+      } else {
+        window.parent.postMessage(payload, '*');
+      }
+    } catch (e) {
+      console.error('[PluginController] Error sending finished init:', e);
     }
   }
 
@@ -233,7 +249,7 @@ export class RimoriCommunicationHandler {
    * @returns The Supabase URL.
    * @deprecated All endpoints should use the backend URL instead.
    */
-  public getSupabaseUrl() {
+  public getSupabaseUrl(): string {
     if (!this.rimoriInfo) {
       throw new Error('Supabase info not found');
     }
@@ -241,14 +257,14 @@ export class RimoriCommunicationHandler {
     return this.rimoriInfo.url;
   }
 
-  public getBackendUrl() {
+  public getBackendUrl(): string {
     if (!this.rimoriInfo) {
       throw new Error('Rimori info not found');
     }
     return this.rimoriInfo.backendUrl;
   }
 
-  public getGlobalEventTopic(preliminaryTopic: string) {
+  public getGlobalEventTopic(preliminaryTopic: string): string {
     if (preliminaryTopic.startsWith('global.')) {
       return preliminaryTopic;
     }
