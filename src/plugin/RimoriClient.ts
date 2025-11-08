@@ -119,7 +119,9 @@ export class RimoriClient {
       // private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
       //   relation: ViewName,
       // ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
-      from: (relation: string): PostgrestQueryBuilder<GenericSchema, any, any> => {
+      from: <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+        relation: string,
+      ): PostgrestQueryBuilder<GenericSchema, View, ViewName> => {
         return this.superbase.from(this.db.getTableName(relation));
       },
       // storage: this.superbase.storage,
