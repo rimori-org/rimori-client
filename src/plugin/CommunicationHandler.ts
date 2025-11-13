@@ -7,9 +7,16 @@ import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
 declare const WorkerGlobalScope: any;
 
 export interface Guild {
-  id: string;
-  longTermGoalOverride: string;
   allowUserPluginSettings: boolean;
+  city: string | null;
+  country: string | null;
+  description: string | null;
+  id: string;
+  isPublic: boolean;
+  name: string;
+  ownerId: string;
+  primaryLanguage: string;
+  scope: string;
 }
 
 export interface RimoriInfo {
