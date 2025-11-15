@@ -49,7 +49,7 @@ export interface MenuEntry {
   // text of the menu entry. Shown in the context menu
   text: string;
   // icon of the menu entry. Shown in the context menu
-  icon?: React.ReactNode;
+  iconUrl?: string;
 }
 
 // an action from the main panel that can be triggered and performs an action in the main panel
