@@ -3,14 +3,7 @@
 /**
  * Supported database column data types for table schema definitions.
  */
-type DbColumnType =
-  | 'decimal'
-  | 'integer'
-  | 'text'
-  | 'boolean'
-  | 'json'
-  | 'timestamp'
-  | 'uuid';
+type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid';
 
 /**
  * Foreign key relationship configuration with cascade delete support.
@@ -55,10 +48,12 @@ export interface DbColumnDefinition {
   restrict?: {
     /** Restrictions for the user */
     user: Partial<Omit<DbPermissionDefinition, 'delete'>>;
-    /** Restrictions for the moderator */
-    moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
+    /** Restrictions for the guild moderator */
+    guild_moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
+    /** Restrictions for the language moderator */
+    lang_moderator?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
     /** Restrictions for the maintainer */
-    // maintainer?: Partial<DbPermissionDefinition>,
+    // maintainer?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
   };
 }
 
@@ -86,9 +81,14 @@ export interface DbTableDefinition {
   description: string;
   /** Permissions for the table */
   permissions: {
+    /** Permissions for the user */
     user: DbPermissionDefinition;
-    moderator?: DbPermissionDefinition;
-    // maintainer?: DbPermissionDefinition,
+    /** Permissions for the guild moderator */
+    guild_moderator?: DbPermissionDefinition;
+    /** Permissions for the language moderator */
+    lang_moderator?: DbPermissionDefinition;
+    /** Permissions for the maintainer */
+    // maintainer?: DbPermissionDefinition;
   };
   /** Column definitions for the table */
   columns: {
@@ -100,11 +100,13 @@ export interface DbTableDefinition {
  * Permission definition for a database table.
  * NONE means the action is not allowed.
  * OWN means only do the action on your own records.
+ * GUILD means do the action on all records in the guild.
+ * LANG means do the action on all records in the language.
  * ALL means do the action on all records.
  *
  * Defines the permissions for a database table.
  */
-export type DbPermission = 'NONE' | 'OWN' | 'ALL';
+export type DbPermission = 'NONE' | 'OWN' | 'GUILD' | 'LANG' | 'ALL';
 
 /**
  * Permission definition for a database table.
@@ -120,5 +122,4 @@ export interface DbPermissionDefinition {
 /**
  * Full table definition that includes automatically generated fields.
  */
-export type FullTable<T extends Record<string, DbColumnDefinition>> = T &
-  BaseTableStructure;
+export type FullTable<T extends Record<string, DbColumnDefinition>> = T & BaseTableStructure;
