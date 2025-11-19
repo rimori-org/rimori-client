@@ -43,7 +43,7 @@ export class RimoriClient {
     this.accomplishmentHandler = new AccomplishmentController(info.pluginId);
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(supabase, this);
-    this.translator = new Translator(info.profile.mother_tongue.code);
+    this.translator = new Translator(info.interfaceLanguage);
 
     //only init logger in workers and on main plugin pages
     if (this.getQueryParam('applicationMode') !== 'sidebar') {

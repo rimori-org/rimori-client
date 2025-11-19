@@ -32,6 +32,7 @@ export interface RimoriInfo {
   profile: UserInfo;
   mainPanelPlugin?: ActivePlugin;
   sidePanelPlugin?: ActivePlugin;
+  interfaceLanguage: string;
 }
 
 export class RimoriCommunicationHandler {
