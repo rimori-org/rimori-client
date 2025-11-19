@@ -49,7 +49,9 @@ export class AccomplishmentController {
       type: 'durationMinutes' in payload ? 'macro' : 'micro',
     } as AccomplishmentPayload;
 
-    this.validateAccomplishment(accomplishmentPayload);
+    if (!this.validateAccomplishment(accomplishmentPayload)) {
+      return;
+    }
 
     const sanitizedPayload = this.sanitizeAccomplishment(accomplishmentPayload);
 
@@ -58,7 +60,7 @@ export class AccomplishmentController {
     EventBus.emit(this.pluginId, topic, sanitizedPayload);
   }
 
-  private validateAccomplishment(payload: AccomplishmentPayload) {
+  private validateAccomplishment(payload: AccomplishmentPayload): boolean {
     if (!skillCategories.includes(payload.skillCategory)) {
       throw new Error(`Invalid skill category: ${payload.skillCategory}`);
     }
@@ -82,7 +84,8 @@ export class AccomplishmentController {
 
     //durationMinutes is required
     if (payload.type === 'macro' && payload.durationMinutes < 4) {
-      throw new Error('The duration must be at least 4 minutes');
+      console.warn('The duration must be at least 4 minutes');
+      return false;
     }
 
     //errorRatio is required
@@ -98,6 +101,7 @@ export class AccomplishmentController {
         }
       });
     }
+    return true;
   }
 
   private sanitizeAccomplishment(payload: AccomplishmentPayload) {
