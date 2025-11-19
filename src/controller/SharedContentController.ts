@@ -36,38 +36,40 @@ export class SharedContentController {
     filter?: SharedContentFilter,
     options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
   ): Promise<SharedContent<T>> {
-    let query = this.supabase
-      .from('shared_content')
-      .select('*, scc:shared_content_completed(id, state)')
-      .eq('content_type', contentType)
-      .not('scc.state', 'in', '("completed","ongoing","hidden")')
-      .is('deleted_at', null);
+    // The db cache of the shared content is temporary disabled until the new shared content implementation is completed
+    // if (false) {
+    //   let query = this.supabase
+    //     .from('shared_content')
+    //     .select('*, scc:shared_content_completed(id, state)')
+    //     .eq('content_type', contentType)
+    //     .not('scc.state', 'in', '("completed","ongoing","hidden")')
+    //     .is('deleted_at', null);
 
-    if (options?.excludeIds && options.excludeIds.length > 0) {
-      const excludeIds = options.excludeIds.filter((id) => !id.startsWith('internal-temp-id-'));
-      // Supabase expects raw PostgREST syntax like '("id1","id2")'.
-      const excludeList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
-      query = query.not('id', 'in', excludeList);
-    }
+    //   if (options?.excludeIds?.length ?? 0 > 0) {
+    //     const excludeIds = options.excludeIds.filter((id) => !id.startsWith('internal-temp-id-'));
+    //     // Supabase expects raw PostgREST syntax like '("id1","id2")'.
+    //     const excludeList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
+    //     query = query.not('id', 'in', excludeList);
+    //   }
 
-    if (filter) {
-      query.contains('data', filter);
-    }
+    //   if (filter) {
+    //     query.contains('data', filter);
+    //   }
 
-    const { data: newAssignments, error } = await query.limit(30);
+    //   const { data: newAssignments, error } = await query.limit(30);
 
-    if (error) {
-      console.error('error fetching new assignments:', error);
-      throw new Error('error fetching new assignments');
-    }
+    //   if (error) {
+    //     console.error('error fetching new assignments:', error);
+    //     throw new Error('error fetching new assignments');
+    //   }
 
-    // console.log('newAssignments:', newAssignments);
+    //   // console.log('newAssignments:', newAssignments);
 
-    if (!options?.alwaysGenerateNew && newAssignments.length > 0) {
-      const index = Math.floor(Math.random() * newAssignments.length);
-      return newAssignments[index];
-    }
-
+    //   if (!options?.alwaysGenerateNew && newAssignments.length > 0) {
+    //     const index = Math.floor(Math.random() * newAssignments.length);
+    //     return newAssignments[index];
+    //   }
+    // }
     const instructions = await this.generateNewAssignment(contentType, generatorInstructions, filter);
 
     console.log('instructions:', instructions);
