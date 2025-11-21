@@ -242,13 +242,16 @@ export class RimoriClient {
       const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestMain');
-      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
-        console.log('Received action ' + data.action);
-        console.log('Listening to actions', listeningActions);
-        if (actionsToListen.length === 0 || actionsToListen.includes(data.action)) {
-          callback(data);
-        }
-      });
+      this.event.on<MainPanelAction>(
+        'action.requestMain',
+        ({ data }) => {
+          // console.log('Received action for main panel ' + data.action_key);
+          // console.log('Listening to actions', listeningActions);
+          if (actionsToListen.length === 0 || actionsToListen.includes(data.action_key)) {
+            callback(data);
+          }
+        },
+      );
     },
 
     onSidePanelAction: (callback: (data: MainPanelAction) => void, actionsToListen: string | string[] = []) => {
@@ -256,8 +259,9 @@ export class RimoriClient {
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestSidebar');
       this.event.on<MainPanelAction>('action.requestSidebar', ({ data }) => {
-        console.log('Received action ' + data.action);
-        console.log('Listening to actions', listeningActions);
+        // console.log("eventHandler .onSidePanelAction", data);
+        // console.log('Received action for sidebar ' + data.action);
+        // console.log('Listening to actions', listeningActions);
         if (actionsToListen.length === 0 || actionsToListen.includes(data.action)) {
           callback(data);
         }
