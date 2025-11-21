@@ -12,7 +12,7 @@ export { Translator } from './controller/TranslationController';
 export type { TOptions } from 'i18next';
 export type { SharedContent, SharedContentObjectRequest } from './controller/SharedContentController';
 export type { Exercise } from './controller/ExerciseController';
-export type { UserInfo, Language } from './controller/SettingsController';
+export type { UserInfo, Language, UserRole } from './controller/SettingsController';
 export type { Message, ToolInvocation } from './controller/AIController';
 export type { TriggerAction } from './controller/ExerciseController';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';

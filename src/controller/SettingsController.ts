@@ -19,6 +19,8 @@ export interface Language {
   uppercase: string;
 }
 
+export type UserRole = 'user' | 'plugin_moderator' | 'lang_moderator' | 'admin';
+
 export interface UserInfo {
   skill_level_reading: LanguageLevel;
   skill_level_writing: LanguageLevel;
@@ -32,8 +34,7 @@ export interface UserInfo {
   story_genre: string;
   study_duration: number;
   /**
-   * The 2 letter language code of the language the user speaks natively.
-   * With the function getLanguageName, the language name can be retrieved.
+   * The language the user speaks natively.
    */
   mother_tongue: Language;
   /**
@@ -52,6 +53,10 @@ export interface UserInfo {
    * Optional: nearest big city (>100,000) near user's location
    */
   target_city?: string;
+  /**
+   * The user's role: 'user', 'plugin_moderator', 'lang_moderator', or 'admin'
+   */
+  user_role: UserRole;
 }
 
 export class SettingsController {
