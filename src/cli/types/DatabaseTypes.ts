@@ -123,3 +123,4 @@ export interface DbPermissionDefinition {
  * Full table definition that includes automatically generated fields.
  */
 export type FullTable<T extends Record<string, DbColumnDefinition>> = T & BaseTableStructure;
+
