@@ -29,6 +29,9 @@ jobs:
           cache: 'yarn'
           cache-dependency-path: yarn.lock
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
@@ -86,9 +89,8 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --tag next --access public
-        # Using npm publish even though we use yarn, as npm publish works with yarn projects
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Uses OIDC token automatically (no NODE_AUTH_TOKEN needed)
+        # Requires npm 11.5.1+ and id-token: write permission (already set)
 
       - name: Commit version bump
         run: |
