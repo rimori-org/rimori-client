@@ -1,16 +1,20 @@
 import { createInstance, ThirdPartyModule, TOptions, i18n as i18nType } from 'i18next';
 
+type InitializationState = 'not-inited' | 'initing' | 'finished';
+
 /**
  * Translator class for handling internationalization
  */
 export class Translator {
   private currentLanguage: string;
-  private isInitialized: boolean;
+  private initializationState: InitializationState;
+  private initializationPromise: Promise<void> | null;
   private i18n: i18nType | undefined;
 
   constructor(initialLanguage: string) {
-    this.isInitialized = false;
     this.currentLanguage = initialLanguage;
+    this.initializationState = 'not-inited';
+    this.initializationPromise = null;
   }
 
   /**
@@ -18,23 +22,46 @@ export class Translator {
    * @param userLanguage - Language code from user info
    */
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    // If already finished, return immediately
+    if (this.initializationState === 'finished') {
+      return;
+    }
 
-    const translations = await this.fetchTranslations(this.currentLanguage);
+    // If currently initializing, wait for the existing initialization to complete
+    if (this.initializationState === 'initing' && this.initializationPromise) {
+      return this.initializationPromise;
+    }
 
-    const instance = createInstance({
-      lng: this.currentLanguage,
-      resources: {
-        [this.currentLanguage]: {
-          translation: translations,
-        },
-      },
-      debug: window.location.hostname === 'localhost',
-    });
+    // Start initialization
+    this.initializationState = 'initing';
 
-    await instance.init();
-    this.i18n = instance;
-    this.isInitialized = true;
+    // Create a promise that will be resolved when initialization completes
+    this.initializationPromise = (async (): Promise<void> => {
+      try {
+        const translations = await this.fetchTranslations(this.currentLanguage);
+
+        const instance = createInstance({
+          lng: this.currentLanguage,
+          resources: {
+            [this.currentLanguage]: {
+              translation: translations,
+            },
+          },
+          debug: window.location.hostname === 'localhost',
+        });
+
+        await instance.init();
+        this.i18n = instance;
+        this.initializationState = 'finished';
+      } catch (error) {
+        // Reset state on error so it can be retried
+        this.initializationState = 'not-inited';
+        this.initializationPromise = null;
+        throw error;
+      }
+    })();
+
+    return this.initializationPromise;
   }
 
   private getTranslationUrl(language: string): string {
@@ -102,6 +129,6 @@ export class Translator {
    * Check if translator is initialized
    */
   isReady(): boolean {
-    return this.isInitialized;
+    return this.initializationState === 'finished';
   }
 }

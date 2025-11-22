@@ -56,16 +56,18 @@ export class RimoriCommunicationHandler {
 
   private initMessageChannel(worker = false): void {
     const listener = (event: MessageEvent) => {
-      console.log('[PluginController] window message', { origin: event.origin, data: event.data });
+      // console.log('[PluginController] window message', { origin: event.origin, data: event.data });
       const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
       const [transferredPort] = event.ports || [];
 
       if (type !== 'rimori:init' || !transferredPort || pluginId !== this.pluginId) {
-        console.log('[PluginController] message ignored (not init or wrong plugin)', {
-          type,
-          pluginId,
-          hasPort: !!transferredPort,
-        });
+        // console.log('[PluginController] message ignored (not init or wrong plugin)', {
+        //   type,
+        //   pluginId,
+        //   currentPluginId: this.pluginId,
+        //   hasPortProperty: !!transferredPort,
+        //   event
+        // });
         return;
       }
 
@@ -218,7 +220,7 @@ export class RimoriCommunicationHandler {
       } else {
         // In main thread context, use EventBus
         const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
-        console.log({ data });
+        // console.log({ data });
         this.rimoriInfo = data;
         this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
           accessToken: () => Promise.resolve(this.getToken()),

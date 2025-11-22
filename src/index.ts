@@ -16,3 +16,4 @@ export type { UserInfo, Language, UserRole } from './controller/SettingsControll
 export type { Message, ToolInvocation } from './controller/AIController';
 export type { TriggerAction } from './controller/ExerciseController';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
+export type { EventBusMessage } from './fromRimori/EventBus';
