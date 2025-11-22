@@ -1,0 +1,100 @@
+name: Pre-Release Rimori Client
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - '**'
+      - '!.github/workflows/**'
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build rimori-client (TypeScript verification)
+        run: npm run build
+      
+      - name: Calculate next pre-release version
+        id: version
+        run: |
+          # Read current version from package.json (may be base or pre-release)
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          # Extract base version (strip any pre-release suffix)
+          # Examples: "2.2.0" -> "2.2.0", "2.2.0-next.5" -> "2.2.0"
+          if [[ "$CURRENT_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            BASE_VERSION="${BASH_REMATCH[1]}"
+          else
+            BASE_VERSION="$CURRENT_VERSION"
+          fi
+          
+          # Try to get latest next version from npm
+          LATEST_NEXT=$(npm view @rimori/client@next version 2>/dev/null || echo "none")
+          
+          if [ "$LATEST_NEXT" != "none" ]; then
+            # Extract base version and pre-release number from latest next version
+            # Example: "2.2.0-next.5" -> extract "2.2.0" and "5"
+            if [[ "$LATEST_NEXT" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-next\.([0-9]+)$ ]]; then
+              LATEST_BASE="${BASH_REMATCH[1]}"
+              PRERELEASE_NUM="${BASH_REMATCH[2]}"
+              
+              # If base version changed, reset to 1, otherwise increment
+              if [ "$LATEST_BASE" != "$BASE_VERSION" ]; then
+                NEW_NUM=1
+              else
+                NEW_NUM=$((PRERELEASE_NUM + 1))
+              fi
+            else
+              # Fallback: if format doesn't match, start at 1
+              NEW_NUM=1
+            fi
+          else
+            # First pre-release
+            NEW_NUM=1
+          fi
+          
+          NEW_VERSION="${BASE_VERSION}-next.${NEW_NUM}"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Base version: $BASE_VERSION"
+          echo "Calculated next version: $NEW_VERSION"
+      
+      - name: Update package.json version
+        run: |
+          npm version "${{ steps.version.outputs.new_version }}" --no-git-tag-version
+      
+      - name: Publish to npm
+        run: npm publish --tag next --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "chore: bump @rimori/client to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git push
+      
+      - name: Output published version
+        run: |
+          echo "✅ Published @rimori/client@${{ steps.version.outputs.new_version }} to npm with @next tag"
+
