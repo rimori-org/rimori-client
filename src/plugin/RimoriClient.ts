@@ -122,7 +122,16 @@ export class RimoriClient {
       from: <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
         relation: string,
       ): PostgrestQueryBuilder<GenericSchema, View, ViewName> => {
-        return this.superbase.from(this.db.getTableName(relation));
+        const tableName = this.db.getTableName(relation);
+        // Use plugins schema for plugin-specific tables (those with plugin prefix pattern pl[0-9]+_*)
+        // Global tables (starting with 'global_') remain in public schema
+        // Plugin tables always have the prefix, so use plugins schema for all prefixed tables
+        if (relation.startsWith('global_')) {
+          // Global tables stay in public schema
+          return this.superbase.from(tableName);
+        }
+        // All plugin tables go to plugins schema
+        return this.superbase.schema('plugins').from(tableName);
       },
       // storage: this.superbase.storage,
       // functions: this.superbase.functions,
@@ -242,16 +251,13 @@ export class RimoriClient {
       const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestMain');
-      this.event.on<MainPanelAction>(
-        'action.requestMain',
-        ({ data }) => {
-          // console.log('Received action for main panel ' + data.action_key);
-          // console.log('Listening to actions', listeningActions);
-          if (actionsToListen.length === 0 || actionsToListen.includes(data.action_key)) {
-            callback(data);
-          }
-        },
-      );
+      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
+        // console.log('Received action for main panel ' + data.action_key);
+        // console.log('Listening to actions', listeningActions);
+        if (listeningActions.length === 0 || listeningActions.includes(data.action_key)) {
+          callback(data);
+        }
+      });
     },
 
     onSidePanelAction: (callback: (data: MainPanelAction) => void, actionsToListen: string | string[] = []) => {
@@ -262,7 +268,7 @@ export class RimoriClient {
         // console.log("eventHandler .onSidePanelAction", data);
         // console.log('Received action for sidebar ' + data.action);
         // console.log('Listening to actions', listeningActions);
-        if (actionsToListen.length === 0 || actionsToListen.includes(data.action)) {
+        if (listeningActions.length === 0 || listeningActions.includes(data.action)) {
           callback(data);
         }
       });
