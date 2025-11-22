@@ -13,32 +13,34 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
-      
+          cache: 'yarn'
+          cache-dependency-path: yarn.lock
+
       - name: Install dependencies
-        run: npm ci
-      
+        run: yarn install --frozen-lockfile
+
       - name: Build rimori-client (TypeScript verification)
-        run: npm run build
-      
+        run: yarn build
+
       - name: Calculate next pre-release version
         id: version
         run: |
           # Read current version from package.json (may be base or pre-release)
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          
+
           # Extract base version (strip any pre-release suffix)
           # Examples: "2.2.0" -> "2.2.0", "2.2.0-next.5" -> "2.2.0"
           if [[ "$CURRENT_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+) ]]; then
@@ -46,10 +48,10 @@ jobs:
           else
             BASE_VERSION="$CURRENT_VERSION"
           fi
-          
+
           # Try to get latest next version from npm
           LATEST_NEXT=$(npm view @rimori/client@next version 2>/dev/null || echo "none")
-          
+
           if [ "$LATEST_NEXT" != "none" ]; then
             # Extract base version and pre-release number from latest next version
             # Example: "2.2.0-next.5" -> extract "2.2.0" and "5"
@@ -71,21 +73,23 @@ jobs:
             # First pre-release
             NEW_NUM=1
           fi
-          
+
           NEW_VERSION="${BASE_VERSION}-next.${NEW_NUM}"
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Base version: $BASE_VERSION"
           echo "Calculated next version: $NEW_VERSION"
-      
+
       - name: Update package.json version
         run: |
-          npm version "${{ steps.version.outputs.new_version }}" --no-git-tag-version
-      
+          # Use node to update version directly (yarn version creates git tags)
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json')); pkg.version = '${{ steps.version.outputs.new_version }}'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
       - name: Publish to npm
         run: npm publish --tag next --access public
+        # Using npm publish even though we use yarn, as npm publish works with yarn projects
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Commit version bump
         run: |
           git config --local user.email "action@github.com"
@@ -93,8 +97,7 @@ jobs:
           git add package.json
           git commit -m "chore: bump @rimori/client to ${{ steps.version.outputs.new_version }} [skip ci]"
           git push
-      
+
       - name: Output published version
         run: |
           echo "✅ Published @rimori/client@${{ steps.version.outputs.new_version }} to npm with @next tag"
-
