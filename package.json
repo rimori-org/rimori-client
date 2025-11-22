@@ -3,7 +3,10 @@
   "version": "2.2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "url":"https://github.com/rimori-org/rimori-client",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rimori-org/rimori-client.git"
+  },
   "license": "apache-2.0",
   "bin": {
     "rimori-release": "./dist/cli/scripts/release/release.js",
