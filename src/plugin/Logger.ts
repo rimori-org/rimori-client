@@ -1,5 +1,4 @@
 import { RimoriClient } from './RimoriClient';
-import html2canvas from 'html2canvas';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -307,16 +306,29 @@ export class Logger {
 
   /**
    * Capture a screenshot of the current page.
+   * Dynamically imports html2canvas only in browser environments.
    * @returns Promise resolving to base64 screenshot or null if failed
    */
   private async captureScreenshot(): Promise<string | null> {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    // Only attempt to capture screenshot in browser environments
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return null;
+    }
+
+    try {
+      // Dynamically import html2canvas only when window is available
+      // This allows tree-shaking for environments without window (e.g., Node.js)
+      const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(document.body);
       const screenshot = canvas.toDataURL('image/png');
       // this.originalConsole.log("screenshot captured", screenshot)
       return screenshot;
+    } catch (error) {
+      // html2canvas may not be available or may fail to load
+      // Silently fail to avoid breaking logging functionality
+      this.originalConsole.warn('[Rimori Logger] Failed to capture screenshot:', error);
+      return null;
     }
-    return null;
   }
 
   /**
