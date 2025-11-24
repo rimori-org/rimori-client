@@ -10,11 +10,13 @@ export class Translator {
   private initializationState: InitializationState;
   private initializationPromise: Promise<void> | null;
   private i18n: i18nType | undefined;
+  private translationUrl: string;
 
-  constructor(initialLanguage: string) {
+  constructor(initialLanguage: string, translationUrl: string) {
     this.currentLanguage = initialLanguage;
     this.initializationState = 'not-inited';
     this.initializationPromise = null;
+    this.translationUrl = translationUrl;
   }
 
   /**
@@ -72,7 +74,7 @@ export class Translator {
       return `${window.location.origin}/locales/${filename}.json`;
     }
 
-    return `./locales/${language}.json`;
+    return `${this.translationUrl}/locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {
