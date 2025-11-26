@@ -33,6 +33,17 @@ export interface RimoriInfo {
   mainPanelPlugin?: ActivePlugin;
   sidePanelPlugin?: ActivePlugin;
   interfaceLanguage: string;
+  /**
+   * The release channel of the plugin installation.
+   */
+  releaseChannel: 'alpha' | 'beta' | 'stable';
+  /**
+   * The database schema to use for plugin tables.
+   * Determined by rimori-main based on release channel:
+   * - 'plugins_alpha' for alpha release channel
+   * - 'plugins' for beta and stable release channels
+   */
+  dbSchema: 'plugins' | 'plugins_alpha';
 }
 
 export class RimoriCommunicationHandler {

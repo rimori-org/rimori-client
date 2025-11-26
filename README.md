@@ -3,6 +3,7 @@
 The `@rimori/client` package is the framework-agnostic runtime and CLI that powers Rimori plugins. Use it inside plugin iframes, workers, and build scripts to access Rimori platform features such as database access, AI, shared content, and the event bus. All React-specific helpers and UI components are now published separately in `@rimori/react-client`.
 
 ## Table of Contents
+
 - [Overview](#overview)
 - [Installation](#installation)
 - [Relationship to @rimori/react-client](#relationship-to-rimori-react-client)
@@ -24,6 +25,7 @@ The `@rimori/client` package is the framework-agnostic runtime and CLI that powe
 ## Overview
 
 `@rimori/client` gives you direct, typed access to the Rimori platform:
+
 - Bootstrap authenticated plugin sessions and fetch Rimori context.
 - Run Supabase queries against your plugin's dedicated schema.
 - Call AI services for text, structured data, or voice.
@@ -54,18 +56,15 @@ npm install @rimori/react-client
 Instantiate the client once in your application entry point and reuse it everywhere:
 
 ```ts
-import { RimoriClient } from "@rimori/client";
+import { RimoriClient } from '@rimori/client';
 
 async function bootstrap() {
-  const client = await RimoriClient.getInstance("your-plugin-id");
+  const client = await RimoriClient.getInstance('your-plugin-id');
 
   const user = client.plugin.getUserInfo();
-  const { data } = await client.db
-    .from("notes")
-    .select("*")
-    .eq("user_id", user.profile_id);
+  const { data } = await client.db.from('notes').select('*').eq('user_id', user.profile_id);
 
-  console.log("Loaded notes", data);
+  console.log('Loaded notes', data);
 }
 
 bootstrap().catch(console.error);
@@ -127,10 +126,7 @@ Access metadata and settings through `client.plugin`:
 `client.db` wraps the Supabase client that is scoped to your plugin tables:
 
 ```ts
-const { data, error } = await client.db
-  .from("study_sessions")
-  .select("*")
-  .order("completed_at", { ascending: false });
+const { data, error } = await client.db.from('study_sessions').select('*').order('completed_at', { ascending: false });
 ```
 
 Helpers:
@@ -196,7 +192,7 @@ Import additional helpers as needed:
 All exports are fully typed. You can import the type definitions directly:
 
 ```ts
-import type { Message, Tool, SharedContent, MacroAccomplishmentPayload } from "@rimori/client";
+import type { Message, Tool, SharedContent, MacroAccomplishmentPayload } from '@rimori/client';
 ```
 
 The generated declaration files cover every controller and helper to keep plugins strictly typed.
@@ -206,7 +202,7 @@ The generated declaration files cover every controller and helper to keep plugin
 React users should install `@rimori/react-client` and wrap their app:
 
 ```tsx
-import { PluginProvider, useRimori, useChat } from "@rimori/react-client";
+import { PluginProvider, useRimori, useChat } from '@rimori/react-client';
 
 function Dashboard() {
   const client = useRimori();

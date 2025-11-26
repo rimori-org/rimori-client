@@ -56,6 +56,11 @@ export class RimoriClient {
     return {
       pluginId: this.rimoriInfo.pluginId,
       /**
+       * The release channel of this plugin installation.
+       * Determines which database schema is used for plugin tables.
+       */
+      releaseChannel: this.rimoriInfo.releaseChannel,
+      /**
        * Set the settings for the plugin.
        * @param settings The settings to set.
        */
@@ -124,15 +129,15 @@ export class RimoriClient {
         relation: string,
       ): PostgrestQueryBuilder<GenericSchema, View, ViewName> => {
         const tableName = this.db.getTableName(relation);
-        // Use plugins schema for plugin-specific tables (those with plugin prefix pattern pl[0-9]+_*)
+        // Use the schema determined by rimori-main based on release channel
         // Global tables (starting with 'global_') remain in public schema
-        // Plugin tables always have the prefix, so use plugins schema for all prefixed tables
+        // Plugin tables use the schema provided by rimori-main (plugins or plugins_alpha)
         if (relation.startsWith('global_')) {
           // Global tables stay in public schema
           return this.superbase.from(tableName);
         }
-        // All plugin tables go to plugins schema
-        return this.superbase.schema('plugins').from(tableName);
+        // Plugin tables go to the schema provided by rimori-main
+        return this.superbase.schema(this.rimoriInfo.dbSchema).from(tableName);
       },
       // storage: this.superbase.storage,
       // functions: this.superbase.functions,
@@ -140,6 +145,13 @@ export class RimoriClient {
        * The table prefix for of database tables of the plugin.
        */
       tablePrefix: this.rimoriInfo.tablePrefix,
+      /**
+       * The database schema used for plugin tables.
+       * Determined by rimori-main based on release channel:
+       * - 'plugins_alpha' for alpha release channel
+       * - 'plugins' for beta and stable release channels
+       */
+      schema: this.rimoriInfo.dbSchema,
       /**
        * Get the table name for a given plugin table.
        * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
