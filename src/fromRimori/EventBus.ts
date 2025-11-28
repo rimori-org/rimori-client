@@ -23,9 +23,7 @@ export interface EventBusMessage<T = EventPayload> {
   debug: boolean;
 }
 
-export type EventHandler<T = EventPayload> = (
-  event: EventBusMessage<T>
-) => void | Promise<void>;
+export type EventHandler<T = EventPayload> = (event: EventBusMessage<T>) => void | Promise<void>;
 
 interface Listeners<T = EventPayload> {
   id: number;
@@ -39,13 +37,10 @@ export interface EventListener {
 
 export class EventBusHandler {
   private listeners: Map<string, Set<Listeners<EventPayload>>> = new Map();
-  private responseResolvers: Map<
-    number,
-    (value: EventBusMessage<unknown>) => void
-  > = new Map();
+  private responseResolvers: Map<number, (value: EventBusMessage<unknown>) => void> = new Map();
   private static instance: EventBusHandler | null = null;
-  private debugEnabled: boolean = false;
-  private evName: string = "";
+  private debugEnabled = false;
+  private evName = '';
 
   private constructor() {
     //private constructor
@@ -55,27 +50,22 @@ export class EventBusHandler {
     if (!EventBusHandler.instance) {
       EventBusHandler.instance = new EventBusHandler();
 
-      EventBusHandler.instance.on("global.system.requestDebug", () => {
+      EventBusHandler.instance.on('global.system.requestDebug', () => {
         EventBusHandler.instance!.debugEnabled = true;
         console.log(
           `[${
             EventBusHandler.instance!.evName
-          }] Debug mode enabled. Make sure debugging messages are enabled in the browser console.`
+          }] Debug mode enabled. Make sure debugging messages are enabled in the browser console.`,
         );
       });
     }
-    if (name && EventBusHandler.instance.evName === "") {
+    if (name && EventBusHandler.instance.evName === '') {
       EventBusHandler.instance.evName = name;
     }
     return EventBusHandler.instance;
   }
 
-  private createEvent(
-    sender: string,
-    topic: string,
-    data: EventPayload,
-    eventId?: number
-  ): EventBusMessage {
+  private createEvent(sender: string, topic: string, data: EventPayload, eventId?: number): EventBusMessage {
     const generatedEventId = eventId || Math.floor(Math.random() * 10000000000);
 
     return {
@@ -106,12 +96,7 @@ export class EventBusHandler {
    * - pl1234.card.delete
    * - pl1234.card.triggerBackup
    */
-  public emit<T = EventPayload>(
-    sender: string,
-    topic: string,
-    data?: T,
-    eventId?: number
-  ): void {
+  public emit<T = EventPayload>(sender: string, topic: string, data?: T, eventId?: number): void {
     this.emitInternal(sender, topic, data || {}, eventId);
   }
 
@@ -120,7 +105,7 @@ export class EventBusHandler {
     topic: string,
     data: EventPayload,
     eventId?: number,
-    skipResponseTrigger = false
+    skipResponseTrigger = false,
   ): void {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(false, `Invalid topic: ` + topic);
@@ -143,11 +128,7 @@ export class EventBusHandler {
     }
 
     // If it's a response to a request
-    if (
-      eventId &&
-      this.responseResolvers.has(eventId) &&
-      !skipResponseTrigger
-    ) {
+    if (eventId && this.responseResolvers.has(eventId) && !skipResponseTrigger) {
       // console.log("[Rimori] Resolving response to request: " + eventId, event.data);
       this.responseResolvers.get(eventId)!(event);
       this.responseResolvers.delete(eventId);
@@ -164,7 +145,7 @@ export class EventBusHandler {
   public on<T = EventPayload>(
     topics: string | string[],
     handler: EventHandler<T>,
-    ignoreSender: string[] = []
+    ignoreSender: string[] = [],
   ): EventListener {
     const ids = this.toArray(topics).map((topic) => {
       this.logIfDebug(`Subscribing to ` + topic, { ignoreSender });
@@ -180,13 +161,8 @@ export class EventBusHandler {
       // To prevent infinite loops and processing the same eventId multiple times
       const blackListedEventIds: { eventId: number; sender: string }[] = [];
       const eventHandler = (data: EventBusMessage) => {
-        if (
-          blackListedEventIds.some(
-            (item) =>
-              item.eventId === data.eventId && item.sender === data.sender
-          )
-        ) {
-          console.log("BLACKLISTED EVENT ID", data.eventId, data);
+        if (blackListedEventIds.some((item) => item.eventId === data.eventId && item.sender === data.sender)) {
+          console.log('BLACKLISTED EVENT ID', data.eventId, data);
           return;
         }
         blackListedEventIds.push({
@@ -199,9 +175,7 @@ export class EventBusHandler {
         return (handler as unknown as EventHandler<EventPayload>)(data);
       };
 
-      this.listeners
-        .get(topic)!
-        .add({ id, handler: eventHandler, ignoreSender });
+      this.listeners.get(topic)!.add({ id, handler: eventHandler, ignoreSender });
 
       this.logIfDebug(`Subscribed to ` + topic, {
         listenerId: id,
@@ -226,15 +200,13 @@ export class EventBusHandler {
   public respond(
     sender: string,
     topic: string | string[],
-    handler:
-      | EventPayload
-      | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)
+    handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>),
   ): EventListener {
     const topics = Array.isArray(topic) ? topic : [topic];
     const listeners = topics.map((topic) => {
       const blackListedEventIds: number[] = [];
       //To allow event communication inside the same plugin the sender needs to be ignored but the events still need to be checked for the same event just reaching the subscriber to prevent infinite loops
-      const finalIgnoreSender = !topic.startsWith("self.") ? [sender] : [];
+      const finalIgnoreSender = !topic.startsWith('self.') ? [sender] : [];
 
       const listener = this.on(
         topic,
@@ -247,17 +219,13 @@ export class EventBusHandler {
           if (blackListedEventIds.length > 100) {
             blackListedEventIds.shift();
           }
-          const response =
-            typeof handler === "function" ? await handler(data) : handler;
+          const response = typeof handler === 'function' ? await handler(data) : handler;
           this.emit(sender, topic, response, data.eventId);
         },
-        finalIgnoreSender
+        finalIgnoreSender,
       );
 
-      this.logIfDebug(
-        `Added respond listener ` + sender + " to topic " + topic,
-        { listener, sender }
-      );
+      this.logIfDebug(`Added respond listener ` + sender + ' to topic ' + topic, { listener, sender });
       return {
         off: () => listener.off(),
       };
@@ -278,7 +246,7 @@ export class EventBusHandler {
       return;
     }
 
-    let listener: EventListener | undefined;
+    let listener: EventListener | undefined = undefined;
     const wrapper = (event: EventBusMessage<T>) => {
       handler(event);
       listener?.off();
@@ -324,7 +292,7 @@ export class EventBusHandler {
   public async request<T = EventPayload>(
     sender: string,
     topic: string,
-    data?: EventPayload
+    data?: EventPayload,
   ): Promise<EventBusMessage<T>> {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(true, `Invalid topic: ` + topic);
@@ -335,10 +303,8 @@ export class EventBusHandler {
     this.logIfDebug(`Requesting data from ` + topic, { event });
 
     return new Promise<EventBusMessage<T>>((resolve) => {
-      this.responseResolvers.set(
-        event.eventId,
-        (value: EventBusMessage<unknown>) =>
-          resolve(value as EventBusMessage<T>)
+      this.responseResolvers.set(event.eventId, (value: EventBusMessage<unknown>) =>
+        resolve(value as EventBusMessage<T>),
       );
       this.emitInternal(sender, topic, data || {}, event.eventId, true);
     });
@@ -354,9 +320,7 @@ export class EventBusHandler {
 
     // Find wildcard matches
     const wildcard = [...this.listeners.entries()]
-      .filter(
-        ([key]) => key.endsWith("*") && topic.startsWith(key.slice(0, -1))
-      )
+      .filter(([key]) => key.endsWith('*') && topic.startsWith(key.slice(0, -1)))
       .flatMap(([_, handlers]) => [...handlers]);
     return new Set([...exact, ...wildcard]);
   }
@@ -368,29 +332,26 @@ export class EventBusHandler {
    */
   private validateTopic(topic: string): boolean {
     // Split event type into parts
-    const parts = topic.split(".");
+    const parts = topic.split('.');
     const [plugin, area, action] = parts;
 
     if (parts.length !== 3) {
-      if (parts.length === 1 && plugin === "*") {
+      if (parts.length === 1 && plugin === '*') {
         return true;
       }
-      if (parts.length === 2 && plugin !== "*" && area === "*") {
+      if (parts.length === 2 && plugin !== '*' && area === '*') {
         return true;
       }
-      this.logAndThrowError(
-        false,
-        `Event type must have 3 parts separated by dots. Received: ` + topic
-      );
+      this.logAndThrowError(false, `Event type must have 3 parts separated by dots. Received: ` + topic);
       return false;
     }
 
-    if (action === "*") {
+    if (action === '*') {
       return true;
     }
 
     // Validate action part
-    const validActions = ["request", "create", "update", "delete", "trigger"];
+    const validActions = ['request', 'create', 'update', 'delete', 'trigger'];
 
     if (validActions.some((a) => action.startsWith(a))) {
       return true;
@@ -398,10 +359,7 @@ export class EventBusHandler {
 
     this.logAndThrowError(
       false,
-      `Invalid event topic name. The action: ` +
-        action +
-        ". Must be or start with one of: " +
-        validActions.join(", ")
+      `Invalid event topic name. The action: ` + action + '. Must be or start with one of: ' + validActions.join(', '),
     );
     return false;
   }
@@ -412,10 +370,7 @@ export class EventBusHandler {
     }
   }
 
-  private logAndThrowError(
-    throwError: boolean,
-    ...args: (string | EventPayload)[]
-  ) {
+  private logAndThrowError(throwError: boolean, ...args: (string | EventPayload)[]) {
     const message = `[${this.evName}] ` + args[0];
     console.error(message, ...args.slice(1));
     if (throwError) {
