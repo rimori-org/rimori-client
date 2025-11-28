@@ -134,5 +134,3 @@ export class Translator {
     return this.initializationState === 'finished';
   }
 }
-
-//test
