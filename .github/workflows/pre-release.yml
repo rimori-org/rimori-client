@@ -92,17 +92,17 @@ jobs:
         # Uses OIDC token automatically (no NODE_AUTH_TOKEN needed)
         # Requires npm 11.5.1+ and id-token: write permission (already set)
 
-      - name: Commit version bump
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json
-          git commit -m "chore: bump @rimori/client to ${{ steps.version.outputs.new_version }} [skip ci]"
-          git push
-
       - name: Output published version
         run: |
           echo "✅ Published @rimori/client@${{ steps.version.outputs.new_version }} to npm with @next tag"
+
+      - name: Create git tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag "v${{ steps.version.outputs.new_version }}" -m "Pre-release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+          echo "🏷️ Created and pushed tag v${{ steps.version.outputs.new_version }}"
 
       - name: Notify Slack
         if: always()
