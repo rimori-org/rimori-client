@@ -317,16 +317,16 @@ export class Logger {
 
     try {
       // Dynamically import html2canvas only when window is available
-      // This allows tree-shaking for environments without window (e.g., Node.js)
+      // html2canvas is an optional peer dependency - provided by @rimori/react-client
+      // In worker builds, this import should be marked as external to prevent bundling
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(document.body);
       const screenshot = canvas.toDataURL('image/png');
       // this.originalConsole.log("screenshot captured", screenshot)
       return screenshot;
     } catch (error) {
-      // html2canvas may not be available or may fail to load
+      // html2canvas may not be available (e.g., in workers or when not installed)
       // Silently fail to avoid breaking logging functionality
-      this.originalConsole.warn('[Rimori Logger] Failed to capture screenshot:', error);
       return null;
     }
   }
