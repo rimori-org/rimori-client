@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { RimoriClient } from '../plugin/RimoriClient';
 
 export type TriggerAction = { action_key: string } & Record<string, string | number | boolean>;
 
@@ -27,9 +28,11 @@ export interface Exercise {
 
 export class ExerciseController {
   private supabase: SupabaseClient;
+  private rimoriClient: RimoriClient;
 
-  constructor(supabase: SupabaseClient) {
+  constructor(supabase: SupabaseClient, rimoriClient: RimoriClient) {
     this.supabase = supabase;
+    this.rimoriClient = rimoriClient;
   }
 
   /**
@@ -68,6 +71,7 @@ export class ExerciseController {
       const errorText = await response.text();
       throw new Error(`Failed to create exercise: ${errorText}`);
     }
+    this.rimoriClient.event.emit('global.exercises.triggerChange');
 
     return await response.json();
   }
@@ -95,6 +99,7 @@ export class ExerciseController {
       const errorText = await response.text();
       throw new Error(`Failed to delete exercise: ${errorText}`);
     }
+    this.rimoriClient.event.emit('global.exercises.triggerChange');
 
     return await response.json();
   }

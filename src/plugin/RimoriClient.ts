@@ -39,7 +39,7 @@ export class RimoriClient {
     this.rimoriInfo = info;
     this.superbase = supabase;
     this.pluginController = controller;
-    this.exerciseController = new ExerciseController(supabase);
+    this.exerciseController = new ExerciseController(supabase, this);
     this.accomplishmentHandler = new AccomplishmentController(info.pluginId);
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
     this.sharedContentController = new SharedContentController(supabase, this);
