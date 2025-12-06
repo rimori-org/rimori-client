@@ -11,7 +11,7 @@ export interface CreateExerciseParams {
   name: string;
   description: string;
   estimated_duration: number;
-  topics: string[]; // Required: Array of topics in format "skillCategory.accomplishmentKeyword" for matching accomplishments
+  achievement_topic: string; // Required: Topic in format "skillCategory.accomplishmentKeyword" for matching accomplishments
 }
 
 export interface Exercise {
@@ -20,6 +20,8 @@ export interface Exercise {
   start_date: string;
   end_date: string;
   trigger_action: TriggerAction;
+  // topic that identifies the accomplishment that the exercise is related to
+  achievement_topic: string;
   name: string;
   description: string;
   estimated_duration: number;
