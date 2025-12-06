@@ -11,6 +11,7 @@ export interface CreateExerciseParams {
   name: string;
   description: string;
   estimated_duration: number;
+  topics: string[]; // Required: Array of topics in format "skillCategory.accomplishmentKeyword" for matching accomplishments
 }
 
 export interface Exercise {
