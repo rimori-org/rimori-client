@@ -475,14 +475,16 @@ export class RimoriClient {
     },
 
     /**
-     * Creates a new exercise via the backend API.
-     * @param params Exercise creation parameters.
-     * @returns Created exercise object.
+     * Creates a new exercise or multiple exercises via the backend API.
+     * When creating multiple exercises, all requests are made in parallel but only one event is emitted.
+     * @param params Exercise creation parameters (single or array).
+     * @returns Created exercise objects.
      */
-    add: async (params: CreateExerciseParams) => {
+    add: async (params: CreateExerciseParams | CreateExerciseParams[]) => {
       const token = await this.pluginController.getToken();
       const backendUrl = this.pluginController.getBackendUrl();
-      return this.exerciseController.addExercise(token, backendUrl, params);
+      const exercises = Array.isArray(params) ? params : [params];
+      return this.exerciseController.addExercise(token, backendUrl, exercises);
     },
 
     /**

@@ -51,29 +51,37 @@ export class ExerciseController {
   }
 
   /**
-   * Creates a new exercise via the backend API.
+   * Creates multiple exercises via the backend API.
+   * All requests are made in parallel but only one event is emitted.
    * @param token The token to use for authentication.
    * @param backendUrl The URL of the backend API.
-   * @param params Exercise creation parameters.
-   * @returns Created exercise object.
+   * @param exercises Exercise creation parameters.
+   * @returns Created exercise objects.
    */
-  public async addExercise(token: string, backendUrl: string, params: CreateExerciseParams): Promise<Exercise> {
-    const response = await fetch(`${backendUrl}/exercises`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(params),
-    });
+  public async addExercise(token: string, backendUrl: string, exercises: CreateExerciseParams[]): Promise<Exercise[]> {
+    const responses = await Promise.all(
+      exercises.map(async (exercise) => {
+        const response = await fetch(`${backendUrl}/exercises`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(exercise),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create exercise: ${errorText}`);
-    }
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to create exercise: ${errorText}`);
+        }
+
+        return await response.json();
+      }),
+    );
+
     this.rimoriClient.event.emit('global.exercises.triggerChange');
 
-    return await response.json();
+    return responses;
   }
 
   /**
