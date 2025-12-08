@@ -12,7 +12,7 @@ import {
 } from '../controller/SharedContentController';
 import { getSTTResponse, getTTSResponse } from '../controller/VoiceController';
 import { ExerciseController, CreateExerciseParams } from '../controller/ExerciseController';
-import { EventBus, EventBusMessage, EventHandler, EventPayload } from '../fromRimori/EventBus';
+import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../fromRimori/EventBus';
 import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../controller/AccomplishmentController';
 import { RimoriCommunicationHandler, RimoriInfo } from './CommunicationHandler';
@@ -201,7 +201,7 @@ export class RimoriClient {
      * @param callback The callback to call when the event is emitted.
      * @returns An EventListener object containing an off() method to unsubscribe the listeners.
      */
-    on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>) => {
+    on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>): EventListener => {
       const topics = Array.isArray(topic) ? topic : [topic];
       return EventBus.on<T>(
         topics.map((t) => this.pluginController.getGlobalEventTopic(t)),
@@ -260,11 +260,14 @@ export class RimoriClient {
       this.event.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
     },
 
-    onMainPanelAction: (callback: (data: MainPanelAction) => void, actionsToListen: string | string[] = []) => {
+    onMainPanelAction: (
+      callback: (data: MainPanelAction) => void,
+      actionsToListen: string | string[] = [],
+    ): EventListener => {
       const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestMain');
-      this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
+      return this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
         // console.log('Received action for main panel ' + data.action_key);
         // console.log('Listening to actions', listeningActions);
         if (listeningActions.length === 0 || listeningActions.includes(data.action_key)) {
@@ -273,11 +276,14 @@ export class RimoriClient {
       });
     },
 
-    onSidePanelAction: (callback: (data: MainPanelAction) => void, actionsToListen: string | string[] = []) => {
+    onSidePanelAction: (
+      callback: (data: MainPanelAction) => void,
+      actionsToListen: string | string[] = [],
+    ): EventListener => {
       const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
       this.event.emit('action.requestSidebar');
-      this.event.on<MainPanelAction>('action.requestSidebar', ({ data }) => {
+      return this.event.on<MainPanelAction>('action.requestSidebar', ({ data }) => {
         // console.log("eventHandler .onSidePanelAction", data);
         // console.log('Received action for sidebar ' + data.action);
         // console.log('Listening to actions', listeningActions);
