@@ -66,9 +66,9 @@ export class AccomplishmentController {
     }
 
     //regex validate accomplishmentKeyword
-    if (!/^[a-z_-]+$/.test(payload.accomplishmentKeyword)) {
+    if (!/^[0-9a-z_.-]+$/.test(payload.accomplishmentKeyword)) {
       throw new Error(
-        `The accomplishment keyword: ${payload.accomplishmentKeyword} is invalid. Only lowercase letters, minuses and underscores are allowed`,
+        `The accomplishment keyword: ${payload.accomplishmentKeyword} is invalid. Only lowercase letters, minuses, underscores and periods are allowed`,
       );
     }
 
