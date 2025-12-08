@@ -260,6 +260,29 @@ export class RimoriClient {
       this.event.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
     },
 
+    /**
+     * Subscribe to main panel actions triggered by the user from the dashboard.
+     * @param callback Handler function that receives the action data when a matching action is triggered.
+     * @param actionsToListen Optional filter to listen only to specific action keys. If empty or not provided, all actions will trigger the callback.
+     * @returns An EventListener object with an `off()` method for cleanup.
+     *
+     * @example
+     * ```ts
+     * const listener = client.event.onMainPanelAction((data) => {
+     *   console.log('Action received:', data.action_key);
+     * }, ['startSession', 'pauseSession']);
+     *
+     * // Clean up when component unmounts to prevent events from firing
+     * // when navigating away or returning to the page
+     * useEffect(() => {
+     *   return () => listener.off();
+     * }, []);
+     * ```
+     *
+     * **Important:** Always call `listener.off()` when your component unmounts or when you no longer need to listen.
+     * This prevents the event handler from firing when navigating away from or returning to the page, which could
+     * cause unexpected behavior or duplicate event handling.
+     */
     onMainPanelAction: (
       callback: (data: MainPanelAction) => void,
       actionsToListen: string | string[] = [],

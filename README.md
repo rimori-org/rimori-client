@@ -155,7 +155,7 @@ Use `client.runtime.fetchBackend` for authenticated calls to Rimori-managed HTTP
 - `on(topic, handler)` / `once(topic, handler)` / `respond(topic, handler)` – subscribe and reply (each call returns an object with `off()` for cleanup).
 - `emitAccomplishment(payload)` / `onAccomplishment(topic, handler)` – report learning milestones.
 - `emitSidebarAction(pluginId, actionKey, text?)` – trigger sidebar plugins.
-- `onMainPanelAction(handler, actionsToListen?)` – react to dashboard actions.
+- `onMainPanelAction(handler, actionsToListen?)` – react to dashboard actions. Returns an `EventListener` with an `off()` method. **Important:** Call `listener.off()` when your component unmounts or when you no longer need to listen, especially to prevent the event from firing again when navigating away from or returning to the page.
 - `client.navigation.toDashboard()` – navigate the user back to Rimori.
 
 ### Community Content
