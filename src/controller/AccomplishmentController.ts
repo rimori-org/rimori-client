@@ -82,11 +82,12 @@ export class AccomplishmentController {
       throw new Error('Invalid accomplishment type ' + payload.type);
     }
 
+    // disabled detection temporarelly to determine how long exercises normally are
     //durationMinutes is required
-    if (payload.type === 'macro' && payload.durationMinutes < 4) {
-      console.warn('The duration must be at least 4 minutes');
-      return false;
-    }
+    // if (payload.type === 'macro' && payload.durationMinutes < 4) {
+    //   console.warn('The duration must be at least 4 minutes');
+    //   return false;
+    // }
 
     //errorRatio is required
     if (payload.type === 'macro' && (payload.errorRatio < 0 || payload.errorRatio > 1)) {
