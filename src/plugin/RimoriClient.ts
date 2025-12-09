@@ -18,8 +18,6 @@ import { AccomplishmentController, AccomplishmentPayload } from '../controller/A
 import { RimoriCommunicationHandler, RimoriInfo } from './CommunicationHandler';
 import { Translator } from '../controller/TranslationController';
 import { Logger } from './Logger';
-// import { setTheme } from '../../../react-client/src/plugin/ThemeSetter';
-// import { StandaloneClient } from './StandaloneClient';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
