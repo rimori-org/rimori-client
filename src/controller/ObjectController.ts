@@ -3,8 +3,8 @@ type PrimitiveType = 'string' | 'number' | 'boolean';
 // This is the type that can appear in the `type` property
 type ObjectToolParameterType =
   | PrimitiveType
-  | { [key: string]: ObjectToolParameter }  // for nested objects
-  | [{ [key: string]: ObjectToolParameter }];  // for arrays of objects (notice the tuple type)
+  | { [key: string]: ObjectToolParameter } // for nested objects
+  | [{ [key: string]: ObjectToolParameter }]; // for arrays of objects (notice the tuple type)
 
 interface ObjectToolParameter {
   type: ObjectToolParameterType;
@@ -15,10 +15,10 @@ interface ObjectToolParameter {
 
 /**
  * The tools that the AI can use.
- * 
+ *
  * The key is the name of the tool.
  * The value is the parameter of the tool.
- * 
+ *
  */
 export type ObjectTool = {
   [key: string]: ObjectToolParameter;
@@ -41,7 +41,7 @@ export interface ObjectRequest {
   instructions: string;
 }
 
-export async function generateObject(backendUrl: string, request: ObjectRequest, token: string) {
+export async function generateObject<T = any>(backendUrl: string, request: ObjectRequest, token: string): Promise<T> {
   return await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
@@ -50,14 +50,19 @@ export async function generateObject(backendUrl: string, request: ObjectRequest,
       behaviour: request.behaviour,
       instructions: request.instructions,
     }),
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-  }).then(response => response.json());
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  }).then((response) => response.json());
 }
 
 // TODO adjust stream to work with object
 export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: any[]) => void;
 
-export async function streamObject(backendUrl: string, request: ObjectRequest, onResponse: OnLLMResponse, token: string) {
+export async function streamObject(
+  backendUrl: string,
+  request: ObjectRequest,
+  onResponse: OnLLMResponse,
+  token: string,
+) {
   const messageId = Math.random().toString(36).substring(3);
   const response = await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
@@ -67,7 +72,7 @@ export async function streamObject(backendUrl: string, request: ObjectRequest, o
       systemInstructions: request.behaviour,
       secondaryInstructions: request.instructions,
     }),
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
   if (!response.body) {
@@ -78,15 +83,15 @@ export async function streamObject(backendUrl: string, request: ObjectRequest, o
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
 
-  let content = "";
+  let content = '';
   let done = false;
-  let toolInvocations: any[] = [];
+  const toolInvocations: any[] = [];
   while (!done) {
     const { value } = await reader.read();
 
     if (value) {
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(line => line.trim() !== '');
+      const lines = chunk.split('\n').filter((line) => line.trim() !== '');
 
       for (const line of lines) {
         const data = line.substring(3, line.length - 1);

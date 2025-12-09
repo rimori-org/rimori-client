@@ -1,128 +1,178 @@
-import { PostgrestQueryBuilder } from "@supabase/postgrest-js";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { GenericSchema } from "@supabase/supabase-js/dist/module/lib/types";
-import { generateText, Message, OnLLMResponse, streamChatGPT } from "../core/controller/AIController";
-import { generateObject, ObjectRequest } from "../core/controller/ObjectController";
-import { SettingsController, UserInfo } from "../core/controller/SettingsController";
-import { SharedContent, SharedContentController, SharedContentFilter, SharedContentObjectRequest } from "../core/controller/SharedContentController";
-import { getSTTResponse, getTTSResponse } from "../core/controller/VoiceController";
-import { ExerciseController, CreateExerciseParams } from "../core/controller/ExerciseController";
-import { EventBus, EventBusMessage, EventHandler, EventPayload } from "../fromRimori/EventBus";
-import { ActivePlugin, MainPanelAction, Plugin, Tool } from "../fromRimori/PluginTypes";
-import { AccomplishmentHandler, AccomplishmentPayload } from "./AccomplishmentHandler";
-import { PluginController, RimoriInfo } from "./PluginController";
-import { ClientServerOptions } from "@supabase/postgrest-js/dist/cjs/types/common/common";
+import { PostgrestQueryBuilder } from '@supabase/postgrest-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { GenericSchema } from '@supabase/supabase-js/dist/module/lib/types';
+import { generateText, Message, OnLLMResponse, streamChatGPT } from '../controller/AIController';
+import { generateObject, ObjectRequest } from '../controller/ObjectController';
+import { SettingsController, UserInfo } from '../controller/SettingsController';
+import {
+  SharedContent,
+  SharedContentController,
+  SharedContentFilter,
+  SharedContentObjectRequest,
+} from '../controller/SharedContentController';
+import { getSTTResponse, getTTSResponse } from '../controller/VoiceController';
+import { ExerciseController, CreateExerciseParams } from '../controller/ExerciseController';
+import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../fromRimori/EventBus';
+import { ActivePlugin, MainPanelAction, Plugin, Tool } from '../fromRimori/PluginTypes';
+import { AccomplishmentController, AccomplishmentPayload } from '../controller/AccomplishmentController';
+import { RimoriCommunicationHandler, RimoriInfo } from './CommunicationHandler';
+import { Translator } from '../controller/TranslationController';
+import { Logger } from './Logger';
+// import { setTheme } from '../../../react-client/src/plugin/ThemeSetter';
+// import { StandaloneClient } from './StandaloneClient';
 
-
-interface Db {
-  from: {
-    <TableName extends string & keyof GenericSchema['Tables'], Table extends GenericSchema['Tables'][TableName]>(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>;
-    <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>;
-  };
-  // storage: SupabaseClient["storage"];
-
-  // functions: SupabaseClient["functions"];
-  /**
-   * The table prefix for of database tables of the plugin.
-   */
-  tablePrefix: string;
-  /**
-   * Get the table name for a given plugin table.
-   * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
-   * @param table The plugin table name to get the full table name for.
-   * @returns The full table name.
-   */
-  getTableName: (table: string) => string;
-}
-
-interface PluginInterface {
-  pluginId: string;
-  setSettings: (settings: any) => Promise<void>;
-  /**
-   * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
-   * @param defaultSettings The default settings to use if no settings are found.
-   * @param genericSettings The type of settings to get.
-   * @returns The settings for the plugin. 
-   */
-  getSettings: <T extends object>(defaultSettings: T) => Promise<T>;
-  /**
-   * Retrieves information about plugins, including:
-   * - All installed plugins
-   * - The currently active plugin in the main panel
-   * - The currently active plugin in the side panel
-   */
-  getPluginInfo: () => {
-    /**
-     * All installed plugins.
-     */
-    installedPlugins: Plugin[],
-    /**
-     * The plugin that is loaded in the main panel.
-     */
-    mainPanelPlugin?: ActivePlugin,
-    /**
-     * The plugin that is loaded in the side panel.
-     */
-    sidePanelPlugin?: ActivePlugin,
-  };
-  getUserInfo: () => UserInfo;
-}
+// Add declaration for WorkerGlobalScope
+declare const WorkerGlobalScope: any;
 
 export class RimoriClient {
   private static instance: RimoriClient;
   private superbase: SupabaseClient;
-  private pluginController: PluginController;
+  private pluginController: RimoriCommunicationHandler;
   private settingsController: SettingsController;
   private sharedContentController: SharedContentController;
   private exerciseController: ExerciseController;
-  private accomplishmentHandler: AccomplishmentHandler;
+  private accomplishmentHandler: AccomplishmentController;
   private rimoriInfo: RimoriInfo;
-  public plugin: PluginInterface;
-  public db: Db;
+  private translator: Translator;
 
-  private constructor(supabase: SupabaseClient, info: RimoriInfo, pluginController: PluginController) {
+  private constructor(controller: RimoriCommunicationHandler, supabase: SupabaseClient, info: RimoriInfo) {
     this.rimoriInfo = info;
     this.superbase = supabase;
-    this.pluginController = pluginController;
+    this.pluginController = controller;
+    this.exerciseController = new ExerciseController(supabase, this);
+    this.accomplishmentHandler = new AccomplishmentController(info.pluginId);
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
-    this.sharedContentController = new SharedContentController(this.superbase, this);
-    this.exerciseController = new ExerciseController(supabase, pluginController);
-    this.accomplishmentHandler = new AccomplishmentHandler(info.pluginId);
+    this.sharedContentController = new SharedContentController(supabase, this);
+    const currentPlugin = info.installedPlugins.find((plugin) => plugin.id === info.pluginId);
+    this.translator = new Translator(info.interfaceLanguage, currentPlugin?.endpoint || '');
 
-    this.from = this.from.bind(this);
-    this.getTableName = this.getTableName.bind(this);
-
-    this.db = {
-      from: this.from,
-      // storage: this.superbase.storage,
-      // functions: this.superbase.functions,
-      tablePrefix: info.tablePrefix,
-      getTableName: this.getTableName,
+    //only init logger in workers and on main plugin pages
+    if (this.getQueryParam('applicationMode') !== 'sidebar') {
+      Logger.getInstance(this);
     }
-    this.plugin = {
-      pluginId: info.pluginId,
-      setSettings: async (settings: any) => {
+  }
+
+  public get plugin() {
+    return {
+      pluginId: this.rimoriInfo.pluginId,
+      /**
+       * The release channel of this plugin installation.
+       * Determines which database schema is used for plugin tables.
+       */
+      releaseChannel: this.rimoriInfo.releaseChannel,
+      /**
+       * Set the settings for the plugin.
+       * @param settings The settings to set.
+       */
+      setSettings: async (settings: any): Promise<void> => {
         await this.settingsController.setSettings(settings);
       },
+      /**
+       * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
+       * @param defaultSettings The default settings to use if no settings are found.
+       * @param genericSettings The type of settings to get.
+       * @returns The settings for the plugin.
+       */
       getSettings: async <T extends object>(defaultSettings: T): Promise<T> => {
         return await this.settingsController.getSettings<T>(defaultSettings);
       },
       getUserInfo: (): UserInfo => {
         return this.rimoriInfo.profile;
       },
-      getPluginInfo: () => {
+      /**
+       * Retrieves information about plugins, including:
+       * - All installed plugins
+       * - The currently active plugin in the main panel
+       * - The currently active plugin in the side panel
+       */
+      getPluginInfo: (): {
+        /**
+         * All installed plugins.
+         */
+        installedPlugins: Plugin[];
+        /**
+         * The plugin that is loaded in the main panel.
+         */
+        mainPanelPlugin?: ActivePlugin;
+        /**
+         * The plugin that is loaded in the side panel.
+         */
+        sidePanelPlugin?: ActivePlugin;
+      } => {
         return {
           installedPlugins: this.rimoriInfo.installedPlugins,
           mainPanelPlugin: this.rimoriInfo.mainPanelPlugin,
           sidePanelPlugin: this.rimoriInfo.sidePanelPlugin,
+        };
+      },
+      /**
+       * Get the translator for the plugin.
+       * @returns The translator for the plugin.
+       */
+      getTranslator: async (): Promise<Translator> => {
+        await this.translator.initialize();
+        return this.translator;
+      },
+    };
+  }
+
+  public get db() {
+    return {
+      //     private from<
+      //   TableName extends string & keyof GenericSchema['Tables'],
+      //   Table extends GenericSchema['Tables'][TableName],
+      // >(relation: TableName): PostgrestQueryBuilder<GenericSchema, Table, TableName>;
+      // private from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+      //   relation: ViewName,
+      // ): PostgrestQueryBuilder<GenericSchema, View, ViewName>;
+      from: <ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+        relation: string,
+      ): PostgrestQueryBuilder<GenericSchema, View, ViewName> => {
+        const tableName = this.db.getTableName(relation);
+        // Use the schema determined by rimori-main based on release channel
+        // Global tables (starting with 'global_') remain in public schema
+        // Plugin tables use the schema provided by rimori-main (plugins or plugins_alpha)
+        if (relation.startsWith('global_')) {
+          // Global tables stay in public schema
+          return this.superbase.from(tableName);
         }
-      }
-    }
+        // Plugin tables go to the schema provided by rimori-main
+        return this.superbase.schema(this.rimoriInfo.dbSchema).from(tableName);
+      },
+      // storage: this.superbase.storage,
+      // functions: this.superbase.functions,
+      /**
+       * The table prefix for of database tables of the plugin.
+       */
+      tablePrefix: this.rimoriInfo.tablePrefix,
+      /**
+       * The database schema used for plugin tables.
+       * Determined by rimori-main based on release channel:
+       * - 'plugins_alpha' for alpha release channel
+       * - 'plugins' for beta and stable release channels
+       */
+      schema: this.rimoriInfo.dbSchema,
+      /**
+       * Get the table name for a given plugin table.
+       * Internally all tables are prefixed with the plugin id. This function is used to get the correct table name for a given public table.
+       * @param table The plugin table name to get the full table name for.
+       * @returns The full table name.
+       */
+      getTableName: (table: string): string => {
+        if (/[A-Z]/.test(table)) {
+          throw new Error('Table name cannot include uppercase letters. Please use snake_case for table names.');
+        }
+        if (table.startsWith('global_')) {
+          return table.replace('global_', '');
+        }
+        return this.db.tablePrefix + '_' + table;
+      },
+    };
   }
 
   public event = {
     /**
-     * Emit an event to Rimori or a plugin. 
+     * Emit an event to Rimori or a plugin.
      * The topic schema is:
      * {pluginId}.{eventId}
      * Check out the event bus documentation for more information.
@@ -151,9 +201,12 @@ export class RimoriClient {
      * @param callback The callback to call when the event is emitted.
      * @returns An EventListener object containing an off() method to unsubscribe the listeners.
      */
-    on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>) => {
+    on: <T = EventPayload>(topic: string | string[], callback: EventHandler<T>): EventListener => {
       const topics = Array.isArray(topic) ? topic : [topic];
-      return EventBus.on<T>(topics.map(t => this.pluginController.getGlobalEventTopic(t)), callback);
+      return EventBus.on<T>(
+        topics.map((t) => this.pluginController.getGlobalEventTopic(t)),
+        callback,
+      );
     },
     /**
      * Subscribe to an event once.
@@ -168,9 +221,16 @@ export class RimoriClient {
      * @param topic The topic to respond to.
      * @param data The data to respond with.
      */
-    respond: <T = EventPayload>(topic: string | string[], data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>)) => {
+    respond: <T = EventPayload>(
+      topic: string | string[],
+      data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>),
+    ) => {
       const topics = Array.isArray(topic) ? topic : [topic];
-      EventBus.respond(this.plugin.pluginId, topics.map(t => this.pluginController.getGlobalEventTopic(t)), data);
+      EventBus.respond(
+        this.plugin.pluginId,
+        topics.map((t) => this.pluginController.getGlobalEventTopic(t)),
+        data,
+      );
     },
     /**
      * Emit an accomplishment.
@@ -184,7 +244,10 @@ export class RimoriClient {
      * @param accomplishmentTopic The topic to subscribe to.
      * @param callback The callback to call when the accomplishment is emitted.
      */
-    onAccomplishment: (accomplishmentTopic: string, callback: (payload: EventBusMessage<AccomplishmentPayload>) => void) => {
+    onAccomplishment: (
+      accomplishmentTopic: string,
+      callback: (payload: EventBusMessage<AccomplishmentPayload>) => void,
+    ) => {
       this.accomplishmentHandler.subscribe(accomplishmentTopic, callback);
     },
     /**
@@ -194,21 +257,71 @@ export class RimoriClient {
      * @param text Optional text to be used for the action like for example text that the translator would look up.
      */
     emitSidebarAction: (pluginId: string, actionKey: string, text?: string) => {
-      this.event.emit("global.sidebar.triggerAction", { plugin_id: pluginId, action_key: actionKey, text });
+      this.event.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
     },
 
-    onMainPanelAction: (callback: (data: MainPanelAction) => void) => {
+    /**
+     * Subscribe to main panel actions triggered by the user from the dashboard.
+     * @param callback Handler function that receives the action data when a matching action is triggered.
+     * @param actionsToListen Optional filter to listen only to specific action keys. If empty or not provided, all actions will trigger the callback.
+     * @returns An EventListener object with an `off()` method for cleanup.
+     *
+     * @example
+     * ```ts
+     * const listener = client.event.onMainPanelAction((data) => {
+     *   console.log('Action received:', data.action_key);
+     * }, ['startSession', 'pauseSession']);
+     *
+     * // Clean up when component unmounts to prevent events from firing
+     * // when navigating away or returning to the page
+     * useEffect(() => {
+     *   return () => listener.off();
+     * }, []);
+     * ```
+     *
+     * **Important:** Always call `listener.off()` when your component unmounts or when you no longer need to listen.
+     * This prevents the event handler from firing when navigating away from or returning to the page, which could
+     * cause unexpected behavior or duplicate event handling.
+     */
+    onMainPanelAction: (
+      callback: (data: MainPanelAction) => void,
+      actionsToListen: string | string[] = [],
+    ): EventListener => {
+      const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
       // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
-      this.event.emit("action.requestMain")
-      this.event.on<MainPanelAction>("action.requestMain", ({ data }) => callback(data));
-    }
-  }
+      this.event.emit('action.requestMain');
+      return this.event.on<MainPanelAction>('action.requestMain', ({ data }) => {
+        // console.log('Received action for main panel ' + data.action_key);
+        // console.log('Listening to actions', listeningActions);
+        if (listeningActions.length === 0 || listeningActions.includes(data.action_key)) {
+          callback(data);
+        }
+      });
+    },
+
+    onSidePanelAction: (
+      callback: (data: MainPanelAction) => void,
+      actionsToListen: string | string[] = [],
+    ): EventListener => {
+      const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
+      // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
+      this.event.emit('action.requestSidebar');
+      return this.event.on<MainPanelAction>('action.requestSidebar', ({ data }) => {
+        // console.log("eventHandler .onSidePanelAction", data);
+        // console.log('Received action for sidebar ' + data.action);
+        // console.log('Listening to actions', listeningActions);
+        if (listeningActions.length === 0 || listeningActions.includes(data.action)) {
+          callback(data);
+        }
+      });
+    },
+  };
 
   public navigation = {
-    toDashboard: () => {
-      this.event.emit("global.navigation.triggerToDashboard");
-    }
-  }
+    toDashboard: (): void => {
+      this.event.emit('global.navigation.triggerToDashboard');
+    },
+  };
 
   /**
    * Get a query parameter value that was passed via MessageChannel
@@ -219,46 +332,35 @@ export class RimoriClient {
     return this.pluginController.getQueryParam(key);
   }
 
-  public static async getInstance(pluginController: PluginController): Promise<RimoriClient> {
+  public static async getInstance(pluginId?: string): Promise<RimoriClient> {
     if (!RimoriClient.instance) {
-      const client = await pluginController.getClient();
-      RimoriClient.instance = new RimoriClient(client.supabase, client.info, pluginController);
+      if (!pluginId) throw new Error('Plugin ID is required');
+
+      const controller = new RimoriCommunicationHandler(pluginId, false);
+
+      if (typeof WorkerGlobalScope === 'undefined') {
+        // In standalone mode, use URL fallback. In iframe mode, theme will be set after MessageChannel init
+        // setTheme();
+        // await StandaloneClient.initListeners(pluginId);
+      }
+      const client = await controller.getClient();
+      RimoriClient.instance = new RimoriClient(controller, client.supabase, client.info);
     }
     return RimoriClient.instance;
-  }
-
-  private from<
-    TableName extends string & keyof GenericSchema['Tables'],
-    Table extends GenericSchema['Tables'][TableName]
-  >(relation: TableName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, Table, TableName>
-  private from<
-    ViewName extends string & keyof GenericSchema['Views'],
-    View extends GenericSchema['Views'][ViewName]
-  >(relation: ViewName): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, View, ViewName>
-  private from(relation: string): PostgrestQueryBuilder<ClientServerOptions, GenericSchema, any, any> {
-    return this.superbase.from(this.getTableName(relation));
-  }
-
-  private getTableName(table: string) {
-    if (/[A-Z]/.test(table)) {
-      throw new Error("Table name cannot include uppercase letters. Please use snake_case for table names.");
-    }
-    if (table.startsWith("global_")) {
-      return table.replace("global_", "");
-    }
-    return this.db.tablePrefix + "_" + table;
   }
 
   public ai = {
     getText: async (messages: Message[], tools?: Tool[]): Promise<string> => {
       const token = await this.pluginController.getToken();
-      return generateText(this.pluginController.getBackendUrl(), messages, tools || [], token).then(({ messages }) => messages[0].content[0].text);
+      return generateText(this.pluginController.getBackendUrl(), messages, tools || [], token).then(
+        ({ messages }) => messages[0].content[0].text,
+      );
     },
     getSteamedText: async (messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]) => {
       const token = await this.pluginController.getToken();
       streamChatGPT(this.pluginController.getBackendUrl(), messages, tools || [], onMessage, token);
     },
-    getVoice: async (text: string, voice = "alloy", speed = 1, language?: string): Promise<Blob> => {
+    getVoice: async (text: string, voice = 'alloy', speed = 1, language?: string): Promise<Blob> => {
       const token = await this.pluginController.getToken();
       return getTTSResponse(this.pluginController.getBackendUrl(), { input: text, voice, speed, language }, token);
     },
@@ -266,12 +368,12 @@ export class RimoriClient {
       const token = await this.pluginController.getToken();
       return getSTTResponse(this.pluginController.getBackendUrl(), file, token);
     },
-    getObject: async (request: ObjectRequest): Promise<any> => {
+    getObject: async <T = any>(request: ObjectRequest): Promise<T> => {
       const token = await this.pluginController.getToken();
-      return generateObject(this.pluginController.getBackendUrl(), request, token);
+      return generateObject<T>(this.pluginController.getBackendUrl(), request, token);
     },
     // getSteamedObject: this.generateObjectStream,
-  }
+  };
 
   public runtime = {
     fetchBackend: async (url: string, options: RequestInit) => {
@@ -280,11 +382,11 @@ export class RimoriClient {
         ...options,
         headers: {
           ...options.headers,
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-    }
-  }
+    },
+  };
 
   public community = {
     /**
@@ -309,7 +411,11 @@ export class RimoriClient {
        * @param limit The optional limit for the number of results.
        * @returns The list of shared content items.
        */
-      getList: async <T = any>(contentType: string, filter?: SharedContentFilter, limit?: number): Promise<SharedContent<T>[]> => {
+      getList: async <T = any>(
+        contentType: string,
+        filter?: SharedContentFilter,
+        limit?: number,
+      ): Promise<SharedContent<T>[]> => {
         return await this.sharedContentController.getSharedContentList(contentType, filter, limit);
       },
       /**
@@ -330,7 +436,12 @@ export class RimoriClient {
         filter?: SharedContentFilter,
         options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
       ): Promise<SharedContent<T>> => {
-        return await this.sharedContentController.getNewSharedContent(contentType, generatorInstructions, filter, options);
+        return await this.sharedContentController.getNewSharedContent(
+          contentType,
+          generatorInstructions,
+          filter,
+          options,
+        );
       },
       /**
        * Create a new shared content item.
@@ -350,10 +461,10 @@ export class RimoriClient {
         return await this.sharedContentController.updateSharedContent(id, content);
       },
       /**
-        * Complete a shared content item.
-        * @param contentType The type of shared content to complete. E.g. assignments, exercises, etc.
-        * @param assignmentId The id of the shared content item to complete.
-        */
+       * Complete a shared content item.
+       * @param contentType The type of shared content to complete. E.g. assignments, exercises, etc.
+       * @param assignmentId The id of the shared content item to complete.
+       */
       complete: async (contentType: string, assignmentId: string) => {
         return await this.sharedContentController.completeSharedContent(contentType, assignmentId);
       },
@@ -363,11 +474,11 @@ export class RimoriClient {
         * Useful for marking content as completed, ongoing, hidden, liked, disliked, or bookmarked.
         */
       updateState: async (params: {
-        contentType: string
-        id: string
-        state?: 'completed' | 'ongoing' | 'hidden'
-        reaction?: 'liked' | 'disliked' | null
-        bookmarked?: boolean
+        contentType: string;
+        id: string;
+        state?: 'completed' | 'ongoing' | 'hidden';
+        reaction?: 'liked' | 'disliked' | null;
+        bookmarked?: boolean;
       }): Promise<void> => {
         return await this.sharedContentController.updateSharedContentState(params);
       },
@@ -378,9 +489,9 @@ export class RimoriClient {
        */
       remove: async (id: string): Promise<SharedContent<any>> => {
         return await this.sharedContentController.removeSharedContent(id);
-      }
-    }
-  }
+      },
+    },
+  };
 
   public exercise = {
     /**
@@ -393,12 +504,16 @@ export class RimoriClient {
     },
 
     /**
-     * Creates a new exercise via the backend API.
-     * @param params Exercise creation parameters.
-     * @returns Created exercise object.
+     * Creates a new exercise or multiple exercises via the backend API.
+     * When creating multiple exercises, all requests are made in parallel but only one event is emitted.
+     * @param params Exercise creation parameters (single or array).
+     * @returns Created exercise objects.
      */
-    add: async (params: CreateExerciseParams) => {
-      return this.exerciseController.addExercise(params);
+    add: async (params: CreateExerciseParams | CreateExerciseParams[]) => {
+      const token = await this.pluginController.getToken();
+      const backendUrl = this.pluginController.getBackendUrl();
+      const exercises = Array.isArray(params) ? params : [params];
+      return this.exerciseController.addExercise(token, backendUrl, exercises);
     },
 
     /**
@@ -407,7 +522,9 @@ export class RimoriClient {
      * @returns Success status.
      */
     delete: async (id: string) => {
-      return this.exerciseController.deleteExercise(id);
+      const token = await this.pluginController.getToken();
+      const backendUrl = this.pluginController.getBackendUrl();
+      return this.exerciseController.deleteExercise(token, backendUrl, id);
     },
-  }
+  };
 }

@@ -1,57 +1,63 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { UserInfo } from '../core/controller/SettingsController';
+import { UserInfo } from '../controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
-import { RimoriClient } from "./RimoriClient";
-import { StandaloneClient } from './StandaloneClient';
-import { setTheme } from './ThemeSetter';
-import { Logger } from './Logger';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
 
 export interface Guild {
-  id: string,
-  longTermGoalOverride: string,
-  allowUserPluginSettings: boolean,
+  allowUserPluginSettings: boolean;
+  city: string | null;
+  country: string | null;
+  description: string | null;
+  id: string;
+  isPublic: boolean;
+  name: string;
+  ownerId: string;
+  primaryLanguage: string;
+  scope: string;
 }
 
 export interface RimoriInfo {
-  url: string,
-  key: string,
-  backendUrl: string,
-  token: string,
-  expiration: Date,
-  tablePrefix: string,
-  pluginId: string
-  guild: Guild,
-  installedPlugins: Plugin[]
-  profile: UserInfo
-  mainPanelPlugin?: ActivePlugin
-  sidePanelPlugin?: ActivePlugin
+  url: string;
+  key: string;
+  backendUrl: string;
+  token: string;
+  expiration: Date;
+  tablePrefix: string;
+  pluginId: string;
+  guild: Guild;
+  installedPlugins: Plugin[];
+  profile: UserInfo;
+  mainPanelPlugin?: ActivePlugin;
+  sidePanelPlugin?: ActivePlugin;
+  interfaceLanguage: string;
+  /**
+   * The release channel of the plugin installation.
+   */
+  releaseChannel: 'alpha' | 'beta' | 'stable';
+  /**
+   * The database schema to use for plugin tables.
+   * Determined by rimori-main based on release channel:
+   * - 'plugins_alpha' for alpha release channel
+   * - 'plugins' for beta and stable release channels
+   */
+  dbSchema: 'plugins' | 'plugins_alpha';
 }
 
-export class PluginController {
-  private static client: RimoriClient;
-  private static instance: PluginController;
+export class RimoriCommunicationHandler {
   private port: MessagePort | null = null;
   private queryParams: Record<string, string> = {};
   private supabase: SupabaseClient | null = null;
   private rimoriInfo: RimoriInfo | null = null;
   private pluginId: string;
-  private isMessageChannelReady: boolean = false;
+  private isMessageChannelReady = false;
   private pendingRequests: Array<() => void> = [];
 
-  private constructor(pluginId: string, standalone: boolean) {
+  public constructor(pluginId: string, standalone: boolean) {
     this.pluginId = pluginId;
     this.getClient = this.getClient.bind(this);
-
-    if (typeof WorkerGlobalScope === 'undefined') {
-      // In standalone mode, use URL fallback. In iframe mode, theme will be set after MessageChannel init
-      if (standalone) {
-        setTheme();
-      }
-    }
 
     //no need to forward messages to parent in standalone mode or worker context
     if (standalone) return;
@@ -59,14 +65,20 @@ export class PluginController {
     this.initMessageChannel(typeof WorkerGlobalScope !== 'undefined');
   }
 
-  private initMessageChannel(worker: boolean = false) {
+  private initMessageChannel(worker = false): void {
     const listener = (event: MessageEvent) => {
-      console.log("[PluginController] window message", { origin: event.origin, data: event.data });
+      // console.log('[PluginController] window message', { origin: event.origin, data: event.data });
       const { type, pluginId, queryParams, rimoriInfo } = event.data || {};
       const [transferredPort] = event.ports || [];
 
-      if (type !== "rimori:init" || !transferredPort || pluginId !== this.pluginId) {
-        console.log("[PluginController] message ignored (not init or wrong plugin)", { type, pluginId, hasPort: !!transferredPort });
+      if (type !== 'rimori:init' || !transferredPort || pluginId !== this.pluginId) {
+        // console.log('[PluginController] message ignored (not init or wrong plugin)', {
+        //   type,
+        //   pluginId,
+        //   currentPluginId: this.pluginId,
+        //   hasPortProperty: !!transferredPort,
+        //   event
+        // });
         return;
       }
 
@@ -77,7 +89,7 @@ export class PluginController {
       if (rimoriInfo) {
         this.rimoriInfo = rimoriInfo;
         this.supabase = createClient(rimoriInfo.url, rimoriInfo.key, {
-          accessToken: () => Promise.resolve(rimoriInfo.token)
+          accessToken: () => Promise.resolve(rimoriInfo.token),
         });
       }
 
@@ -100,13 +112,14 @@ export class PluginController {
 
       // Set theme from MessageChannel query params
       if (!worker) {
-        const theme = this.queryParams['rm_theme'];
-        setTheme(theme);
+        // const theme = this.queryParams['rm_theme'];
+        // setTheme(theme);
+        // console.log('TODO: set theme from MessageChannel query params');
       }
 
       // Forward plugin events to parent (only after MessageChannel is ready)
-      EventBus.on("*", (ev) => {
-        if (ev.sender === this.pluginId && !ev.topic.startsWith("self.")) {
+      EventBus.on('*', (ev) => {
+        if (ev.sender === this.pluginId && !ev.topic.startsWith('self.')) {
           this.port?.postMessage({ event: ev });
         }
       });
@@ -115,51 +128,51 @@ export class PluginController {
       this.isMessageChannelReady = true;
 
       // Process any pending requests
-      this.pendingRequests.forEach(request => request());
+      this.pendingRequests.forEach((request) => request());
       this.pendingRequests = [];
     };
     if (worker) {
       self.onmessage = listener;
     } else {
-      window.addEventListener("message", listener);
+      window.addEventListener('message', listener);
     }
     this.sendHello(worker);
+    EventBus.on('self.rimori.triggerInitFinished', () => {
+      this.sendFinishedInit(worker);
+    });
   }
 
-  private sendHello(isWorker: boolean = false) {
+  private sendHello(isWorker = false): void {
     try {
-      const payload = { type: "rimori:hello", pluginId: this.pluginId };
+      const payload = { type: 'rimori:hello', pluginId: this.pluginId };
       if (isWorker) {
         self.postMessage(payload);
       } else {
-        window.parent.postMessage(payload, "*");
+        window.parent.postMessage(payload, '*');
       }
     } catch (e) {
-      console.error("[PluginController] Error sending hello:", e);
+      console.error('[PluginController] Error sending hello:', e);
     }
   }
 
-  public static async getInstance(pluginId: string, standalone = false): Promise<RimoriClient> {
-    if (!PluginController.instance) {
-      if (standalone) {
-        await StandaloneClient.initListeners(pluginId);
+  private sendFinishedInit(isWorker = false): void {
+    try {
+      const payload = { type: 'rimori:acknowledged', pluginId: this.pluginId };
+      if (isWorker) {
+        self.postMessage(payload);
+      } else {
+        window.parent.postMessage(payload, '*');
       }
-      PluginController.instance = new PluginController(pluginId, standalone);
-      PluginController.client = await RimoriClient.getInstance(PluginController.instance);
-
-      //only init logger in workers and on main plugin pages
-      if (PluginController.instance.getQueryParam("applicationMode") !== "sidebar") {
-        Logger.getInstance(PluginController.client);
-      }
+    } catch (e) {
+      console.error('[PluginController] Error sending finished init:', e);
     }
-    return PluginController.client;
   }
 
   public getQueryParam(key: string): string | null {
     return this.queryParams[key] || null;
   }
 
-  public async getClient(): Promise<{ supabase: SupabaseClient, info: RimoriInfo }> {
+  public async getClient(): Promise<{ supabase: SupabaseClient; info: RimoriInfo }> {
     // Return cached client if valid
     if (this.supabase && this.rimoriInfo && this.rimoriInfo.expiration > new Date()) {
       return { supabase: this.supabase, info: this.rimoriInfo };
@@ -167,7 +180,7 @@ export class PluginController {
 
     // If MessageChannel is not ready yet, queue the request
     if (!this.isMessageChannelReady) {
-      return new Promise<{ supabase: SupabaseClient, info: RimoriInfo }>((resolve) => {
+      return new Promise<{ supabase: SupabaseClient; info: RimoriInfo }>((resolve) => {
         this.pendingRequests.push(async () => {
           const result = await this.getClient();
           resolve(result);
@@ -192,18 +205,18 @@ export class PluginController {
             sender: this.pluginId,
             topic: 'global.supabase.requestAccess',
             data: {},
-            debug: false
-          }
+            debug: false,
+          },
         };
 
-        return new Promise<{ supabase: SupabaseClient, info: RimoriInfo }>((resolve) => {
+        return new Promise<{ supabase: SupabaseClient; info: RimoriInfo }>((resolve) => {
           // Listen for the response
           const originalOnMessage = self.onmessage;
           self.onmessage = (event) => {
             if (event.data?.topic === 'global.supabase.requestAccess' && event.data?.eventId === eventId) {
               this.rimoriInfo = event.data.data;
               this.supabase = createClient(this.rimoriInfo!.url, this.rimoriInfo!.key, {
-                accessToken: () => Promise.resolve(this.getToken())
+                accessToken: () => Promise.resolve(this.getToken()),
               });
               self.onmessage = originalOnMessage; // Restore original handler
               resolve({ supabase: this.supabase, info: this.rimoriInfo! });
@@ -217,11 +230,11 @@ export class PluginController {
         });
       } else {
         // In main thread context, use EventBus
-        const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
-        console.log({ data });
+        const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
+        // console.log({ data });
         this.rimoriInfo = data;
         this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
-          accessToken: () => Promise.resolve(this.getToken())
+          accessToken: () => Promise.resolve(this.getToken()),
         });
       }
     }
@@ -236,13 +249,16 @@ export class PluginController {
 
     // If we don't have rimoriInfo, request it
     if (!this.rimoriInfo) {
-      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, "global.supabase.requestAccess");
+      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
       this.rimoriInfo = data;
       return this.rimoriInfo.token;
     }
 
     // If token is expired, request fresh access
-    const { data } = await EventBus.request<{ token: string, expiration: Date }>(this.pluginId, "global.supabase.requestAccess");
+    const { data } = await EventBus.request<{ token: string; expiration: Date }>(
+      this.pluginId,
+      'global.supabase.requestAccess',
+    );
     this.rimoriInfo.token = data.token;
     this.rimoriInfo.expiration = data.expiration;
 
@@ -254,40 +270,41 @@ export class PluginController {
    * @returns The Supabase URL.
    * @deprecated All endpoints should use the backend URL instead.
    */
-  public getSupabaseUrl() {
+  public getSupabaseUrl(): string {
     if (!this.rimoriInfo) {
-      throw new Error("Supabase info not found");
+      throw new Error('Supabase info not found');
     }
 
     return this.rimoriInfo.url;
   }
 
-  public getBackendUrl() {
+  public getBackendUrl(): string {
     if (!this.rimoriInfo) {
-      throw new Error("Rimori info not found");
+      throw new Error('Rimori info not found');
     }
     return this.rimoriInfo.backendUrl;
   }
 
-  public getGlobalEventTopic(preliminaryTopic: string) {
-    if (preliminaryTopic.startsWith("global.")) {
+  public getGlobalEventTopic(preliminaryTopic: string): string {
+    if (preliminaryTopic.startsWith('global.')) {
       return preliminaryTopic;
     }
-    if (preliminaryTopic.startsWith("self.")) {
+    if (preliminaryTopic.startsWith('self.')) {
       return preliminaryTopic;
     }
-    const topicParts = preliminaryTopic.split(".");
+    const topicParts = preliminaryTopic.split('.');
     if (topicParts.length === 3) {
-      if (!topicParts[0].startsWith("pl") && topicParts[0] !== "global") {
+      if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
         throw new Error("The event topic must start with the plugin id or 'global'.");
       }
       return preliminaryTopic;
     } else if (topicParts.length > 3) {
-      throw new Error(`The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`);
+      throw new Error(
+        `The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`,
+      );
     }
 
-    const topicRoot = this.rimoriInfo?.pluginId ?? "global";
+    const topicRoot = this.rimoriInfo?.pluginId ?? 'global';
     return `${topicRoot}.${preliminaryTopic}`;
   }
-
 }

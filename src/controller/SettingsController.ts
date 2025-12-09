@@ -1,7 +1,6 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { LanguageLevel } from "../../utils/difficultyConverter";
-import { Language } from "../../utils/Language";
-import { Guild } from "../core";
+import { SupabaseClient } from '@supabase/supabase-js';
+import { LanguageLevel } from '../utils/difficultyConverter';
+import { Guild } from '../plugin/CommunicationHandler';
 
 export interface Buddy {
   id: string;
@@ -11,6 +10,16 @@ export interface Buddy {
   voiceId: string;
   aiPersonality: string;
 }
+
+export interface Language {
+  code: string;
+  name: string;
+  native: string;
+  capitalized: string;
+  uppercase: string;
+}
+
+export type UserRole = 'user' | 'plugin_moderator' | 'lang_moderator' | 'admin';
 
 export interface UserInfo {
   skill_level_reading: LanguageLevel;
@@ -25,8 +34,7 @@ export interface UserInfo {
   story_genre: string;
   study_duration: number;
   /**
-   * The 2 letter language code of the language the user speaks natively.
-   * With the function getLanguageName, the language name can be retrieved.
+   * The language the user speaks natively.
    */
   mother_tongue: Language;
   /**
@@ -45,6 +53,10 @@ export interface UserInfo {
    * Optional: nearest big city (>100,000) near user's location
    */
   target_city?: string;
+  /**
+   * The user's role: 'user', 'plugin_moderator', 'lang_moderator', or 'admin'
+   */
+  user_role: UserRole;
 }
 
 export class SettingsController {
@@ -68,11 +80,11 @@ export class SettingsController {
     const isGuildSetting = !this.guild.allowUserPluginSettings;
 
     const { data } = await this.supabase
-      .from("plugin_settings")
-      .select("*")
-      .eq("plugin_id", this.pluginId)
-      .eq("guild_id", this.guild.id)
-      .eq("is_guild_setting", isGuildSetting)
+      .from('plugin_settings')
+      .select('*')
+      .eq('plugin_id', this.pluginId)
+      .eq('guild_id', this.guild.id)
+      .eq('is_guild_setting', isGuildSetting)
       .maybeSingle();
 
     return data?.settings ?? null;
@@ -87,7 +99,7 @@ export class SettingsController {
    */
   public async setSettings(settings: any): Promise<void> {
     const isGuildSetting = !this.guild.allowUserPluginSettings;
-    
+
     const payload: any = {
       plugin_id: this.pluginId,
       settings,
@@ -101,15 +113,15 @@ export class SettingsController {
 
     // Try UPDATE first (safe with RLS). If nothing updated, INSERT.
     const updateQuery = this.supabase
-      .from("plugin_settings")
+      .from('plugin_settings')
       .update({ settings })
-      .eq("plugin_id", this.pluginId)
-      .eq("guild_id", this.guild.id)
-      .eq("is_guild_setting", isGuildSetting);
+      .eq('plugin_id', this.pluginId)
+      .eq('guild_id', this.guild.id)
+      .eq('is_guild_setting', isGuildSetting);
 
     const { data: updatedRows, error: updateError } = await (isGuildSetting
-      ? updateQuery.is("user_id", null).select("id")
-      : updateQuery.select("id"));
+      ? updateQuery.is('user_id', null).select('id')
+      : updateQuery.select('id'));
 
     if (updateError) {
       if (updateError.code === '42501' || updateError.message?.includes('policy')) {
@@ -123,22 +135,18 @@ export class SettingsController {
     }
 
     // No row updated -> INSERT
-    const { error: insertError } = await this.supabase
-      .from("plugin_settings")
-      .insert(payload);
+    const { error: insertError } = await this.supabase.from('plugin_settings').insert(payload);
 
     if (insertError) {
       // In case of race condition (duplicate), try one more UPDATE
       if (insertError.code === '23505' /* unique_violation */) {
         const retry = this.supabase
-          .from("plugin_settings")
+          .from('plugin_settings')
           .update({ settings })
-          .eq("plugin_id", this.pluginId)
-          .eq("guild_id", this.guild.id)
-          .eq("is_guild_setting", isGuildSetting);
-        const { error: retryError } = await (isGuildSetting
-          ? retry.is("user_id", null)
-          : retry);
+          .eq('plugin_id', this.pluginId)
+          .eq('guild_id', this.guild.id)
+          .eq('is_guild_setting', isGuildSetting);
+        const { error: retryError } = await (isGuildSetting ? retry.is('user_id', null) : retry);
         if (!retryError) return;
       }
 
@@ -149,10 +157,10 @@ export class SettingsController {
   /**
    * Get the settings for the plugin. T can be any type of settings, UserSettings or SystemSettings.
    * @param defaultSettings The default settings to use if no settings are found.
-   * @returns The settings for the plugin. 
+   * @returns The settings for the plugin.
    */
   public async getSettings<T extends object>(defaultSettings: T): Promise<T> {
-    const storedSettings = await this.fetchSettings() as T | null;
+    const storedSettings = (await this.fetchSettings()) as T | null;
 
     if (!storedSettings) {
       await this.setSettings(defaultSettings);
@@ -165,7 +173,7 @@ export class SettingsController {
 
     if (storedKeys.length !== defaultKeys.length) {
       const validStoredSettings = Object.fromEntries(
-        Object.entries(storedSettings).filter(([key]) => defaultKeys.includes(key))
+        Object.entries(storedSettings).filter(([key]) => defaultKeys.includes(key)),
       );
       const mergedSettings = { ...defaultSettings, ...validStoredSettings } as T;
 

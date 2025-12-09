@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "dist",
+    "rootDir": "src",
     "module": "ESNext",
     "target": "ES6",
     "declaration": true,
@@ -11,6 +12,6 @@
     "strict": true
   },
   "include": [
-    "src/**/*"
-  ],
+    "src/**/*",
+  ]
 }

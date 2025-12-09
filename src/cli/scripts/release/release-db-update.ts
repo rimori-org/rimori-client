@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
-import { Config } from "./release";
+import { Config } from './release';
 
 /**
  * Read and send the database configuration to the release endpoint
@@ -27,7 +27,7 @@ export default async function dbUpdate(config: Config, release_id: string): Prom
     // Transpile TypeScript to JavaScript
     const result = ts.transpile(dbConfigContent, {
       target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ES2020
+      module: ts.ModuleKind.ES2020,
     });
 
     // Create a temporary file to import the transpiled code
@@ -45,7 +45,7 @@ export default async function dbUpdate(config: Config, release_id: string): Prom
       // Clean up temp file even on error
       try {
         await fs.promises.unlink(tempFile);
-      } catch (e) { }
+      } catch (e) {}
       throw error;
     }
 
@@ -66,29 +66,29 @@ export default async function dbUpdate(config: Config, release_id: string): Prom
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.token}`
+        Authorization: `Bearer ${config.token}`,
       },
       body: JSON.stringify(requestBody),
     }).catch((e) => {
-      console.log("error", e);
-      throw new Error("Error sending database configuration");
+      console.log('error', e);
+      throw new Error('Error sending database configuration');
     });
     try {
       const responseText = await response.text().catch((e) => {
-        console.log("error", e);
-        throw new Error("Error sending database configuration");
+        console.log('error', e);
+        throw new Error('Error sending database configuration');
       });
 
       const responseData = JSON.parse(responseText);
       if (response.ok) {
         console.log('✅ Database configuration deployed successfully!');
       } else {
-        console.log("responseData", responseData);
+        console.log('responseData', responseData);
         throw new Error(responseData.message);
       }
     } catch (e) {
-      console.log("error", e);
-      throw new Error("Error sending database configuration");
+      console.log('error', e);
+      throw new Error('Error sending database configuration');
     }
   } catch (error: any) {
     console.error('❌ Error sending database configuration:', error.message);

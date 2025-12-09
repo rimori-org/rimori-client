@@ -1,13 +1,13 @@
 // whole configuration of a plugin (from the database)
-export type Plugin<T extends {} = {}> = Omit<RimoriPluginConfig<T>, 'context_menu_actions'> & {
+export type Plugin<T extends object = object> = Omit<RimoriPluginConfig<T>, 'context_menu_actions'> & {
   version: string;
   endpoint: string;
   assetEndpoint: string;
   context_menu_actions: MenuEntry[];
-  release_channel: "alpha" | "beta" | "stable";
-}
+  release_channel: 'alpha' | 'beta' | 'stable';
+};
 
-export type ActivePlugin = Plugin<{ active?: boolean }>
+export type ActivePlugin = Plugin<{ active?: boolean }>;
 
 // browsable page of a plugin
 export interface PluginPage {
@@ -17,13 +17,22 @@ export interface PluginPage {
   // Whether the page should be shown in the navbar
   show: boolean;
   description: string;
-  root: "vocabulary" | "grammar" | "reading" | "listening" | "watching" | "writing" | "speaking" | "other" | "community";
+  root:
+    | 'vocabulary'
+    | 'grammar'
+    | 'reading'
+    | 'listening'
+    | 'watching'
+    | 'writing'
+    | 'speaking'
+    | 'other'
+    | 'community';
   // The actions that can be triggered in the plugin
   // The key is the action key. The other entries are additional properties needed when triggering the action
   action?: {
     key: string;
     parameters: ObjectTool;
-  }
+  };
 }
 
 // a sidebar page of a plugin
@@ -49,7 +58,7 @@ export interface MenuEntry {
   // text of the menu entry. Shown in the context menu
   text: string;
   // icon of the menu entry. Shown in the context menu
-  icon?: React.ReactNode;
+  iconUrl?: string;
 }
 
 // an action from the main panel that can be triggered and performs an action in the main panel
@@ -65,14 +74,14 @@ export interface ContextMenuAction {
   // id of the plugin that the action belongs to
   plugin_id: string;
   // key of the action. Used to know which action to trigger when clicking on the context menu
-  action_key: string
+  action_key: string;
 }
 
 /**
  * Rimori plugin structure representing the complete configuration
  * of a Rimori plugin with all metadata and configuration options.
  */
-export interface RimoriPluginConfig<T extends {} = {}> {
+export interface RimoriPluginConfig<T extends object = object> {
   id: string;
   /**
    * Basic information about the plugin including branding and core details.
@@ -86,7 +95,7 @@ export interface RimoriPluginConfig<T extends {} = {}> {
     logo: string;
     /** Optional website URL for the plugin's homepage or link to plugins owner for contributions */
     website?: string;
-  }
+  };
   /**
    * Configuration for different types of pages.
    */
@@ -101,11 +110,11 @@ export interface RimoriPluginConfig<T extends {} = {}> {
     settings?: string;
     /** Optional array of event topics the plugin pages can listen to for cross-plugin communication */
     topics?: string[];
-  }
+  };
   /**
    * Context menu actions that the plugin registers to appear in right-click menus throughout the application.
    */
-  context_menu_actions: Omit<MenuEntry, "plugin_id">[];
+  context_menu_actions: Omit<MenuEntry, 'plugin_id'>[];
   /**
    * Documentation paths for different types of plugin documentation.
    */
@@ -116,7 +125,7 @@ export interface RimoriPluginConfig<T extends {} = {}> {
     user_path: string;
     /** Path to developer documentation for plugin development */
     developer_path: string;
-  }
+  };
   /**
    * Configuration for the plugin's web worker if it uses background processing or exposes actions to other plugins.
    */
@@ -136,7 +145,7 @@ export interface Tool {
   parameters: {
     name: string;
     description: string;
-    type: "string" | "number" | "boolean";
+    type: 'string' | 'number' | 'boolean';
   }[];
   execute?: (args: Record<string, any>) => Promise<unknown> | unknown | void;
 }
@@ -145,7 +154,7 @@ export interface Tool {
  * The tool definition structure is used for LLM function calling and plugin action parameters.
  * It defines the schema for tools that can be used by Language Learning Models (LLMs)
  * and plugin actions.
- * 
+ *
  * @example
  * ```typescript
  * const flashcardTool: Tool = {
@@ -155,13 +164,13 @@ export interface Tool {
  *     description: 'Number of flashcards to practice'
  *   },
  *   deck: {
- *     type: 'string', 
+ *     type: 'string',
  *     enum: ['latest', 'random', 'oldest', 'mix', 'best_known'],
  *     description: 'Type of deck to practice'
  *   }
  * };
  * ```
- * 
+ *
  */
 export type ObjectTool = {
   [key: string]: ToolParameter;
@@ -188,15 +197,15 @@ interface ToolParameter {
  * Supports primitive types, nested objects for complex data structures,
  * and arrays of objects for collections. The tuple notation [{}] indicates
  * arrays of objects with a specific structure.
- * 
+ *
  * @example Primitive: 'string' | 'number' | 'boolean'
  * @example Nested object: { name: { type: 'string' }, age: { type: 'number' } }
  * @example Array of objects: [{ id: { type: 'string' }, value: { type: 'number' } }]
  */
 type ToolParameterType =
   | PrimitiveType
-  | { [key: string]: ToolParameter }  // for nested objects
-  | [{ [key: string]: ToolParameter }];  // for arrays of objects (notice the tuple type)
+  | { [key: string]: ToolParameter } // for nested objects
+  | [{ [key: string]: ToolParameter }]; // for arrays of objects (notice the tuple type)
 
 /**
  * Primitive data types supported by the LLM tool system.

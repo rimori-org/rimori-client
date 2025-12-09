@@ -3,9 +3,9 @@ export type EventPayload = Record<string, any>;
 
 /**
  * Interface representing a message sent through the EventBus
- * 
+ *
  * Debug capabilities:
- * - System-wide debugging: Send an event to "global.system.requestDebug" 
+ * - System-wide debugging: Send an event to "global.system.requestDebug"
  *   Example: `EventBus.emit("yourPluginId", "global.system.requestDebug");`
  */
 export interface EventBusMessage<T = EventPayload> {
@@ -39,8 +39,8 @@ export class EventBusHandler {
   private listeners: Map<string, Set<Listeners<EventPayload>>> = new Map();
   private responseResolvers: Map<number, (value: EventBusMessage<unknown>) => void> = new Map();
   private static instance: EventBusHandler | null = null;
-  private debugEnabled: boolean = false;
-  private evName: string = "";
+  private debugEnabled = false;
+  private evName = '';
 
   private constructor() {
     //private constructor
@@ -50,12 +50,16 @@ export class EventBusHandler {
     if (!EventBusHandler.instance) {
       EventBusHandler.instance = new EventBusHandler();
 
-      EventBusHandler.instance.on("global.system.requestDebug", () => {
+      EventBusHandler.instance.on('global.system.requestDebug', () => {
         EventBusHandler.instance!.debugEnabled = true;
-        console.log(`[${EventBusHandler.instance!.evName}] Debug mode enabled. Make sure debugging messages are enabled in the browser console.`);
+        console.log(
+          `[${
+            EventBusHandler.instance!.evName
+          }] Debug mode enabled. Make sure debugging messages are enabled in the browser console.`,
+        );
       });
     }
-    if (name && EventBusHandler.instance.evName === "") {
+    if (name && EventBusHandler.instance.evName === '') {
       EventBusHandler.instance.evName = name;
     }
     return EventBusHandler.instance;
@@ -80,9 +84,9 @@ export class EventBusHandler {
    * @param topic - The topic of the event.
    * @param data - The data of the event.
    * @param eventId - The event id of the event.
-   * 
+   *
    * The topic format is: **pluginId.area.action**
-   * 
+   *
    * Example topics:
    * - pl1234.card.requestHard
    * - pl1234.card.requestNew
@@ -96,7 +100,13 @@ export class EventBusHandler {
     this.emitInternal(sender, topic, data || {}, eventId);
   }
 
-  private emitInternal(sender: string, topic: string, data: EventPayload, eventId?: number, skipResponseTrigger = false): void {
+  private emitInternal(
+    sender: string,
+    topic: string,
+    data: EventPayload,
+    eventId?: number,
+    skipResponseTrigger = false,
+  ): void {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(false, `Invalid topic: ` + topic);
       return;
@@ -105,7 +115,7 @@ export class EventBusHandler {
     const event = this.createEvent(sender, topic, data, eventId);
 
     const handlers = this.getMatchingHandlers(event.topic);
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       if (handler.ignoreSender && handler.ignoreSender.includes(sender)) {
         // console.log("ignore event as its in the ignoreSender list", { event, ignoreList: handler.ignoreSender });
         return;
@@ -132,8 +142,12 @@ export class EventBusHandler {
    * @param ignoreSender - The senders to ignore.
    * @returns An EventListener object containing an off() method to unsubscribe the listeners.
    */
-  public on<T = EventPayload>(topics: string | string[], handler: EventHandler<T>, ignoreSender: string[] = []): EventListener {
-    const ids = this.toArray(topics).map(topic => {
+  public on<T = EventPayload>(
+    topics: string | string[],
+    handler: EventHandler<T>,
+    ignoreSender: string[] = [],
+  ): EventListener {
+    const ids = this.toArray(topics).map((topic) => {
       this.logIfDebug(`Subscribing to ` + topic, { ignoreSender });
       if (!this.validateTopic(topic)) {
         this.logAndThrowError(true, `Invalid topic: ` + topic);
@@ -144,17 +158,35 @@ export class EventBusHandler {
       }
       const id = Math.floor(Math.random() * 10000000000);
 
-      // Type assertion to handle the generic type mismatch
-      const eventHandler = handler as unknown as EventHandler<EventPayload>;
+      // To prevent infinite loops and processing the same eventId multiple times
+      const blackListedEventIds: { eventId: number; sender: string }[] = [];
+      const eventHandler = (data: EventBusMessage) => {
+        if (blackListedEventIds.some((item) => item.eventId === data.eventId && item.sender === data.sender)) {
+          console.log('BLACKLISTED EVENT ID', data.eventId, data);
+          return;
+        }
+        blackListedEventIds.push({
+          eventId: data.eventId,
+          sender: data.sender,
+        });
+        if (blackListedEventIds.length > 100) {
+          blackListedEventIds.shift();
+        }
+        return (handler as unknown as EventHandler<EventPayload>)(data);
+      };
+
       this.listeners.get(topic)!.add({ id, handler: eventHandler, ignoreSender });
 
-      this.logIfDebug(`Subscribed to ` + topic, { listenerId: id, ignoreSender });
+      this.logIfDebug(`Subscribed to ` + topic, {
+        listenerId: id,
+        ignoreSender,
+      });
 
       return btoa(JSON.stringify({ topic, id }));
     });
 
     return {
-      off: () => this.off(ids)
+      off: () => this.off(ids),
     };
   }
 
@@ -165,33 +197,41 @@ export class EventBusHandler {
    * @param handler - The handler to be called when the event is received. The handler returns the data to be emitted. Can be a static object or a function.
    * @returns An EventListener object containing an off() method to unsubscribe the listeners.
    */
-  public respond(sender: string, topic: string | string[], handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>)): EventListener {
+  public respond(
+    sender: string,
+    topic: string | string[],
+    handler: EventPayload | ((data: EventBusMessage) => EventPayload | Promise<EventPayload>),
+  ): EventListener {
     const topics = Array.isArray(topic) ? topic : [topic];
-    const listeners = topics.map(topic => {
+    const listeners = topics.map((topic) => {
       const blackListedEventIds: number[] = [];
       //To allow event communication inside the same plugin the sender needs to be ignored but the events still need to be checked for the same event just reaching the subscriber to prevent infinite loops
-      const finalIgnoreSender = !topic.startsWith("self.") ? [sender] : [];
+      const finalIgnoreSender = !topic.startsWith('self.') ? [sender] : [];
 
-      const listener = this.on(topic, async (data: EventBusMessage) => {
-        if (blackListedEventIds.includes(data.eventId)) {
-          // console.log("BLACKLISTED EVENT ID", data.eventId);
-          return;
-        }
-        blackListedEventIds.push(data.eventId);
-        if (blackListedEventIds.length > 20) {
-          blackListedEventIds.shift();
-        }
-        const response = typeof handler === "function" ? await handler(data) : handler;
-        this.emit(sender, topic, response, data.eventId);
-      }, finalIgnoreSender);
+      const listener = this.on(
+        topic,
+        async (data: EventBusMessage) => {
+          if (blackListedEventIds.includes(data.eventId)) {
+            // console.log("BLACKLISTED EVENT ID", data.eventId);
+            return;
+          }
+          blackListedEventIds.push(data.eventId);
+          if (blackListedEventIds.length > 100) {
+            blackListedEventIds.shift();
+          }
+          const response = typeof handler === 'function' ? await handler(data) : handler;
+          this.emit(sender, topic, response, data.eventId);
+        },
+        finalIgnoreSender,
+      );
 
-      this.logIfDebug(`Added respond listener ` + sender + " to topic " + topic, { listener, sender });
+      this.logIfDebug(`Added respond listener ` + sender + ' to topic ' + topic, { listener, sender });
       return {
-        off: () => listener.off()
+        off: () => listener.off(),
       };
     });
     return {
-      off: () => listeners.forEach(listener => listener.off())
+      off: () => listeners.forEach((listener) => listener.off()),
     };
   }
 
@@ -206,7 +246,7 @@ export class EventBusHandler {
       return;
     }
 
-    let listener: EventListener | undefined;
+    let listener: EventListener | undefined = undefined;
     const wrapper = (event: EventBusMessage<T>) => {
       handler(event);
       listener?.off();
@@ -221,15 +261,18 @@ export class EventBusHandler {
    * @param listenerIds - The ids of the listeners to unsubscribe from.
    */
   private off(listenerIds: string | string[]): void {
-    this.toArray(listenerIds).forEach(fullId => {
+    this.toArray(listenerIds).forEach((fullId) => {
       const { topic, id } = JSON.parse(atob(fullId));
 
       const listeners = this.listeners.get(topic) || new Set();
 
-      listeners.forEach(listener => {
+      listeners.forEach((listener) => {
         if (listener.id === Number(id)) {
           listeners.delete(listener);
-          this.logIfDebug(`Removed listener ` + fullId, { topic, listenerId: id });
+          this.logIfDebug(`Removed listener ` + fullId, {
+            topic,
+            listenerId: id,
+          });
         }
       });
     });
@@ -246,7 +289,11 @@ export class EventBusHandler {
    * @param data - The data of the event.
    * @returns A promise that resolves to the event.
    */
-  public async request<T = EventPayload>(sender: string, topic: string, data?: EventPayload): Promise<EventBusMessage<T>> {
+  public async request<T = EventPayload>(
+    sender: string,
+    topic: string,
+    data?: EventPayload,
+  ): Promise<EventBusMessage<T>> {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(true, `Invalid topic: ` + topic);
     }
@@ -255,8 +302,10 @@ export class EventBusHandler {
 
     this.logIfDebug(`Requesting data from ` + topic, { event });
 
-    return new Promise<EventBusMessage<T>>(resolve => {
-      this.responseResolvers.set(event.eventId, (value: EventBusMessage<unknown>) => resolve(value as EventBusMessage<T>));
+    return new Promise<EventBusMessage<T>>((resolve) => {
+      this.responseResolvers.set(event.eventId, (value: EventBusMessage<unknown>) =>
+        resolve(value as EventBusMessage<T>),
+      );
       this.emitInternal(sender, topic, data || {}, event.eventId, true);
     });
   }
@@ -271,7 +320,7 @@ export class EventBusHandler {
 
     // Find wildcard matches
     const wildcard = [...this.listeners.entries()]
-      .filter(([key]) => key.endsWith("*") && topic.startsWith(key.slice(0, -1)))
+      .filter(([key]) => key.endsWith('*') && topic.startsWith(key.slice(0, -1)))
       .flatMap(([_, handlers]) => [...handlers]);
     return new Set([...exact, ...wildcard]);
   }
@@ -283,32 +332,35 @@ export class EventBusHandler {
    */
   private validateTopic(topic: string): boolean {
     // Split event type into parts
-    const parts = topic.split(".");
+    const parts = topic.split('.');
     const [plugin, area, action] = parts;
 
     if (parts.length !== 3) {
-      if (parts.length === 1 && plugin === "*") {
+      if (parts.length === 1 && plugin === '*') {
         return true;
       }
-      if (parts.length === 2 && plugin !== "*" && area === "*") {
+      if (parts.length === 2 && plugin !== '*' && area === '*') {
         return true;
       }
       this.logAndThrowError(false, `Event type must have 3 parts separated by dots. Received: ` + topic);
       return false;
     }
 
-    if (action === "*") {
+    if (action === '*') {
       return true;
     }
 
     // Validate action part
-    const validActions = ["request", "create", "update", "delete", "trigger"];
+    const validActions = ['request', 'create', 'update', 'delete', 'trigger'];
 
-    if (validActions.some(a => action.startsWith(a))) {
+    if (validActions.some((a) => action.startsWith(a))) {
       return true;
     }
 
-    this.logAndThrowError(false, `Invalid event topic name. The action: ` + action + ". Must be or start with one of: " + validActions.join(", "));
+    this.logAndThrowError(
+      false,
+      `Invalid event topic name. The action: ` + action + '. Must be or start with one of: ' + validActions.join(', '),
+    );
     return false;
   }
 

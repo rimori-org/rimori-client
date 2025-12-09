@@ -8,10 +8,7 @@ import * as path from 'path';
  */
 function removeUnwantedMetaTags(htmlContent: string): string {
   // Remove all meta tags except those with name="viewport" or charset attribute
-  let cleanedContent = htmlContent.replace(
-    /<meta\s+(?![^>]*(?:name\s*=\s*["']viewport["']|charset\s*=))[^>]*>/gi,
-    ''
-  );
+  let cleanedContent = htmlContent.replace(/<meta\s+(?![^>]*(?:name\s*=\s*["']viewport["']|charset\s*=))[^>]*>/gi, '');
 
   // Remove empty lines left behind
   cleanedContent = cleanedContent.replace(/^\s*[\r\n]/gm, '');
@@ -45,4 +42,4 @@ export function cleanHtmlMetaTags(): void {
   } catch (error) {
     console.error(`Error processing HTML file ${filePath}:`, error);
   }
-} 
+}

@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import ts from 'typescript';
 import { Config } from './release.js';
+import { detectTranslationLanguages } from './detect-translation-languages.js';
 
 /**
  * Read and send the rimori configuration to the release endpoint
@@ -26,7 +27,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
     // Transpile TypeScript to JavaScript
     const result = ts.transpile(configContent, {
       target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ES2020
+      module: ts.ModuleKind.ES2020,
     });
 
     // Create a temporary file to import the transpiled code
@@ -44,13 +45,16 @@ export async function sendConfiguration(config: Config): Promise<string> {
       // Clean up temp file even on error
       try {
         await fs.promises.unlink(tempFile);
-      } catch (e) { }
+      } catch (e) {}
       throw error;
     }
 
     if (!configObject) {
       throw new Error('Configuration object is empty or undefined');
     }
+
+    // Detect available translation languages
+    const availableLanguages = await detectTranslationLanguages();
 
     console.log(`🚀 Sending configuration...`);
 
@@ -60,6 +64,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
       plugin_id: config.plugin_id,
       release_channel: config.release_channel,
       rimori_client_version: config.rimori_client_version,
+      provided_languages: availableLanguages.join(','),
     };
 
     try {
@@ -67,7 +72,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.token}`
+          Authorization: `Bearer ${config.token}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -87,8 +92,8 @@ export async function sendConfiguration(config: Config): Promise<string> {
         throw new Error('Configuration upload failed');
       }
     } catch (e) {
-      console.log("error", e);
-      throw new Error("Error sending configuration");
+      console.log('error', e);
+      throw new Error('Error sending configuration');
     }
   } catch (error: any) {
     console.error('❌ Error sending configuration:', error.message);
@@ -101,14 +106,14 @@ export async function releasePlugin(config: Config, release_id: string): Promise
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.token}`
+      Authorization: `Bearer ${config.token}`,
     },
-    body: JSON.stringify({ plugin_id: config.plugin_id })
+    body: JSON.stringify({ plugin_id: config.plugin_id }),
   });
 
   if (!response.ok) {
-    console.log("Response:", await response.text());
-    throw new Error("Failed to release plugin");
+    console.log('Response:', await response.text());
+    throw new Error('Failed to release plugin');
   }
-  console.log("✅ Plugin released successfully");
+  console.log('✅ Plugin released successfully');
 }

@@ -89,14 +89,14 @@ function detectRouteComponents(content: string): RouteComponent[] {
   }
 
   // For each component, find its corresponding import statement
-  componentNames.forEach(componentName => {
+  componentNames.forEach((componentName) => {
     const importInfo = findImportForComponent(content, componentName);
     if (importInfo) {
       routeComponents.push({
         componentName,
         importStatement: importInfo.importStatement,
         importPath: importInfo.importPath,
-        isDefaultImport: importInfo.isDefaultImport
+        isDefaultImport: importInfo.isDefaultImport,
       });
     }
   });
@@ -111,7 +111,10 @@ function detectRouteComponents(content: string): RouteComponent[] {
  * @param componentName - The component name to find import for
  * @returns Import information or null if not found
  */
-function findImportForComponent(content: string, componentName: string): {
+function findImportForComponent(
+  content: string,
+  componentName: string,
+): {
   importStatement: string;
   importPath: string;
   isDefaultImport: boolean;
@@ -124,7 +127,7 @@ function findImportForComponent(content: string, componentName: string): {
     return {
       importStatement: defaultMatch[0],
       importPath: defaultMatch[1],
-      isDefaultImport: true
+      isDefaultImport: true,
     };
   }
 
@@ -133,12 +136,12 @@ function findImportForComponent(content: string, componentName: string): {
   let namedMatch;
 
   while ((namedMatch = namedImportRegex.exec(content)) !== null) {
-    const imports = namedMatch[1].split(',').map(imp => imp.trim());
+    const imports = namedMatch[1].split(',').map((imp) => imp.trim());
     if (imports.includes(componentName)) {
       return {
         importStatement: namedMatch[0],
         importPath: namedMatch[2],
-        isDefaultImport: false
+        isDefaultImport: false,
       };
     }
   }
@@ -191,7 +194,10 @@ function addLazyImport(content: string): string {
   if (reactImportMatch) {
     // React import exists, add lazy to it
     const existingImports = reactImportMatch[1] || '';
-    const importList = existingImports.split(',').map(imp => imp.trim()).filter(Boolean);
+    const importList = existingImports
+      .split(',')
+      .map((imp) => imp.trim())
+      .filter(Boolean);
 
     if (!importList.includes('lazy')) {
       importList.push('lazy');
@@ -200,16 +206,18 @@ function addLazyImport(content: string): string {
       importList.push('Suspense');
     }
 
-    const newImport = importList.length > 0
-      ? `import React, { ${importList.join(', ')} } from "react";`
-      : `import React from "react";`;
+    const newImport =
+      importList.length > 0 ? `import React, { ${importList.join(', ')} } from "react";` : `import React from "react";`;
 
     return content.replace(reactImportMatch[0], newImport);
   } else {
     // No React import found, add it
     const firstImportMatch = content.match(/^import.*$/m);
     if (firstImportMatch) {
-      return content.replace(firstImportMatch[0], `import React, { lazy, Suspense } from "react";\n${firstImportMatch[0]}`);
+      return content.replace(
+        firstImportMatch[0],
+        `import React, { lazy, Suspense } from "react";\n${firstImportMatch[0]}`,
+      );
     } else {
       // No imports found, add at the beginning
       return `import React, { lazy, Suspense } from "react";\n${content}`;
@@ -266,39 +274,34 @@ function transformImports(content: string): string {
     // Add new import line for PluginProvider
     const importMatch = content.match(/^(import.*from\s+["']react["'];?\s*\n)/m);
     if (importMatch) {
-      content = content.replace(
-        importMatch[0],
-        `${importMatch[0]}import { PluginProvider } from "@rimori/client";\n`
-      );
+      content = content.replace(importMatch[0], `${importMatch[0]}import { PluginProvider } from "@rimori/client";\n`);
     } else {
       // If no React import found, add at the beginning
       content = `import { PluginProvider } from "@rimori/client";\n${content}`;
     }
   } else {
     // Update existing @rimori/client import to include PluginProvider
-    content = content.replace(
-      /import\s*{\s*([^}]*)\s*}\s*from\s*["']@rimori\/client["'];?/,
-      (match, imports) => {
-        const importList = imports.split(',').map((imp: string) => imp.trim()).filter(Boolean);
-        if (!importList.includes('PluginProvider')) {
-          importList.push('PluginProvider');
-        }
-        return `import { ${importList.join(', ')} } from "@rimori/client";`;
+    content = content.replace(/import\s*{\s*([^}]*)\s*}\s*from\s*["']@rimori\/client["'];?/, (match, imports) => {
+      const importList = imports
+        .split(',')
+        .map((imp: string) => imp.trim())
+        .filter(Boolean);
+      if (!importList.includes('PluginProvider')) {
+        importList.push('PluginProvider');
       }
-    );
+      return `import { ${importList.join(', ')} } from "@rimori/client";`;
+    });
   }
 
   // Transform react-router-dom import: replace BrowserRouter with HashRouter
-  content = content.replace(
-    /import\s*{\s*([^}]*)\s*}\s*from\s*["']react-router-dom["'];?/,
-    (match, imports) => {
-      const importList = imports.split(',').map((imp: string) => imp.trim()).filter(Boolean);
-      const updatedImports = importList.map((imp: string) =>
-        imp === 'BrowserRouter' ? 'HashRouter' : imp
-      );
-      return `import { ${updatedImports.join(', ')} } from "react-router-dom";`;
-    }
-  );
+  content = content.replace(/import\s*{\s*([^}]*)\s*}\s*from\s*["']react-router-dom["'];?/, (match, imports) => {
+    const importList = imports
+      .split(',')
+      .map((imp: string) => imp.trim())
+      .filter(Boolean);
+    const updatedImports = importList.map((imp: string) => (imp === 'BrowserRouter' ? 'HashRouter' : imp));
+    return `import { ${updatedImports.join(', ')} } from "react-router-dom";`;
+  });
 
   return content;
 }
@@ -315,15 +318,15 @@ function transformJSX(content: string, pluginId: string): string {
   content = content.replace(
     /<BrowserRouter(\s[^>]*)?>/,
     `<PluginProvider pluginId="${pluginId}">
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>`
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>`,
   );
 
   // Replace closing BrowserRouter tag
   content = content.replace(
     /<\/BrowserRouter>/,
     `</HashRouter>
-    </PluginProvider>`
+    </PluginProvider>`,
   );
 
   return content;
-} 
+}

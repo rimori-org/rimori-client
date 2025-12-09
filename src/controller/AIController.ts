@@ -1,4 +1,4 @@
-import { Tool } from "../../fromRimori/PluginTypes";
+import { Tool } from '../fromRimori/PluginTypes';
 
 export interface ToolInvocation {
   toolCallId: string;
@@ -8,7 +8,7 @@ export interface ToolInvocation {
 
 export interface Message {
   id?: string;
-  role: "user" | "assistant" | "system"
+  role: 'user' | 'assistant' | 'system';
   content: string;
   toolCalls?: ToolInvocation[];
 }
@@ -17,23 +17,34 @@ export async function generateText(backendUrl: string, messages: Message[], tool
   const response = await fetch(`${backendUrl}/ai/llm`, {
     method: 'POST',
     body: JSON.stringify({ messages, tools }),
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
   return await response.json();
 }
 
-export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: ToolInvocation[]) => void;
+export type OnLLMResponse = (
+  id: string,
+  response: string,
+  finished: boolean,
+  toolInvocations?: ToolInvocation[],
+) => void;
 
-export async function streamChatGPT(backendUrl: string, messages: Message[], tools: Tool[], onResponse: OnLLMResponse, token: string) {
+export async function streamChatGPT(
+  backendUrl: string,
+  messages: Message[],
+  tools: Tool[],
+  onResponse: OnLLMResponse,
+  token: string,
+) {
   const messageId = Math.random().toString(36).substring(3);
-  let currentMessages: Message[] = [...messages];
+  const currentMessages: Message[] = [...messages];
 
   console.log('Starting streamChatGPT with:', {
     messageId,
     messageCount: messages.length,
     toolCount: tools.length,
-    backendUrl
+    backendUrl,
   });
 
   while (true) {
@@ -43,7 +54,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
       const response = await fetch(`${backendUrl}/ai/llm`, {
         method: 'POST',
         body: JSON.stringify({ messages: messagesForApi, tools, stream: true }),
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -58,12 +69,12 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
 
-      let content = "";
+      let content = '';
       let done = false;
-      let toolInvocations: { toolCallId: string, toolName: string, args: any }[] = [];
-      let currentTextId = "";
+      const toolInvocations: { toolCallId: string; toolName: string; args: any }[] = [];
+      let currentTextId = '';
       let isToolCallMode = false;
-      let buffer = ""; // Buffer for incomplete chunks
+      let buffer = ''; // Buffer for incomplete chunks
 
       while (!done) {
         const { value, done: readerDone } = await reader.read();
@@ -77,7 +88,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
           // Keep the last line in buffer if it's incomplete
           if (lines.length > 1) {
-            buffer = lines.pop() || "";
+            buffer = lines.pop() || '';
           }
 
           for (const line of lines) {
@@ -162,7 +173,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
                       toolInvocations.push({
                         toolCallId: data.toolCallId,
                         toolName: data.toolName,
-                        args: data.args || data.input
+                        args: data.args || data.input,
                       });
                     }
                     break;
@@ -225,7 +236,7 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
       if (content || toolInvocations.length > 0) {
         currentMessages.push({
           id: messageId,
-          role: "assistant",
+          role: 'assistant',
           content: content,
           toolCalls: toolInvocations.length > 0 ? toolInvocations : undefined,
         });
@@ -237,20 +248,20 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
         const toolResults: Message[] = [];
         for (const toolInvocation of toolInvocations) {
-          const tool = tools.find(t => t.name === toolInvocation.toolName);
+          const tool = tools.find((t) => t.name === toolInvocation.toolName);
           if (tool && tool.execute) {
             try {
               const result = await tool.execute(toolInvocation.args);
               toolResults.push({
                 id: Math.random().toString(36).substring(3),
-                role: "user",
+                role: 'user',
                 content: `Tool '${toolInvocation.toolName}' returned: ${JSON.stringify(result)}`,
               });
             } catch (error) {
               console.error(`Error executing tool ${toolInvocation.toolName}:`, error);
               toolResults.push({
                 id: Math.random().toString(36).substring(3),
-                role: "user",
+                role: 'user',
                 content: `Tool '${toolInvocation.toolName}' failed with error: ${error}`,
               });
             }
@@ -275,7 +286,6 @@ export async function streamChatGPT(backendUrl: string, messages: Message[], too
 
       onResponse(messageId, content, true, toolInvocations);
       return;
-
     } catch (error) {
       console.error('Error in streamChatGPT:', error);
       onResponse(messageId, `Error: ${error instanceof Error ? error.message : String(error)}`, true, []);

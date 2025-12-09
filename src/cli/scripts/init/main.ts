@@ -2,12 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import {
-  askForCredentials,
-  askForPort,
-  authenticateWithSupabase,
-  registerDeveloper,
-} from './dev-registration.js';
+import { askForCredentials, askForPort, authenticateWithSupabase, registerDeveloper } from './dev-registration.js';
 import { setupEnvFile, updateGitignore } from './env-setup.js';
 import { copyPluginFiles } from './file-operations.js';
 import { cleanHtmlMetaTags } from './html-cleaner.js';
@@ -42,8 +37,12 @@ async function main(): Promise<void> {
             console.log('❌ Plugin is already initialized!');
             console.log(`Plugin ID: ${packageJson.r_id}`);
             console.log('');
-            console.log('If you want to reinitialize the plugin, please remove the "r_id" field from package.json first.');
-            console.log('Or use the --upgrade flag to upgrade the plugin configuration without changing the plugin ID.');
+            console.log(
+              'If you want to reinitialize the plugin, please remove the "r_id" field from package.json first.',
+            );
+            console.log(
+              'Or use the --upgrade flag to upgrade the plugin configuration without changing the plugin ID.',
+            );
             process.exit(0);
           }
         } catch (error) {
@@ -83,7 +82,6 @@ async function main(): Promise<void> {
 
       // Update gitignore
       updateGitignore();
-
     } else {
       // Step 1: Get user credentials
       const credentials = await askForCredentials();
@@ -125,7 +123,9 @@ async function main(): Promise<void> {
       updateViteConfigBase();
       console.log('✅ Vite config base updated');
     } catch (error) {
-      console.warn(`Warning: Could not update vite.config.ts base property: ${error instanceof Error ? error.message : error}`);
+      console.warn(
+        `Warning: Could not update vite.config.ts base property: ${error instanceof Error ? error.message : error}`,
+      );
     }
 
     // Clean meta tags from index.html after vite adaptation
@@ -152,13 +152,16 @@ async function main(): Promise<void> {
     console.log('Next steps:');
     console.log('1. Check out ./rimori/readme.md for more information about how to make the most out of the plugin.');
     console.log('2. Adapt the ./rimori/rimori.config.ts file to your needs.');
-    console.log('3. Under ./public/docs/ you can find the documentation for an example flashcard plugin to get started easier.');
+    console.log(
+      '3. Under ./public/docs/ you can find the documentation for an example flashcard plugin to get started easier.',
+    );
     console.log('4. Start development with: yarn dev');
     console.log('');
     console.log(`The plugin should now be accessible at: http://localhost:${3000}`);
     console.log('');
-    console.log('If you want to release the plugin, simply run: "yarn release:<alpha|beta|stable>" (details are available in ./rimori/readme.md)');
-
+    console.log(
+      'If you want to release the plugin, simply run: "yarn release:<alpha|beta|stable>" (details are available in ./rimori/readme.md)',
+    );
   } catch (error) {
     console.error(`❌ Error: ${error instanceof Error ? error.message : error}`);
     console.error('');

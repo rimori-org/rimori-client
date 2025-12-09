@@ -10,7 +10,7 @@ import * as path from 'path';
  */
 export function updateViteConfigBase({
   basePath = './',
-  configPath = './vite.config.ts'
+  configPath = './vite.config.ts',
 }: {
   basePath?: string;
   configPath?: string;
@@ -56,7 +56,7 @@ export function updateViteConfigBase({
  * @returns The current base value or null if not found.
  */
 export function getCurrentViteBase({
-  configPath = './vite.config.ts'
+  configPath = './vite.config.ts',
 }: {
   configPath?: string;
 } = {}): string | null {
@@ -70,4 +70,4 @@ export function getCurrentViteBase({
   const baseMatch = configContent.match(/base:\s*['"]([^'"]*)['"]/);
 
   return baseMatch ? baseMatch[1] : null;
-} 
+}
