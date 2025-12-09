@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -87,14 +88,10 @@ jobs:
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to npm (if configured)
+      - name: Publish to npm
         id: npm_publish
-        if: secrets.NPM_TOKEN != ''
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          npm publish --tag prerelease || echo "npm publish skipped (may already exist)"
+          npm publish --provenance --access public --tag prerelease || echo "npm publish skipped (may already exist)"
 
       - name: Send Slack notification - Success
         if: success()
