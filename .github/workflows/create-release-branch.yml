@@ -1,0 +1,226 @@
+name: Create Release Branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch to create release from'
+        required: true
+        default: 'main'
+        type: string
+
+env:
+  SLACK_CHANNEL_ID: C09FDPQ8XPB
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Checkout base branch
+        run: |
+          BASE_BRANCH="${{ inputs.base_branch }}"
+          git checkout $BASE_BRANCH
+          git pull origin $BASE_BRANCH
+
+      - name: Get current version
+        id: get_version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Bump minor version
+        id: bump_version
+        run: |
+          CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+
+          NEW_MINOR=$((MINOR + 1))
+          NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
+
+      - name: Get git commit messages
+        id: get_commits
+        run: |
+          BASE_BRANCH="${{ inputs.base_branch }}"
+          # Get commits since last tag, or last 20 commits if no tag exists
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log $BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges | head -20)
+          else
+            COMMITS=$(git log $LAST_TAG..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- No commits found"
+          fi
+
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create release branch
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          BRANCH_NAME="release/v$NEW_VERSION"
+          git checkout -b $BRANCH_NAME
+          echo "Created branch: $BRANCH_NAME"
+
+      - name: Update package.json version
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          # Use node to update package.json to preserve formatting
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$NEW_VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Commit version bump
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to $NEW_VERSION"
+
+      - name: Push release branch
+        run: |
+          BRANCH_NAME="release/v${{ steps.bump_version.outputs.new_version }}"
+          git push origin $BRANCH_NAME
+
+      - name: Create Pull Request
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          BRANCH_NAME="release/v$NEW_VERSION"
+          BASE_BRANCH="${{ inputs.base_branch }}"
+          COMMITS="${{ steps.get_commits.outputs.commits }}"
+
+          PR_BODY="## Release v${NEW_VERSION}
+
+          This PR bumps the version to **v${NEW_VERSION}**.
+
+          ### Recent Changes
+
+          ${COMMITS}
+
+          ### Next Steps
+          - Review and merge this PR
+          - The release workflow will automatically create a prerelease when merged to main"
+
+          PR_URL=$(gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH_NAME" \
+            --title "Release v$NEW_VERSION" \
+            --body "$PR_BODY")
+
+          PR_NUMBER=$(echo "$PR_URL" | grep -o '[0-9]*$')
+          echo "pull-request-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pull-request-url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "Created PR: $PR_URL"
+
+      - name: Send Slack notification - Success
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ env.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "✅ Rimori-Client Release Branch Created",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ rimori-client Release Branch Created"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\nv${{ steps.bump_version.outputs.new_version }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n`release/v${{ steps.bump_version.outputs.new_version }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*PR:*\n#${{ steps.create_pr.outputs.pull-request-number }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Send Slack notification - Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ env.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "❌ rimori-client Release Branch Creation Failed",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "❌ rimori-client Release Branch Creation Failed"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\nv${{ steps.bump_version.outputs.new_version }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "⚠️ *Action Required:* Review the pipeline failures and fix the issues before retrying."
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
