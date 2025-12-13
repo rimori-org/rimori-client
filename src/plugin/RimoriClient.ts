@@ -13,13 +13,6 @@ import { EventModule } from './module/EventModule';
 import { AIModule } from './module/AIModule';
 import { ExerciseModule } from './module/ExerciseModule';
 
-// Re-export modules for external use
-export { PluginModule } from './module/PluginModule';
-export { DbModule } from './module/DbModule';
-export { EventModule } from './module/EventModule';
-export { AIModule } from './module/AIModule';
-export { ExerciseModule } from './module/ExerciseModule';
-
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
 
