@@ -74,8 +74,22 @@ export class RimoriClient {
       getSettings: async <T extends object>(defaultSettings: T): Promise<T> => {
         return await this.settingsController.getSettings<T>(defaultSettings);
       },
+      /**
+       * Get the current user info.
+       * Note: For reactive updates in React components, use the userInfo from useRimori() hook instead.
+       * @returns The user info.
+       */
       getUserInfo: (): UserInfo => {
         return this.rimoriInfo.profile;
+      },
+      /**
+       * Register a callback to be notified when RimoriInfo is updated.
+       * This is useful for reacting to changes in user info, tokens, or other rimori data.
+       * @param callback - Function to call with the new RimoriInfo
+       * @returns Cleanup function to unregister the callback
+       */
+      onRimoriInfoUpdate: (callback: (info: RimoriInfo) => void): (() => void) => {
+        return this.pluginController.onUpdate(callback);
       },
       /**
        * Retrieves information about plugins, including:

@@ -54,6 +54,7 @@ export class RimoriCommunicationHandler {
   private pluginId: string;
   private isMessageChannelReady = false;
   private pendingRequests: Array<() => void> = [];
+  private updateCallbacks: Set<(info: RimoriInfo) => void> = new Set();
 
   public constructor(pluginId: string, standalone: boolean) {
     this.pluginId = pluginId;
@@ -122,6 +123,13 @@ export class RimoriCommunicationHandler {
         if (ev.sender === this.pluginId && !ev.topic.startsWith('self.')) {
           this.port?.postMessage({ event: ev });
         }
+      });
+
+      // Listen for updates from rimori-main (data changes, token refresh, etc.)
+      // Topic format: {pluginId}.supabase.triggerUpdate
+      EventBus.on(`${this.pluginId}.supabase.triggerUpdate`, (ev) => {
+        console.log('[RimoriCommunicationHandler] Received update from rimori-main');
+        this.handleRimoriInfoUpdate(ev.data as RimoriInfo);
       });
 
       // Mark MessageChannel as ready and process pending requests
@@ -306,5 +314,40 @@ export class RimoriCommunicationHandler {
 
     const topicRoot = this.rimoriInfo?.pluginId ?? 'global';
     return `${topicRoot}.${preliminaryTopic}`;
+  }
+
+  /**
+   * Handles updates to RimoriInfo from rimori-main.
+   * Updates the cached info and Supabase client, then notifies all registered callbacks.
+   */
+  private handleRimoriInfoUpdate(newInfo: RimoriInfo): void {
+    // Update cached rimoriInfo
+    this.rimoriInfo = newInfo;
+
+    // Update Supabase client with new token
+    this.supabase = createClient(newInfo.url, newInfo.key, {
+      accessToken: () => Promise.resolve(newInfo.token),
+    });
+
+    // Notify all registered callbacks
+    this.updateCallbacks.forEach((callback) => {
+      try {
+        callback(newInfo);
+      } catch (error) {
+        console.error('[RimoriCommunicationHandler] Error in update callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Registers a callback to be called when RimoriInfo is updated.
+   * @param callback - Function to call with the new RimoriInfo
+   * @returns Cleanup function to unregister the callback
+   */
+  public onUpdate(callback: (info: RimoriInfo) => void): () => void {
+    this.updateCallbacks.add(callback);
+    return () => {
+      this.updateCallbacks.delete(callback);
+    };
   }
 }
