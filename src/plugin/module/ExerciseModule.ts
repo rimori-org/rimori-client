@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { RimoriClient } from '../plugin/RimoriClient';
+import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
+import { EventModule } from './EventModule';
 
 export type TriggerAction = { action_key: string } & Record<string, string | number | boolean>;
 
@@ -20,7 +21,6 @@ export interface Exercise {
   start_date: string;
   end_date: string;
   trigger_action: TriggerAction;
-  // topic that identifies the accomplishment that the exercise is related to
   achievement_topic: string;
   name: string;
   description: string;
@@ -29,13 +29,32 @@ export interface Exercise {
   updated_at?: string;
 }
 
-export class ExerciseController {
+/**
+ * Controller for exercise-related operations.
+ * Provides access to weekly exercises and exercise management.
+ */
+export class ExerciseModule {
   private supabase: SupabaseClient;
-  private rimoriClient: RimoriClient;
+  private communicationHandler: RimoriCommunicationHandler;
+  private eventModule: EventModule;
+  private backendUrl: string;
+  private token: string;
 
-  constructor(supabase: SupabaseClient, rimoriClient: RimoriClient) {
+  constructor(
+    supabase: SupabaseClient,
+    communicationHandler: RimoriCommunicationHandler,
+    info: RimoriInfo,
+    eventModule: EventModule,
+  ) {
     this.supabase = supabase;
-    this.rimoriClient = rimoriClient;
+    this.communicationHandler = communicationHandler;
+    this.eventModule = eventModule;
+    this.token = info.token;
+    this.backendUrl = info.backendUrl;
+
+    this.communicationHandler.onUpdate((updatedInfo) => {
+      this.token = updatedInfo.token;
+    });
   }
 
   /**
@@ -43,7 +62,7 @@ export class ExerciseController {
    * Shows exercises for the current week that haven't expired.
    * @returns Array of exercise objects.
    */
-  public async viewWeeklyExercises(): Promise<Exercise[]> {
+  async view(): Promise<Exercise[]> {
     const { data, error } = await this.supabase.from('weekly_exercises').select('*');
 
     if (error) {
@@ -54,21 +73,21 @@ export class ExerciseController {
   }
 
   /**
-   * Creates multiple exercises via the backend API.
-   * All requests are made in parallel but only one event is emitted.
-   * @param token The token to use for authentication.
-   * @param backendUrl The URL of the backend API.
-   * @param exercises Exercise creation parameters.
+   * Creates a new exercise or multiple exercises via the backend API.
+   * When creating multiple exercises, all requests are made in parallel but only one event is emitted.
+   * @param params Exercise creation parameters (single or array).
    * @returns Created exercise objects.
    */
-  public async addExercise(token: string, backendUrl: string, exercises: CreateExerciseParams[]): Promise<Exercise[]> {
+  async add(params: CreateExerciseParams | CreateExerciseParams[]): Promise<Exercise[]> {
+    const exercises = Array.isArray(params) ? params : [params];
+
     const responses = await Promise.all(
       exercises.map(async (exercise) => {
-        const response = await fetch(`${backendUrl}/exercises`, {
+        const response = await fetch(`${this.backendUrl}/exercises`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${this.token}`,
           },
           body: JSON.stringify(exercise),
         });
@@ -82,27 +101,21 @@ export class ExerciseController {
       }),
     );
 
-    this.rimoriClient.event.emit('global.exercises.triggerChange');
+    this.eventModule.emit('global.exercises.triggerChange');
 
     return responses;
   }
 
   /**
    * Deletes an exercise via the backend API.
-   * @param token The token to use for authentication.
-   * @param backendUrl The URL of the backend API.
-   * @param exerciseId The exercise ID to delete.
+   * @param id The exercise ID to delete.
    * @returns Success status.
    */
-  public async deleteExercise(
-    token: string,
-    backendUrl: string,
-    id: string,
-  ): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${backendUrl}/exercises/${id}`, {
+  async delete(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${this.backendUrl}/exercises/${id}`, {
       method: 'DELETE',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${this.token}`,
       },
     });
 
@@ -110,7 +123,8 @@ export class ExerciseController {
       const errorText = await response.text();
       throw new Error(`Failed to delete exercise: ${errorText}`);
     }
-    this.rimoriClient.event.emit('global.exercises.triggerChange');
+
+    this.eventModule.emit('global.exercises.triggerChange');
 
     return await response.json();
   }

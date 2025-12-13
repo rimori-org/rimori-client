@@ -224,7 +224,7 @@ export class RimoriCommunicationHandler {
             if (event.data?.topic === 'global.supabase.requestAccess' && event.data?.eventId === eventId) {
               this.rimoriInfo = event.data.data;
               this.supabase = createClient(this.rimoriInfo!.url, this.rimoriInfo!.key, {
-                accessToken: () => Promise.resolve(this.getToken()),
+                accessToken: () => Promise.resolve(this.rimoriInfo!.token),
               });
               self.onmessage = originalOnMessage; // Restore original handler
               resolve({ supabase: this.supabase, info: this.rimoriInfo! });
@@ -242,78 +242,12 @@ export class RimoriCommunicationHandler {
         // console.log({ data });
         this.rimoriInfo = data;
         this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
-          accessToken: () => Promise.resolve(this.getToken()),
+          accessToken: () => Promise.resolve(this.rimoriInfo!.token),
         });
       }
     }
 
     return { supabase: this.supabase!, info: this.rimoriInfo };
-  }
-
-  public async getToken(): Promise<string> {
-    if (this.rimoriInfo && this.rimoriInfo.expiration && this.rimoriInfo.expiration > new Date()) {
-      return this.rimoriInfo.token;
-    }
-
-    // If we don't have rimoriInfo, request it
-    if (!this.rimoriInfo) {
-      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
-      this.rimoriInfo = data;
-      return this.rimoriInfo.token;
-    }
-
-    // If token is expired, request fresh access
-    const { data } = await EventBus.request<{ token: string; expiration: Date }>(
-      this.pluginId,
-      'global.supabase.requestAccess',
-    );
-    this.rimoriInfo.token = data.token;
-    this.rimoriInfo.expiration = data.expiration;
-
-    return this.rimoriInfo.token;
-  }
-
-  /**
-   * Gets the Supabase URL.
-   * @returns The Supabase URL.
-   * @deprecated All endpoints should use the backend URL instead.
-   */
-  public getSupabaseUrl(): string {
-    if (!this.rimoriInfo) {
-      throw new Error('Supabase info not found');
-    }
-
-    return this.rimoriInfo.url;
-  }
-
-  public getBackendUrl(): string {
-    if (!this.rimoriInfo) {
-      throw new Error('Rimori info not found');
-    }
-    return this.rimoriInfo.backendUrl;
-  }
-
-  public getGlobalEventTopic(preliminaryTopic: string): string {
-    if (preliminaryTopic.startsWith('global.')) {
-      return preliminaryTopic;
-    }
-    if (preliminaryTopic.startsWith('self.')) {
-      return preliminaryTopic;
-    }
-    const topicParts = preliminaryTopic.split('.');
-    if (topicParts.length === 3) {
-      if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
-        throw new Error("The event topic must start with the plugin id or 'global'.");
-      }
-      return preliminaryTopic;
-    } else if (topicParts.length > 3) {
-      throw new Error(
-        `The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`,
-      );
-    }
-
-    const topicRoot = this.rimoriInfo?.pluginId ?? 'global';
-    return `${topicRoot}.${preliminaryTopic}`;
   }
 
   /**
