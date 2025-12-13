@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/rimori-org/rimori-client.git"
   },
-  "license": "apache-2.0",
+  "license": "Apache-2.0",
   "bin": {
     "rimori-release": "./dist/cli/scripts/release/release.js",
     "rimori-init": "./dist/cli/scripts/init/main.js"
@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
+    "@types/node": "^25.0.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-react-hooks": "^7.0.0",
