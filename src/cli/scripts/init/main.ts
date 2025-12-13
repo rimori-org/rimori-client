@@ -83,6 +83,7 @@ async function main(): Promise<void> {
       // Update gitignore
       updateGitignore();
     } else {
+      throw new Error('Registration is disabled until new developer platform is released.');
       // Step 1: Get user credentials
       const credentials = await askForCredentials();
       console.log('');

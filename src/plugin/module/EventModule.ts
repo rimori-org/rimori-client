@@ -1,6 +1,6 @@
-import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
 import { MainPanelAction } from '../../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../../controller/AccomplishmentController';
+import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
 
 /**
  * Event module for plugin event bus operations.

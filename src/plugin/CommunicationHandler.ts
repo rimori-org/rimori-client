@@ -1,10 +1,12 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserInfo } from '../controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
+import { PostgrestClient } from '@supabase/postgrest-js';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
+
+export type SupabaseClient = PostgrestClient;
 
 export interface Guild {
   allowUserPluginSettings: boolean;
@@ -89,9 +91,7 @@ export class RimoriCommunicationHandler {
       // Initialize Supabase client immediately with provided info
       if (rimoriInfo) {
         this.rimoriInfo = rimoriInfo;
-        this.supabase = createClient(rimoriInfo.url, rimoriInfo.key, {
-          accessToken: () => Promise.resolve(rimoriInfo.token),
-        });
+        this.supabase = this.getSupabase(rimoriInfo.url, rimoriInfo.key, rimoriInfo.token);
       }
 
       // Handle messages from parent
@@ -180,6 +180,16 @@ export class RimoriCommunicationHandler {
     return this.queryParams[key] || null;
   }
 
+  private getSupabase(url: string, key: string, token: string): SupabaseClient {
+    return new PostgrestClient(`${url}/rest/v1`, {
+      schema: this.rimoriInfo?.dbSchema,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${token}`,
+      },
+    }) as unknown as SupabaseClient;
+  }
+
   public async getClient(): Promise<{ supabase: SupabaseClient; info: RimoriInfo }> {
     // Return cached client if valid
     if (this.supabase && this.rimoriInfo && this.rimoriInfo.expiration > new Date()) {
@@ -223,9 +233,7 @@ export class RimoriCommunicationHandler {
           self.onmessage = (event) => {
             if (event.data?.topic === 'global.supabase.requestAccess' && event.data?.eventId === eventId) {
               this.rimoriInfo = event.data.data;
-              this.supabase = createClient(this.rimoriInfo!.url, this.rimoriInfo!.key, {
-                accessToken: () => Promise.resolve(this.rimoriInfo!.token),
-              });
+              this.supabase = this.getSupabase(this.rimoriInfo!.url, this.rimoriInfo!.key, this.rimoriInfo!.token);
               self.onmessage = originalOnMessage; // Restore original handler
               resolve({ supabase: this.supabase, info: this.rimoriInfo! });
             } else if (originalOnMessage) {
@@ -241,9 +249,7 @@ export class RimoriCommunicationHandler {
         const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
         // console.log({ data });
         this.rimoriInfo = data;
-        this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
-          accessToken: () => Promise.resolve(this.rimoriInfo!.token),
-        });
+        this.supabase = this.getSupabase(this.rimoriInfo.url, this.rimoriInfo.key, this.rimoriInfo.token);
       }
     }
 
@@ -259,9 +265,7 @@ export class RimoriCommunicationHandler {
     this.rimoriInfo = newInfo;
 
     // Update Supabase client with new token
-    this.supabase = createClient(newInfo.url, newInfo.key, {
-      accessToken: () => Promise.resolve(newInfo.token),
-    });
+    this.supabase = this.getSupabase(newInfo.url, newInfo.key, newInfo.token);
 
     // Notify all registered callbacks
     this.updateCallbacks.forEach((callback) => {

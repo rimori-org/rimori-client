@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '../CommunicationHandler';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 import { EventModule } from './EventModule';
 

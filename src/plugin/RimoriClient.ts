@@ -1,4 +1,3 @@
-import { SupabaseClient } from '@supabase/supabase-js';
 import {
   SharedContent,
   SharedContentController,
@@ -12,6 +11,7 @@ import { DbModule } from './module/DbModule';
 import { EventModule } from './module/EventModule';
 import { AIModule } from './module/AIModule';
 import { ExerciseModule } from './module/ExerciseModule';
+import { PostgrestClient } from '@supabase/postgrest-js';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
@@ -27,7 +27,7 @@ export class RimoriClient {
   public exercise: ExerciseModule;
   private rimoriInfo: RimoriInfo;
 
-  private constructor(controller: RimoriCommunicationHandler, supabase: SupabaseClient, info: RimoriInfo) {
+  private constructor(controller: RimoriCommunicationHandler, supabase: PostgrestClient, info: RimoriInfo) {
     this.rimoriInfo = info;
     this.pluginController = controller;
     this.sharedContentController = new SharedContentController(supabase, this);

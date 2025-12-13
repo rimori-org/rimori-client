@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from './CommunicationHandler';
 import { EventBus } from '../fromRimori/EventBus';
 import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from '../utils/endpoint';
 
@@ -11,10 +11,12 @@ export interface StandaloneConfig {
 export class StandaloneClient {
   private static instance: StandaloneClient;
   private config: StandaloneConfig;
-  private supabase: SupabaseClient;
+  private supabase: SupabaseClient & { auth: any }; // TODO: remove any
 
   private constructor(config: StandaloneConfig) {
-    this.supabase = createClient(config.url, config.key);
+    throw new Error('Authentication is disabled until new developer platform is released.');
+    // this.supabase = createClient(config.url, config.key);
+    this.supabase = {} as any;
     this.config = config;
   }
 

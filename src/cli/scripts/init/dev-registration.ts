@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js';
 import path from 'path';
 import * as readline from 'readline';
 import { DEFAULT_ANON_KEY, DEFAULT_ENDPOINT } from '../../../utils/endpoint.js';
@@ -120,7 +120,9 @@ export async function authenticateWithSupabase({ email, password }: UserCredenti
   const supabaseUrl = process.env.SUPABASE_URL || DEFAULT_ENDPOINT;
   const supabaseKey = process.env.SUPABASE_ANON_KEY || DEFAULT_ANON_KEY;
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  throw new Error('Authentication is disabled until new developer platform is released.');
+  // const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase = {} as any;
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({

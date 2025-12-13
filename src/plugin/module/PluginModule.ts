@@ -2,7 +2,7 @@ import { SettingsController, UserInfo } from '../../controller/SettingsControlle
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 import { Translator } from '../../controller/TranslationController';
 import { ActivePlugin, Plugin } from '../../fromRimori/PluginTypes';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '../CommunicationHandler';
 
 type Theme = 'light' | 'dark';
 type ApplicationMode = 'main' | 'sidebar' | 'settings';
