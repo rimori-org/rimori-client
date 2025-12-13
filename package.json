@@ -13,6 +13,10 @@
     "rimori-init": "./dist/cli/scripts/init/main.js"
   },
   "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,7 +31,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@supabase/postgrest-js":"^2.87.1",
+    "@supabase/postgrest-js": "^2.87.1",
     "dotenv": "16.5.0",
     "i18next": "^25.6.0"
   },
