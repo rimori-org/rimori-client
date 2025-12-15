@@ -71,6 +71,12 @@ jobs:
           yarn install --frozen-lockfile
           yarn build
 
+      - name: Verify npm package access
+        run: |
+          # Check if package exists and is accessible
+          npm view @rimori/client version || echo "Package not found or not accessible"
+          npm whoami || echo "Not authenticated to npm"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -96,17 +102,25 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           NEXT_VERSION="${VERSION}-next.0"
-          
+
           # Temporarily update package.json version for next publish
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$NEXT_VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
-          
+
           # Publish with next tag
           npm publish --provenance --access public --tag next
-          
+
           # Restore original version (don't commit)
           git checkout package.json
-          
+
           echo "Published version: $NEXT_VERSION with tag 'next'"
+
+      - name: Delete release branch
+        if: success()
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          BRANCH="release/v$VERSION"
+          echo "Attempting to delete release branch: $BRANCH"
+          git push origin --delete "$BRANCH" 2>/dev/null || echo "Branch $BRANCH doesn't exist or already deleted"
 
       - name: Send Slack notification - Success
         if: success()
