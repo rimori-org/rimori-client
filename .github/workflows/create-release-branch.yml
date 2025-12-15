@@ -119,11 +119,7 @@ jobs:
 
           ### Recent Changes
 
-          ${COMMITS}
-
-          ### Next Steps
-          - Review and merge this PR
-          - The release workflow will automatically create a prerelease when merged to main"
+          ${COMMITS}"
 
           PR_URL=$(gh pr create \
             --base "$BASE_BRANCH" \
@@ -143,13 +139,13 @@ jobs:
           channel-id: C09VCT4JFU4
           payload: |
             {
-              "text": "✅ Rimori-Client is ready for release",
+              "text": "✅ Rimori-Client ${{ steps.bump_version.outputs.new_version }} is ready for release",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "✅ Rimori-Client is ready for release"
+                    "text": "✅ Rimori-Client ${{ steps.bump_version.outputs.new_version }} is ready for release"
                   }
                 },
                 {
@@ -157,11 +153,7 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Version:*v${{ steps.bump_version.outputs.new_version }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "**<${{ steps.create_pr.outputs.pull-request-url }}|View PR>**"
+                      "text": "<${{ steps.create_pr.outputs.pull-request-url }}|View PR>"
                     }
                   ]
                 }
