@@ -63,6 +63,9 @@ jobs:
           BASE_BRANCH="dev"
           TARGET_BRANCH="main"
 
+          # Ensure main branch is available locally
+          git fetch origin $TARGET_BRANCH:$TARGET_BRANCH 2>/dev/null || true
+
           # Get all commits on dev that are not on main (unreleased commits)
           COMMITS=$(git log $TARGET_BRANCH..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
 
@@ -137,7 +140,7 @@ jobs:
         if: success()
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: ${{ env.SLACK_CHANNEL_ID }}
+          channel-id: C09VCT4JFU4
           payload: |
             {
               "text": "✅ Rimori-Client is ready for release",
