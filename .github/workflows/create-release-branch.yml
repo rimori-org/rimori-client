@@ -42,7 +42,7 @@ jobs:
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION"
 
-      - name: Bump minor version
+      - name: Bump patch version
         id: bump_version
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
@@ -51,8 +51,8 @@ jobs:
           MINOR=${VERSION_PARTS[1]}
           PATCH=${VERSION_PARTS[2]}
 
-          NEW_MINOR=$((MINOR + 1))
-          NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
@@ -61,16 +61,13 @@ jobs:
         id: get_commits
         run: |
           BASE_BRANCH="dev"
-          # Get commits since last tag, or last 20 commits if no tag exists
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log $BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges | head -20)
-          else
-            COMMITS=$(git log $LAST_TAG..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
-          fi
+          TARGET_BRANCH="main"
+
+          # Get all commits on dev that are not on main (unreleased commits)
+          COMMITS=$(git log $TARGET_BRANCH..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
 
           if [ -z "$COMMITS" ]; then
-            COMMITS="- No commits found"
+            COMMITS="- No new commits since last release"
           fi
 
           echo "commits<<EOF" >> $GITHUB_OUTPUT
@@ -143,13 +140,13 @@ jobs:
           channel-id: ${{ env.SLACK_CHANNEL_ID }}
           payload: |
             {
-              "text": "✅ Rimori-Client Release Branch Created",
+              "text": "✅ Rimori-Client is ready for release",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "✅ rimori-client Release Branch Created"
+                    "text": "✅ Rimori-Client is ready for release"
                   }
                 },
                 {
@@ -157,24 +154,13 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Version:*\nv${{ steps.bump_version.outputs.new_version }}"
+                      "text": "*Version:*v${{ steps.bump_version.outputs.new_version }}"
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Branch:*\n`release/v${{ steps.bump_version.outputs.new_version }}`"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*PR:*\n#${{ steps.create_pr.outputs.pull-request-number }}"
+                      "text": "**<${{ steps.create_pr.outputs.pull-request-url }}|View PR>**"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
                 }
               ]
             }
