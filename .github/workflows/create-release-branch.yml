@@ -1,13 +1,10 @@
-name: Create Release Branch
+name: Weekly release branch
 
 on:
   workflow_dispatch:
-    inputs:
-      base_branch:
-        description: 'Base branch to create release from'
-        required: true
-        default: 'main'
-        type: string
+  schedule:
+    - cron: '0 10 * * 1' # Monday at 10:00 UTC
+    - cron: '0 10 * * 4' # Thursday at 10:00 UTC
 
 env:
   SLACK_CHANNEL_ID: C09FDPQ8XPB
@@ -34,7 +31,7 @@ jobs:
 
       - name: Checkout base branch
         run: |
-          BASE_BRANCH="${{ inputs.base_branch }}"
+          BASE_BRANCH="dev"
           git checkout $BASE_BRANCH
           git pull origin $BASE_BRANCH
 
@@ -63,7 +60,7 @@ jobs:
       - name: Get git commit messages
         id: get_commits
         run: |
-          BASE_BRANCH="${{ inputs.base_branch }}"
+          BASE_BRANCH="dev"
           # Get commits since last tag, or last 20 commits if no tag exists
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
@@ -113,7 +110,7 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
           BRANCH_NAME="release/v$NEW_VERSION"
-          BASE_BRANCH="${{ inputs.base_branch }}"
+          BASE_BRANCH="main"
           COMMITS="${{ steps.get_commits.outputs.commits }}"
 
           PR_BODY="## Release v${NEW_VERSION}

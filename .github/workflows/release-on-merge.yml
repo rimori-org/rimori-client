@@ -1,4 +1,4 @@
-name: Release on Merge to Main
+name: Publish Rimori-Client
 
 on:
   push:
