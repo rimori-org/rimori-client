@@ -199,4 +199,4 @@ export class RimoriClient {
 }
 
 // test 123456
-console.log('test 123456');
+console.log('test 12345678');
