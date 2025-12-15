@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '../plugin/CommunicationHandler';
 import { RimoriClient } from '../plugin/RimoriClient';
 import { ObjectRequest } from './ObjectController';
 

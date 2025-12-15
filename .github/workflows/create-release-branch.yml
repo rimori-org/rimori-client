@@ -1,13 +1,10 @@
-name: Create Release Branch
+name: Weekly release branch
 
 on:
   workflow_dispatch:
-    inputs:
-      base_branch:
-        description: 'Base branch to create release from'
-        required: true
-        default: 'main'
-        type: string
+  schedule:
+    - cron: '0 10 * * 1' # Monday at 10:00 UTC
+    - cron: '0 10 * * 4' # Thursday at 10:00 UTC
 
 env:
   SLACK_CHANNEL_ID: C09FDPQ8XPB
@@ -34,7 +31,7 @@ jobs:
 
       - name: Checkout base branch
         run: |
-          BASE_BRANCH="${{ inputs.base_branch }}"
+          BASE_BRANCH="dev"
           git checkout $BASE_BRANCH
           git pull origin $BASE_BRANCH
 
@@ -45,7 +42,7 @@ jobs:
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION"
 
-      - name: Bump minor version
+      - name: Bump patch version
         id: bump_version
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.current_version }}"
@@ -54,8 +51,8 @@ jobs:
           MINOR=${VERSION_PARTS[1]}
           PATCH=${VERSION_PARTS[2]}
 
-          NEW_MINOR=$((MINOR + 1))
-          NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Bumping version from $CURRENT_VERSION to $NEW_VERSION"
@@ -63,17 +60,17 @@ jobs:
       - name: Get git commit messages
         id: get_commits
         run: |
-          BASE_BRANCH="${{ inputs.base_branch }}"
-          # Get commits since last tag, or last 20 commits if no tag exists
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log $BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges | head -20)
-          else
-            COMMITS=$(git log $LAST_TAG..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
-          fi
+          BASE_BRANCH="dev"
+          TARGET_BRANCH="main"
+
+          # Ensure main branch is available locally
+          git fetch origin $TARGET_BRANCH:$TARGET_BRANCH 2>/dev/null || true
+
+          # Get all commits on dev that are not on main (unreleased commits)
+          COMMITS=$(git log $TARGET_BRANCH..$BASE_BRANCH --pretty=format:"- %s (%h)" --no-merges)
 
           if [ -z "$COMMITS" ]; then
-            COMMITS="- No commits found"
+            COMMITS="- No new commits since last release"
           fi
 
           echo "commits<<EOF" >> $GITHUB_OUTPUT
@@ -113,7 +110,7 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
           BRANCH_NAME="release/v$NEW_VERSION"
-          BASE_BRANCH="${{ inputs.base_branch }}"
+          BASE_BRANCH="main"
           COMMITS="${{ steps.get_commits.outputs.commits }}"
 
           PR_BODY="## Release v${NEW_VERSION}
@@ -122,11 +119,7 @@ jobs:
 
           ### Recent Changes
 
-          ${COMMITS}
-
-          ### Next Steps
-          - Review and merge this PR
-          - The release workflow will automatically create a prerelease when merged to main"
+          ${COMMITS}"
 
           PR_URL=$(gh pr create \
             --base "$BASE_BRANCH" \
@@ -143,16 +136,16 @@ jobs:
         if: success()
         uses: slackapi/slack-github-action@v1.24.0
         with:
-          channel-id: ${{ env.SLACK_CHANNEL_ID }}
+          channel-id: C09VCT4JFU4
           payload: |
             {
-              "text": "✅ Rimori-Client Release Branch Created",
+              "text": "✅ Rimori-Client ${{ steps.bump_version.outputs.new_version }} is ready for release",
               "blocks": [
                 {
                   "type": "header",
                   "text": {
                     "type": "plain_text",
-                    "text": "✅ rimori-client Release Branch Created"
+                    "text": "✅ Rimori-Client ${{ steps.bump_version.outputs.new_version }} is ready for release"
                   }
                 },
                 {
@@ -160,24 +153,9 @@ jobs:
                   "fields": [
                     {
                       "type": "mrkdwn",
-                      "text": "*Version:*\nv${{ steps.bump_version.outputs.new_version }}"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Branch:*\n`release/v${{ steps.bump_version.outputs.new_version }}`"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*PR:*\n#${{ steps.create_pr.outputs.pull-request-number }}"
+                      "text": "<${{ steps.create_pr.outputs.pull-request-url }}|View PR>"
                     }
                   ]
-                },
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
                 }
               ]
             }

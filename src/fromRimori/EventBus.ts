@@ -162,7 +162,7 @@ export class EventBusHandler {
       const blackListedEventIds: { eventId: number; sender: string }[] = [];
       const eventHandler = (data: EventBusMessage) => {
         if (blackListedEventIds.some((item) => item.eventId === data.eventId && item.sender === data.sender)) {
-          console.log('BLACKLISTED EVENT ID', data.eventId, data);
+          // console.log('BLACKLISTED EVENT ID', data.eventId, data);
           return;
         }
         blackListedEventIds.push({

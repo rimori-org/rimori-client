@@ -1,4 +1,4 @@
-name: Release on Merge to Main
+name: Publish Rimori-Client
 
 on:
   push:
@@ -28,6 +28,8 @@ jobs:
         with:
           node-version: '20'
           cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+          provenance: true
 
       - name: Get version from package.json
         id: get_version
@@ -69,7 +71,7 @@ jobs:
           yarn install --frozen-lockfile
           yarn build
 
-      - name: Create GitHub Release (Prerelease)
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
@@ -80,18 +82,31 @@ jobs:
             ### Changes in this release
 
             ${{ steps.get_changelog.outputs.changelog }}
-
-            ---
-
-            **Note:** This is a prerelease. It will be promoted to a stable release after testing.
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to npm
+      - name: Publish to npm (stable)
         id: npm_publish
         run: |
-          npm publish --provenance --access public --tag prerelease || echo "npm publish skipped (may already exist)"
+          npm publish --provenance --access public --tag latest
+
+      - name: Publish to npm (next)
+        id: npm_publish_next
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          NEXT_VERSION="${VERSION}-next.0"
+          
+          # Temporarily update package.json version for next publish
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$NEXT_VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+          
+          # Publish with next tag
+          npm publish --provenance --access public --tag next
+          
+          # Restore original version (don't commit)
+          git checkout package.json
+          
+          echo "Published version: $NEXT_VERSION with tag 'next'"
 
       - name: Send Slack notification - Success
         if: success()
@@ -118,7 +133,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Type:*\nPrerelease"
+                      "text": "*Type:*\nStable + Next"
                     },
                     {
                       "type": "mrkdwn",

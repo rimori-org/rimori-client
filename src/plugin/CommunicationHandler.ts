@@ -1,10 +1,12 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { UserInfo } from '../controller/SettingsController';
 import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
+import { PostgrestClient } from '@supabase/postgrest-js';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
+
+export type SupabaseClient = PostgrestClient;
 
 export interface Guild {
   allowUserPluginSettings: boolean;
@@ -54,6 +56,7 @@ export class RimoriCommunicationHandler {
   private pluginId: string;
   private isMessageChannelReady = false;
   private pendingRequests: Array<() => void> = [];
+  private updateCallbacks: Set<(info: RimoriInfo) => void> = new Set();
 
   public constructor(pluginId: string, standalone: boolean) {
     this.pluginId = pluginId;
@@ -88,9 +91,7 @@ export class RimoriCommunicationHandler {
       // Initialize Supabase client immediately with provided info
       if (rimoriInfo) {
         this.rimoriInfo = rimoriInfo;
-        this.supabase = createClient(rimoriInfo.url, rimoriInfo.key, {
-          accessToken: () => Promise.resolve(rimoriInfo.token),
-        });
+        this.supabase = this.getSupabase(rimoriInfo.url, rimoriInfo.key, rimoriInfo.token);
       }
 
       // Handle messages from parent
@@ -122,6 +123,13 @@ export class RimoriCommunicationHandler {
         if (ev.sender === this.pluginId && !ev.topic.startsWith('self.')) {
           this.port?.postMessage({ event: ev });
         }
+      });
+
+      // Listen for updates from rimori-main (data changes, token refresh, etc.)
+      // Topic format: {pluginId}.supabase.triggerUpdate
+      EventBus.on(`${this.pluginId}.supabase.triggerUpdate`, (ev) => {
+        console.log('[RimoriCommunicationHandler] Received update from rimori-main');
+        this.handleRimoriInfoUpdate(ev.data as RimoriInfo);
       });
 
       // Mark MessageChannel as ready and process pending requests
@@ -172,6 +180,16 @@ export class RimoriCommunicationHandler {
     return this.queryParams[key] || null;
   }
 
+  private getSupabase(url: string, key: string, token: string): SupabaseClient {
+    return new PostgrestClient(`${url}/rest/v1`, {
+      schema: this.rimoriInfo?.dbSchema,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${token}`,
+      },
+    }) as unknown as SupabaseClient;
+  }
+
   public async getClient(): Promise<{ supabase: SupabaseClient; info: RimoriInfo }> {
     // Return cached client if valid
     if (this.supabase && this.rimoriInfo && this.rimoriInfo.expiration > new Date()) {
@@ -215,9 +233,7 @@ export class RimoriCommunicationHandler {
           self.onmessage = (event) => {
             if (event.data?.topic === 'global.supabase.requestAccess' && event.data?.eventId === eventId) {
               this.rimoriInfo = event.data.data;
-              this.supabase = createClient(this.rimoriInfo!.url, this.rimoriInfo!.key, {
-                accessToken: () => Promise.resolve(this.getToken()),
-              });
+              this.supabase = this.getSupabase(this.rimoriInfo!.url, this.rimoriInfo!.key, this.rimoriInfo!.token);
               self.onmessage = originalOnMessage; // Restore original handler
               resolve({ supabase: this.supabase, info: this.rimoriInfo! });
             } else if (originalOnMessage) {
@@ -233,78 +249,43 @@ export class RimoriCommunicationHandler {
         const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
         // console.log({ data });
         this.rimoriInfo = data;
-        this.supabase = createClient(this.rimoriInfo.url, this.rimoriInfo.key, {
-          accessToken: () => Promise.resolve(this.getToken()),
-        });
+        this.supabase = this.getSupabase(this.rimoriInfo.url, this.rimoriInfo.key, this.rimoriInfo.token);
       }
     }
 
     return { supabase: this.supabase!, info: this.rimoriInfo };
   }
 
-  public async getToken(): Promise<string> {
-    if (this.rimoriInfo && this.rimoriInfo.expiration && this.rimoriInfo.expiration > new Date()) {
-      return this.rimoriInfo.token;
-    }
+  /**
+   * Handles updates to RimoriInfo from rimori-main.
+   * Updates the cached info and Supabase client, then notifies all registered callbacks.
+   */
+  private handleRimoriInfoUpdate(newInfo: RimoriInfo): void {
+    // Update cached rimoriInfo
+    this.rimoriInfo = newInfo;
 
-    // If we don't have rimoriInfo, request it
-    if (!this.rimoriInfo) {
-      const { data } = await EventBus.request<RimoriInfo>(this.pluginId, 'global.supabase.requestAccess');
-      this.rimoriInfo = data;
-      return this.rimoriInfo.token;
-    }
+    // Update Supabase client with new token
+    this.supabase = this.getSupabase(newInfo.url, newInfo.key, newInfo.token);
 
-    // If token is expired, request fresh access
-    const { data } = await EventBus.request<{ token: string; expiration: Date }>(
-      this.pluginId,
-      'global.supabase.requestAccess',
-    );
-    this.rimoriInfo.token = data.token;
-    this.rimoriInfo.expiration = data.expiration;
-
-    return this.rimoriInfo.token;
+    // Notify all registered callbacks
+    this.updateCallbacks.forEach((callback) => {
+      try {
+        callback(newInfo);
+      } catch (error) {
+        console.error('[RimoriCommunicationHandler] Error in update callback:', error);
+      }
+    });
   }
 
   /**
-   * Gets the Supabase URL.
-   * @returns The Supabase URL.
-   * @deprecated All endpoints should use the backend URL instead.
+   * Registers a callback to be called when RimoriInfo is updated.
+   * @param callback - Function to call with the new RimoriInfo
+   * @returns Cleanup function to unregister the callback
    */
-  public getSupabaseUrl(): string {
-    if (!this.rimoriInfo) {
-      throw new Error('Supabase info not found');
-    }
-
-    return this.rimoriInfo.url;
-  }
-
-  public getBackendUrl(): string {
-    if (!this.rimoriInfo) {
-      throw new Error('Rimori info not found');
-    }
-    return this.rimoriInfo.backendUrl;
-  }
-
-  public getGlobalEventTopic(preliminaryTopic: string): string {
-    if (preliminaryTopic.startsWith('global.')) {
-      return preliminaryTopic;
-    }
-    if (preliminaryTopic.startsWith('self.')) {
-      return preliminaryTopic;
-    }
-    const topicParts = preliminaryTopic.split('.');
-    if (topicParts.length === 3) {
-      if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
-        throw new Error("The event topic must start with the plugin id or 'global'.");
-      }
-      return preliminaryTopic;
-    } else if (topicParts.length > 3) {
-      throw new Error(
-        `The event topic must consist of 3 parts. <pluginId>.<topic area>.<action>. Received: ${preliminaryTopic}`,
-      );
-    }
-
-    const topicRoot = this.rimoriInfo?.pluginId ?? 'global';
-    return `${topicRoot}.${preliminaryTopic}`;
+  public onUpdate(callback: (info: RimoriInfo) => void): () => void {
+    this.updateCallbacks.add(callback);
+    return () => {
+      this.updateCallbacks.delete(callback);
+    };
   }
 }
