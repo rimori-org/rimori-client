@@ -115,10 +115,6 @@ jobs:
 
           PR_BODY="## Release v${NEW_VERSION}
 
-          This PR bumps the version to **v${NEW_VERSION}**.
-
-          ### Recent Changes
-
           ${COMMITS}"
 
           PR_URL=$(gh pr create \
