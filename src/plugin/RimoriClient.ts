@@ -198,4 +198,5 @@ export class RimoriClient {
   };
 }
 
-// test
+// test 123456
+// console.log('test 1234567890');
