@@ -80,6 +80,7 @@ export class SettingsController {
     const isGuildSetting = !this.guild.allowUserPluginSettings;
 
     const { data } = await this.supabase
+      .schema('public')
       .from('plugin_settings')
       .select('*')
       .eq('plugin_id', this.pluginId)
@@ -113,6 +114,7 @@ export class SettingsController {
 
     // Try UPDATE first (safe with RLS). If nothing updated, INSERT.
     const updateQuery = this.supabase
+      .schema('public')
       .from('plugin_settings')
       .update({ settings })
       .eq('plugin_id', this.pluginId)
@@ -135,12 +137,13 @@ export class SettingsController {
     }
 
     // No row updated -> INSERT
-    const { error: insertError } = await this.supabase.from('plugin_settings').insert(payload);
+    const { error: insertError } = await this.supabase.schema('public').from('plugin_settings').insert(payload);
 
     if (insertError) {
       // In case of race condition (duplicate), try one more UPDATE
       if (insertError.code === '23505' /* unique_violation */) {
         const retry = this.supabase
+          .schema('public')
           .from('plugin_settings')
           .update({ settings })
           .eq('plugin_id', this.pluginId)
