@@ -43,7 +43,7 @@ export class DbModule {
     // Plugin tables use the schema provided by rimori-main (plugins or plugins_alpha)
     if (relation.startsWith('global_')) {
       // Global tables stay in public schema
-      return this.supabase.from(tableName);
+      return this.supabase.schema('public').from(tableName);
     }
     // Plugin tables go to the schema provided by rimori-main
     return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName);
