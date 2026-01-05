@@ -4,8 +4,8 @@ import { Translator } from '../../controller/TranslationController';
 import { ActivePlugin, Plugin } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
 
-type Theme = 'light' | 'dark';
-type ApplicationMode = 'main' | 'sidebar' | 'settings';
+export type Theme = 'light' | 'dark' | 'system'; // system means the system's default theme
+export type ApplicationMode = 'main' | 'sidebar' | 'settings';
 /**
  * Controller for plugin-related operations.
  * Provides access to plugin settings, user info, and plugin information.
