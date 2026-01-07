@@ -130,8 +130,8 @@ export class EventModule {
    * @param actionKey The key of the action to trigger.
    * @param text Optional text to be used for the action like for example text that the translator would look up.
    */
-  emitSidebarAction(pluginId: string, actionKey: string, text?: string): void {
-    this.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text });
+  emitSidebarAction(pluginId: string, actionKey: string, text?: string, args?: Record<string, unknown>): void {
+    this.emit('global.sidebar.triggerAction', { plugin_id: pluginId, action_key: actionKey, text, args });
   }
 
   /**
