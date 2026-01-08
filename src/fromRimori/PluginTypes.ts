@@ -71,7 +71,10 @@ export type MainPanelAction = {
 
 // an action from the sidebar that can be triggered and performs an action in the sidebar
 export type SidebarAction = {
+  text: string;
+  // action to perform
   action: string;
+  // additional arguments to be passed to the action
   args?: Record<string, unknown>;
 };
 
