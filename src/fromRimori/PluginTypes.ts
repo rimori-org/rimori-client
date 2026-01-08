@@ -69,6 +69,12 @@ export type MainPanelAction = {
   action_key: string;
 } & Record<string, string>;
 
+// an action from the sidebar that can be triggered and performs an action in the sidebar
+export type SidebarAction = {
+  action: string;
+  args?: Record<string, unknown>;
+};
+
 // an action from the context menu that can be triggered and performs an action in the sidebar plugin
 export interface ContextMenuAction {
   // selected text when clicking on the context menu
