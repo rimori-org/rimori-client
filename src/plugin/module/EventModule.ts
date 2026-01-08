@@ -1,4 +1,4 @@
-import { MainPanelAction, SidePanelAction } from '../../fromRimori/PluginTypes';
+import { MainPanelAction, SidebarAction } from '../../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../../controller/AccomplishmentController';
 import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
 
@@ -176,11 +176,11 @@ export class EventModule {
    * @param actionsToListen Optional filter to listen only to specific action keys. If empty or not provided, all actions will trigger the callback.
    * @returns An EventListener object with an `off()` method for cleanup.
    */
-  onSidePanelAction(callback: (data: SidePanelAction) => void, actionsToListen: string | string[] = []): EventListener {
+  onSidePanelAction(callback: (data: SidebarAction) => void, actionsToListen: string | string[] = []): EventListener {
     const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
     // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
     this.emit('action.requestSidebar');
-    return this.on<SidePanelAction>('action.requestSidebar', ({ data }) => {
+    return this.on<SidebarAction>('action.requestSidebar', ({ data }) => {
       // console.log("eventHandler .onSidePanelAction", data);
       // console.log('Received action for sidebar ' + data.action);
       // console.log('Listening to actions', listeningActions);
