@@ -59,6 +59,8 @@ export interface MenuEntry {
   text: string;
   // icon of the menu entry. Shown in the context menu
   iconUrl?: string;
+  // additional arguments to be passed to the action
+  args?: Record<string, unknown>;
 }
 
 // an action from the main panel that can be triggered and performs an action in the main panel
@@ -75,6 +77,8 @@ export interface ContextMenuAction {
   plugin_id: string;
   // key of the action. Used to know which action to trigger when clicking on the context menu
   action_key: string;
+  // additional arguments to be passed to the action
+  args?: Record<string, unknown>;
 }
 
 /**
@@ -114,7 +118,7 @@ export interface RimoriPluginConfig<T extends object = object> {
   /**
    * Context menu actions that the plugin registers to appear in right-click menus throughout the application.
    */
-  context_menu_actions: Omit<MenuEntry, 'plugin_id'>[];
+  context_menu_actions: Omit<MenuEntry, 'plugin_id' | 'args'>[];
   /**
    * Documentation paths for different types of plugin documentation.
    */

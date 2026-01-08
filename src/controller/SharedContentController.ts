@@ -37,39 +37,40 @@ export class SharedContentController {
     options?: { privateTopic?: boolean; skipDbSave?: boolean; alwaysGenerateNew?: boolean; excludeIds?: string[] },
   ): Promise<SharedContent<T>> {
     // The db cache of the shared content is temporary disabled until the new shared content implementation is completed
-    // if (false) {
-    //   let query = this.supabase
-    //     .from('shared_content')
-    //     .select('*, scc:shared_content_completed(id, state)')
-    //     .eq('content_type', contentType)
-    //     .not('scc.state', 'in', '("completed","ongoing","hidden")')
-    //     .is('deleted_at', null);
+    if (true) {
+      let query = this.supabase
+        .schema('public')
+        .from('shared_content')
+        .select('*, scc:shared_content_completed(id, state)')
+        .eq('content_type', contentType)
+        .not('scc.state', 'in', '("completed","ongoing","hidden")')
+        .is('deleted_at', null);
 
-    //   if (options?.excludeIds?.length ?? 0 > 0) {
-    //     const excludeIds = options.excludeIds.filter((id) => !id.startsWith('internal-temp-id-'));
-    //     // Supabase expects raw PostgREST syntax like '("id1","id2")'.
-    //     const excludeList = `(${excludeIds.map((id) => `"${id}"`).join(',')})`;
-    //     query = query.not('id', 'in', excludeList);
-    //   }
+      if (options?.excludeIds?.length ?? 0 > 0) {
+        const excludeIds = options?.excludeIds?.filter((id) => !id.startsWith('internal-temp-id-')) ?? [];
+        // Supabase expects raw PostgREST syntax like '("id1","id2")'.
+        const excludeList = `(${excludeIds?.map((id) => `"${id}"`).join(',') ?? ''})`;
+        query = query.not('id', 'in', excludeList);
+      }
 
-    //   if (filter) {
-    //     query.contains('data', filter);
-    //   }
+      if (filter) {
+        query.contains('data', filter);
+      }
 
-    //   const { data: newAssignments, error } = await query.limit(30);
+      const { data: newAssignments, error } = await query.limit(30);
 
-    //   if (error) {
-    //     console.error('error fetching new assignments:', error);
-    //     throw new Error('error fetching new assignments');
-    //   }
+      if (error) {
+        console.error('error fetching new assignments:', error);
+        throw new Error('error fetching new assignments');
+      }
 
-    //   // console.log('newAssignments:', newAssignments);
+      // console.log('newAssignments:', newAssignments);
 
-    //   if (!options?.alwaysGenerateNew && newAssignments.length > 0) {
-    //     const index = Math.floor(Math.random() * newAssignments.length);
-    //     return newAssignments[index];
-    //   }
-    // }
+      if (!options?.alwaysGenerateNew && newAssignments.length > 0) {
+        const index = Math.floor(Math.random() * newAssignments.length);
+        return newAssignments[index];
+      }
+    }
     const instructions = await this.generateNewAssignment(contentType, generatorInstructions, filter);
 
     console.log('instructions:', instructions);
@@ -126,6 +127,7 @@ export class SharedContentController {
 
   private async getCompletedTopics(contentType: string, filter?: SharedContentFilter): Promise<string[]> {
     const query = this.supabase
+      .schema('public')
       .from('shared_content')
       .select('title, keywords, scc:shared_content_completed(id)')
       .eq('content_type', contentType)
@@ -147,6 +149,7 @@ export class SharedContentController {
 
   public async getSharedContent<T>(contentType: string, id: string): Promise<SharedContent<T>> {
     const { data, error } = await this.supabase
+      .schema('public')
       .from('shared_content')
       .select()
       .eq('content_type', contentType)
@@ -163,6 +166,7 @@ export class SharedContentController {
   public async completeSharedContent(contentType: string, assignmentId: string) {
     // Idempotent completion: upsert on (id, user_id) so repeated calls don't fail
     const { error } = await this.supabase
+      .schema('public')
       .from('shared_content_completed')
       .upsert({ content_type: contentType, id: assignmentId } as any, { onConflict: 'id' });
 
@@ -202,7 +206,10 @@ export class SharedContentController {
     if (bookmarked !== undefined) payload.bookmarked = bookmarked;
 
     // Prefer upsert, fall back to insert/update if upsert not allowed
-    const { error } = await this.supabase.from('shared_content_completed').upsert(payload as any, { onConflict: 'id' });
+    const { error } = await this.supabase
+      .schema('public')
+      .from('shared_content_completed')
+      .upsert(payload as any, { onConflict: 'id' });
 
     if (error) {
       console.error('error updating shared content state:', error);
@@ -223,6 +230,7 @@ export class SharedContentController {
     limit?: number,
   ): Promise<SharedContent<T>[]> {
     const query = this.supabase
+      .schema('public')
       .from('shared_content')
       .select('*')
       .eq('content_type', contentType)
@@ -262,6 +270,7 @@ export class SharedContentController {
     privateTopic,
   }: Omit<SharedContent<T>, 'id'>): Promise<SharedContent<T>> {
     const { data: newContent, error } = await this.supabase
+      .schema('public')
       .from('shared_content')
       .insert({
         private: privateTopic,
@@ -297,6 +306,7 @@ export class SharedContentController {
     if (updates.privateTopic !== undefined) updateData.private = updates.privateTopic;
 
     const { data: updatedContent, error } = await this.supabase
+      .schema('public')
       .from('shared_content')
       .update(updateData)
       .eq('id', id)
@@ -322,6 +332,7 @@ export class SharedContentController {
    */
   public async removeSharedContent(id: string): Promise<SharedContent<any>> {
     const { data: deletedContent, error } = await this.supabase
+      .schema('public')
       .from('shared_content')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
