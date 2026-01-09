@@ -41,9 +41,12 @@ export class EventBusHandler {
   private static instance: EventBusHandler | null = null;
   private debugEnabled = false;
   private evName = '';
+  private generatedIds: Map<number, number> = new Map(); // Map<id, timestamp>
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
     //private constructor
+    this.startIdCleanup();
   }
 
   static getInstance(name?: string) {
@@ -65,8 +68,45 @@ export class EventBusHandler {
     return EventBusHandler.instance;
   }
 
+  /**
+   * Starts the interval to cleanup the generated ids.
+   */
+  private startIdCleanup(): void {
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000; // 60 seconds in milliseconds
+
+      for (const [id, timestamp] of this.generatedIds.entries()) {
+        if (timestamp < oneMinuteAgo) {
+          this.generatedIds.delete(id);
+        }
+      }
+    }, 10000); // Run every 10 seconds
+  }
+
+  /**
+   * Generates a unique id.
+   * @returns A unique id.
+   */
+  private generateUniqueId(): number {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+    const id = Math.floor(Math.random() * 10000000000);
+
+    // Check if ID was generated within the last minute
+    const existingTimestamp = this.generatedIds.get(id);
+    if (existingTimestamp && existingTimestamp > oneMinuteAgo) {
+      // ID was recently generated, generate a new one recursively
+      return this.generateUniqueId();
+    }
+
+    // Store the ID with current timestamp
+    this.generatedIds.set(id, now);
+    return id;
+  }
+
   private createEvent(sender: string, topic: string, data: EventPayload, eventId?: number): EventBusMessage {
-    const generatedEventId = eventId || Math.floor(Math.random() * 10000000000);
+    const generatedEventId = eventId || this.generateUniqueId();
 
     return {
       eventId: generatedEventId,
@@ -156,7 +196,7 @@ export class EventBusHandler {
       if (!this.listeners.has(topic)) {
         this.listeners.set(topic, new Set());
       }
-      const id = Math.floor(Math.random() * 10000000000);
+      const id = this.generateUniqueId();
 
       // To prevent infinite loops and processing the same eventId multiple times
       const blackListedEventIds: { eventId: number; sender: string }[] = [];
