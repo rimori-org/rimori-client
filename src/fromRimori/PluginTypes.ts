@@ -203,6 +203,8 @@ interface ToolParameter {
   enum?: string[];
   /** Whether the parameter is optional */
   optional?: boolean;
+  /** Whether the parameter is an array */
+  isArray?: boolean;
 }
 
 /**

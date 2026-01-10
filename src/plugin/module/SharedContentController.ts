@@ -1,3 +1,4 @@
+import { ObjectTool } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
 import { RimoriClient } from '../RimoriClient';
 
@@ -37,6 +38,7 @@ export class SharedContentController {
    * then falls back to AI generation if nothing suitable is found.
    * @param params - Parameters object
    * @param params.table - Name of the shared content table (without plugin prefix)
+   * @param params.skillType - Type of skill this content is for (grammar, reading, writing, speaking, listening, understanding)
    * @param params.placeholders - Placeholders for instructions template for AI generation (e.g., {topicAreas: "history"})
    * @param params.filter - Filter to find existing content:
    *   - `exact`: Match field value exactly (e.g., {topic_category: {filterType: "exact", value: "history"}})
@@ -49,9 +51,11 @@ export class SharedContentController {
    */
   public async getNew<T>(params: {
     table: string;
+    skillType: 'grammar' | 'reading' | 'writing' | 'speaking' | 'listening' | 'understanding';
     placeholders?: Record<string, string>;
     filter?: Record<string, { filterType: 'rag' | 'exact' | 'exclude'; value: string }>;
     customFields?: Record<string, string | number | boolean | null>;
+    tool?: ObjectTool;
     skipDbSave?: boolean;
     isPrivate?: boolean;
   }): Promise<SharedContent<T>> {
@@ -61,9 +65,11 @@ export class SharedContentController {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tableName: params.table,
+        skillType: params.skillType,
         placeholders: params.placeholders,
         filter: params.filter,
         customFields: params.customFields,
+        tool: params.tool,
         options: {
           skipDbSave: params.skipDbSave,
           isPrivate: params.isPrivate,
