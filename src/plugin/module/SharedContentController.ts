@@ -47,6 +47,7 @@ export class SharedContentController {
    * @param params.customFields - Custom field values for AI-generated content (e.g., {topic_category: "history"})
    * @param params.skipDbSave - If true, don't save generated content to database
    * @param params.isPrivate - If true, content is guild-specific
+   * @param params.ignoreSkillLevel - If true, don't filter by skill level or add skill level guidance to AI instructions
    * @returns Existing or newly generated shared content item
    */
   public async getNew<T>(params: {
@@ -58,6 +59,7 @@ export class SharedContentController {
     tool?: ObjectTool;
     skipDbSave?: boolean;
     isPrivate?: boolean;
+    ignoreSkillLevel?: boolean;
   }): Promise<SharedContent<T>> {
     // Generate new content via backend endpoint
     const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/generate', {
@@ -73,6 +75,7 @@ export class SharedContentController {
         options: {
           skipDbSave: params.skipDbSave,
           isPrivate: params.isPrivate,
+          ignoreSkillLevel: params.ignoreSkillLevel,
         },
       }),
     });
@@ -308,6 +311,25 @@ export class SharedContentController {
     }
 
     return data as SharedContent<T>;
+  }
+
+  /**
+   * Fetch all shared content items.
+   * @param tableName - Name of the shared content table
+   * @param limit - Maximum number of results (default: 100)
+   * @returns Array of all shared content items
+   */
+  public async getAll<T = any>(tableName: string, limit = 100): Promise<SharedContent<T>[]> {
+    const fullTableName = this.getTableName(tableName);
+
+    const { data, error } = await this.supabase.from(fullTableName).select('*').limit(limit);
+
+    if (error) {
+      console.error('Error fetching all shared content:', error);
+      throw new Error('Error fetching all shared content');
+    }
+
+    return (data || []) as SharedContent<T>[];
   }
 
   /**
