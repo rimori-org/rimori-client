@@ -22,6 +22,10 @@ export interface Language {
 export type UserRole = 'user' | 'plugin_moderator' | 'lang_moderator' | 'admin';
 
 export interface UserInfo {
+  /**
+   * The user's unique ID
+   */
+  user_id: string;
   skill_level_reading: LanguageLevel;
   skill_level_writing: LanguageLevel;
   skill_level_grammar: LanguageLevel;
