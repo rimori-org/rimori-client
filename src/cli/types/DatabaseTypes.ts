@@ -71,10 +71,12 @@ interface BaseTableStructure {
 }
 
 /**
- * Complete database table schema definition.
- * Defines the structure, constraints, and relationships for a database table.
+ * Normal database table schema definition.
+ * Defines the structure, constraints, and relationships for a standard database table.
  */
-export interface DbTableDefinition {
+export interface DbNormalTableDefinition {
+  /** Type discriminator for normal tables */
+  type: 'table';
   /** Name of the database table */
   table_name: string;
   /** Description of the table's purpose and usage */
@@ -95,6 +97,39 @@ export interface DbTableDefinition {
     [column_name: string]: DbColumnDefinition;
   };
 }
+
+/**
+ * Shared content table schema definition.
+ * Defines the structure for community-shared content tables with automatic columns and verification.
+ * Table naming: {pluginId}_sc_{table_name}
+ * Automatic columns: title (text), keywords (text[]), verified (boolean), embedding (vector)
+ * Hardcoded permissions: read ALL public+own, insert/update/delete OWN
+ */
+export interface DbSharedContentTableDefinition {
+  /** Type discriminator for shared content tables */
+  type: 'shared_content';
+  /** Name of the database table (will become {pluginId}_sc_{table_name}) */
+  table_name: string;
+  /** Description of the table's purpose and usage */
+  description: string;
+  /** AI prompt for generating content. Supports placeholders like {{topic}}, {{level}}, etc. */
+  instructions: string;
+  /** Optional AI prompt to verify content quality before marking as verified */
+  verification_prompt: string;
+  /** Column definitions for the table (excluding auto-generated columns) */
+  columns: {
+    [column_name: string]: DbColumnDefinition & {
+      /** Whether the column is used for LLM generation. If not set, the column is not used for LLM generation. */
+      expose_to_llm?: boolean;
+    };
+  };
+}
+
+/**
+ * Complete database table schema definition.
+ * Can be either a normal table or a shared content table.
+ */
+export type DbTableDefinition = DbNormalTableDefinition | DbSharedContentTableDefinition;
 
 /**
  * Permission definition for a database table.

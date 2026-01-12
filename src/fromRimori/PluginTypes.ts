@@ -69,6 +69,15 @@ export type MainPanelAction = {
   action_key: string;
 } & Record<string, string>;
 
+// an action from the sidebar that can be triggered and performs an action in the sidebar
+export type SidebarAction = {
+  text: string;
+  // action to perform
+  action: string;
+  // additional arguments to be passed to the action
+  args?: Record<string, unknown>;
+};
+
 // an action from the context menu that can be triggered and performs an action in the sidebar plugin
 export interface ContextMenuAction {
   // selected text when clicking on the context menu
@@ -194,6 +203,8 @@ interface ToolParameter {
   enum?: string[];
   /** Whether the parameter is optional */
   optional?: boolean;
+  /** Whether the parameter is an array */
+  isArray?: boolean;
 }
 
 /**
