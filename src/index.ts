@@ -10,7 +10,7 @@ export { setupWorker } from './worker/WorkerSetup';
 export { AudioController } from './controller/AudioController';
 export { Translator } from './controller/TranslationController';
 export type { TOptions } from 'i18next';
-export type { SharedContent, BasicSharedContent } from './plugin/module/SharedContentController';
+export type { SharedContent, BasicSharedContent, ContentStatus } from './plugin/module/SharedContentController';
 export type { Exercise } from './plugin/module/ExerciseModule';
 export type { UserInfo, Language, UserRole } from './controller/SettingsController';
 export type { Message, ToolInvocation } from './controller/AIController';

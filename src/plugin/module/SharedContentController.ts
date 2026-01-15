@@ -4,11 +4,13 @@ import { RimoriClient } from '../RimoriClient';
 
 export type SharedContent<T> = BasicSharedContent & T;
 
+export type ContentStatus = 'featured' | 'community' | 'unverified';
+
 export interface BasicSharedContent {
   id: string;
   title: string;
   keywords: string[];
-  verified: boolean;
+  content_status: ContentStatus;
   created_by: string;
   created_at: string;
   guild_id: string | null;

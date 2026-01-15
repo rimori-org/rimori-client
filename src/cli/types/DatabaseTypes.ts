@@ -102,8 +102,8 @@ export interface DbNormalTableDefinition {
  * Shared content table schema definition.
  * Defines the structure for community-shared content tables with automatic columns and verification.
  * Table naming: {pluginId}_sc_{table_name}
- * Automatic columns: title (text), keywords (text[]), verified (boolean), embedding (vector)
- * Hardcoded permissions: read ALL public+own, insert/update/delete OWN
+ * Automatic columns: title (text), keywords (text[]), content_status (text: featured/community/unverified), embedding (vector)
+ * Hardcoded permissions: read ALL public verified (community/featured) + own, insert/update/delete OWN
  */
 export interface DbSharedContentTableDefinition {
   /** Type discriminator for shared content tables */
@@ -114,7 +114,7 @@ export interface DbSharedContentTableDefinition {
   description: string;
   /** AI prompt for generating content. Supports placeholders like {{topic}}, {{level}}, etc. */
   instructions: string;
-  /** Optional AI prompt to verify content quality before marking as verified */
+  /** Optional AI prompt to verify content quality and set content_status to 'community' */
   verification_prompt: string;
   /** Column definitions for the table (excluding auto-generated columns) */
   columns: {
