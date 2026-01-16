@@ -1,4 +1,8 @@
 import { createInstance, ThirdPartyModule, TOptions, i18n as i18nType } from 'i18next';
+import { ObjectRequest } from './ObjectController';
+import { AIModule } from '../plugin/module/AIModule';
+
+export type AIObjectGenerator = <T>(request: ObjectRequest) => Promise<T>;
 
 type InitializationState = 'not-inited' | 'initing' | 'finished';
 
@@ -11,12 +15,16 @@ export class Translator {
   private initializationPromise: Promise<void> | null;
   private i18n: i18nType | undefined;
   private translationUrl: string;
+  private ai: AIModule;
+  private aiTranslationCache = new Map<string, string>();
+  private aiTranslationInFlight = new Set<string>();
 
-  constructor(initialLanguage: string, translationUrl: string) {
+  constructor(initialLanguage: string, translationUrl: string, ai: AIModule) {
     this.currentLanguage = initialLanguage;
     this.initializationState = 'not-inited';
     this.initializationPromise = null;
     this.translationUrl = translationUrl;
+    this.ai = ai;
   }
 
   /**
@@ -108,12 +116,16 @@ export class Translator {
   }
 
   /**
-   * Get translation for a key
-   * @param key - Translation key
+   * Get translation for a key or freeform text. If the key is not a valid translation key, the freeform text is translated using AI and cached.
+   * @param key - Translation key or freeform text
    * @param options - Translation options
    * @returns Translated string
    */
   t(key: string, options?: TOptions): string {
+    if (!this.isTranslationKey(key)) {
+      return this.translateFreeformText(key);
+    }
+
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
@@ -132,5 +144,48 @@ export class Translator {
    */
   isReady(): boolean {
     return this.initializationState === 'finished';
+  }
+
+  private isTranslationKey(key: string): boolean {
+    return /^[^\s.]+(\.[^\s.]+)+$/.test(key);
+  }
+
+  private translateFreeformText(text: string): string {
+    const cached = this.aiTranslationCache.get(text);
+    if (cached) return cached;
+
+    if (!this.ai || this.aiTranslationInFlight.has(text)) {
+      return text;
+    }
+
+    this.aiTranslationInFlight.add(text);
+    void this.fetchAiTranslation(text).finally(() => {
+      this.aiTranslationInFlight.delete(text);
+    });
+
+    return text;
+  }
+
+  private async fetchAiTranslation(text: string): Promise<void> {
+    try {
+      if (!this.ai) return;
+      const response = await this.ai.getObject<{ translation: string }>({
+        behaviour: 'You are a translation engine. Return only the translated text.',
+        instructions: `Translate the following text into ${this.currentLanguage}: ${text}`,
+        tool: {
+          translation: {
+            type: 'string',
+            description: `The translation of the input text into ${this.currentLanguage}.`,
+          },
+        },
+      });
+
+      const translation = response?.translation;
+      if (translation) {
+        this.aiTranslationCache.set(text, translation);
+      }
+    } catch (error) {
+      console.warn('Failed to translate freeform text:', { text, error });
+    }
   }
 }

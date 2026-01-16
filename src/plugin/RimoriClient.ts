@@ -24,7 +24,7 @@ export class RimoriClient {
     this.ai = new AIModule(controller, info);
     this.event = new EventModule(info.pluginId);
     this.db = new DbModule(supabase, controller, info);
-    this.plugin = new PluginModule(supabase, controller, info);
+    this.plugin = new PluginModule(supabase, controller, info, this.ai);
     this.exercise = new ExerciseModule(supabase, controller, info, this.event);
 
     controller.onUpdate((updatedInfo) => {

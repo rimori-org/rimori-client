@@ -119,7 +119,7 @@ Access metadata and settings through `client.plugin`:
 - `plugin.getSettings(defaults)` / `plugin.setSettings(settings)` – persist configuration.
 - `plugin.getPluginInfo()` – read active/installed plugin information.
 - `plugin.getUserInfo()` – obtain user profile details (language, name, guild, etc.).
-- `plugin.getTranslator()` – lazily initialize the translator for manual i18n.
+- `plugin.getTranslator()` – lazily initialize the translator for manual i18n. Translation keys must follow the dot notation (`section.subsection.key`); non-key strings are translated via AI and cached.
 
 ### Database Access
 
@@ -183,7 +183,7 @@ The controller handles topic generation, metadata, and completion tracking autom
 Import additional helpers as needed:
 
 - `AudioController` – high-level audio playback/recording utilities for non-React environments.
-- `Translator` – encapsulated i18next integration for manual translation flows.
+- `Translator` – encapsulated i18next integration for manual translation flows, with AI fallback for non-key strings.
 - `difficultyConverter` – convert between textual and numeric difficulty levels.
 - Type definitions for AI messages, shared content, triggers, accomplishments, and more.
 
