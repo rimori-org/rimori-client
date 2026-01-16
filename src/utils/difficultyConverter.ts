@@ -13,3 +13,14 @@ export function getDifficultyLabel(difficulty: number): LanguageLevel {
 export function getNeighborDifficultyLevel(difficulty: LanguageLevel, difficultyAdjustment: number): LanguageLevel {
   return getDifficultyLabel(getDifficultyLevel(difficulty) + difficultyAdjustment - 1);
 }
+
+/**
+ * Compares two LanguageLevel values to determine their relative order.
+ * Returns:
+ * - negative number if level1 < level2
+ * - 0 if level1 === level2
+ * - positive number if level1 > level2
+ */
+export function compareLanguageLevels(level1: LanguageLevel, level2: LanguageLevel): number {
+  return getDifficultyLevel(level1) - getDifficultyLevel(level2);
+}
