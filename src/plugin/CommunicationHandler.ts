@@ -128,7 +128,7 @@ export class RimoriCommunicationHandler {
       // Listen for updates from rimori-main (data changes, token refresh, etc.)
       // Topic format: {pluginId}.supabase.triggerUpdate
       EventBus.on(`${this.pluginId}.supabase.triggerUpdate`, (ev) => {
-        console.log('[RimoriCommunicationHandler] Received update from rimori-main', ev.data);
+        // console.log('[RimoriCommunicationHandler] Received update from rimori-main', ev.data);
         this.handleRimoriInfoUpdate(ev.data as RimoriInfo);
       });
 
@@ -262,7 +262,7 @@ export class RimoriCommunicationHandler {
    */
   private handleRimoriInfoUpdate(newInfo: RimoriInfo): void {
     if (JSON.stringify(this.rimoriInfo) === JSON.stringify(newInfo)) {
-      console.log('[RimoriCommunicationHandler] RimoriInfo update is the same as the cached info, skipping update');
+      // console.log('[RimoriCommunicationHandler] RimoriInfo update is the same as the cached info, skipping update');
       return;
     }
     // Update cached rimoriInfo
