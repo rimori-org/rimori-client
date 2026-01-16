@@ -54,26 +54,75 @@ export async function generateObject<T = any>(backendUrl: string, request: Objec
   }).then((response) => response.json());
 }
 
-// TODO adjust stream to work with object
-export type OnLLMResponse = (id: string, response: string, finished: boolean, toolInvocations?: any[]) => void;
+export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
-export async function streamObject(
+const tryParseJson = <T>(value: string): T | null => {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+};
+
+const mergeStreamObject = (base: any, patch: any): any => {
+  if (Array.isArray(patch)) {
+    return patch.map((item, index) => mergeStreamObject(base?.[index], item));
+  }
+
+  if (patch && typeof patch === 'object') {
+    const result: Record<string, any> = base && typeof base === 'object' && !Array.isArray(base) ? { ...base } : {};
+
+    for (const [key, value] of Object.entries(patch)) {
+      result[key] = mergeStreamObject(result[key], value);
+    }
+
+    return result;
+  }
+
+  return patch;
+};
+
+const applyStreamChunk = <T>(current: T, chunk: any): { next: T; updated: boolean } => {
+  if (!chunk || typeof chunk !== 'object') {
+    return { next: current, updated: false };
+  }
+
+  if (chunk.object && typeof chunk.object === 'object') {
+    return { next: chunk.object as T, updated: true };
+  }
+
+  if (chunk.delta && typeof chunk.delta === 'object') {
+    return { next: mergeStreamObject(current, chunk.delta) as T, updated: true };
+  }
+
+  if (chunk.value && typeof chunk.value === 'object') {
+    return { next: mergeStreamObject(current, chunk.value) as T, updated: true };
+  }
+
+  return { next: current, updated: false };
+};
+
+export async function streamObject<T = any>(
   backendUrl: string,
   request: ObjectRequest,
-  onResponse: OnLLMResponse,
+  onResult: OnStreamedObjectResult<T>,
   token: string,
-) {
-  const messageId = Math.random().toString(36).substring(3);
+): Promise<void> {
   const response = await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
       stream: true,
-      tools: request.tool,
-      systemInstructions: request.behaviour,
-      secondaryInstructions: request.instructions,
+      tool: request.tool,
+      behaviour: request.behaviour,
+      instructions: request.instructions,
     }),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
+
+  if (!response.ok) {
+    console.error('Failed to stream object:', response.status, response.statusText);
+    return;
+  }
 
   if (!response.body) {
     console.error('No response body.');
@@ -83,38 +132,33 @@ export async function streamObject(
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
 
-  let content = '';
   let done = false;
-  const toolInvocations: any[] = [];
+  let currentObject: any = {};
+
   while (!done) {
-    const { value } = await reader.read();
+    const { value, done: readerDone } = await reader.read();
 
     if (value) {
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter((line) => line.trim() !== '');
+
+      const lines = chunk.split('\n').filter((line) => line.trim());
 
       for (const line of lines) {
-        const data = line.substring(3, line.length - 1);
-        const command = line.substring(0, 1);
-        // console.log("data: ", { line, data, command });
+        const dataStr = line.substring(5).trim();
 
-        if (command === '0') {
-          content += data;
-          // console.log("AI response:", content);
-
-          //content \n\n should be real line break when message is displayed
-          onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"/g, '"'), false);
-        } else if (command === 'd') {
-          // console.log("AI usage:", JSON.parse(line.substring(2)));
+        if (dataStr === '[DONE]') {
           done = true;
           break;
-        } else if (command === '9') {
-          // console.log("tool call:", JSON.parse(line.substring(2)));
-          // console.log("tools", tools);
-          toolInvocations.push(JSON.parse(line.substring(2)));
         }
+
+        currentObject = JSON.parse(dataStr);
+        onResult(currentObject, true);
       }
     }
+
+    if (readerDone) {
+      done = true;
+    }
   }
-  onResponse(messageId, content.replace(/\\n/g, '\n').replace(/\\+"/g, '"'), true, toolInvocations);
+  onResult(currentObject, false);
 }

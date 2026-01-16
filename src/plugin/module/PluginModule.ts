@@ -1,8 +1,9 @@
 import { SettingsController, UserInfo } from '../../controller/SettingsController';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { Translator } from '../../controller/TranslationController';
+import { AIObjectGenerator, Translator } from '../../controller/TranslationController';
 import { ActivePlugin, Plugin } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
+import { AIModule } from './AIModule';
 
 export type Theme = 'light' | 'dark' | 'system'; // system means the system's default theme
 export type ApplicationMode = 'main' | 'sidebar' | 'settings';
@@ -24,7 +25,12 @@ export class PluginModule {
   public applicationMode: ApplicationMode;
   public theme: Theme;
 
-  constructor(supabase: SupabaseClient, communicationHandler: RimoriCommunicationHandler, info: RimoriInfo) {
+  constructor(
+    supabase: SupabaseClient,
+    communicationHandler: RimoriCommunicationHandler,
+    info: RimoriInfo,
+    ai: AIModule,
+  ) {
     this.rimoriInfo = info;
     this.communicationHandler = communicationHandler;
     this.pluginId = info.pluginId;
@@ -33,7 +39,7 @@ export class PluginModule {
     this.settingsController = new SettingsController(supabase, info.pluginId, info.guild);
 
     const currentPlugin = info.installedPlugins.find((plugin) => plugin.id === info.pluginId);
-    this.translator = new Translator(info.interfaceLanguage, currentPlugin?.endpoint || '');
+    this.translator = new Translator(info.interfaceLanguage, currentPlugin?.endpoint || '', ai);
 
     this.communicationHandler.onUpdate((updatedInfo) => (this.rimoriInfo = updatedInfo));
     this.applicationMode = this.communicationHandler.getQueryParam('applicationMode') as ApplicationMode;
