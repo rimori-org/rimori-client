@@ -1,6 +1,6 @@
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 import { generateText, Message, OnLLMResponse, streamChatGPT } from '../../controller/AIController';
-import { generateObject, ObjectRequest } from '../../controller/ObjectController';
+import { generateObject, ObjectRequest, streamObject } from '../../controller/ObjectController';
 import { getSTTResponse, getTTSResponse } from '../../controller/VoiceController';
 import { Tool } from '../../fromRimori/PluginTypes';
 
@@ -73,5 +73,17 @@ export class AIModule {
    */
   async getObject<T = any>(request: ObjectRequest): Promise<T> {
     return generateObject<T>(this.backendUrl, request, this.token);
+  }
+
+  /**
+   * Generate a streamed structured object from a request using AI.
+   * @param request The object generation request.
+   * @param onResult Callback for each result chunk.
+   */
+  async getStreamedObject<T = any>(
+    request: ObjectRequest,
+    onResult: (result: T, isLoading: boolean) => void,
+  ): Promise<void> {
+    return streamObject<T>(this.backendUrl, request, onResult, this.token);
   }
 }
