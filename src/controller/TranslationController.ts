@@ -159,18 +159,20 @@ export class Translator {
     }
 
     this.aiTranslationInFlight.add(text);
-    void this.fetchAiTranslation(text).finally(() => {
+    void this.fetchTranslation(text).finally(() => {
       this.aiTranslationInFlight.delete(text);
     });
 
     return text;
   }
 
-  private async fetchAiTranslation(text: string): Promise<void> {
+  async fetchTranslation(text: string, additionalInstructions?: string): Promise<string> {
+    const cached = this.aiTranslationCache.get(text);
+    if (cached) return cached;
     try {
-      if (!this.ai) return;
+      if (!this.ai) return text;
       const response = await this.ai.getObject<{ translation: string }>({
-        behaviour: 'You are a translation engine. Return only the translated text.',
+        behaviour: 'You are a translation engine. Return only the translated text.' + additionalInstructions,
         instructions: `Translate the following text into ${this.currentLanguage}: ${text}`,
         tool: {
           translation: {
@@ -183,9 +185,11 @@ export class Translator {
       const translation = response?.translation;
       if (translation) {
         this.aiTranslationCache.set(text, translation);
+        return translation;
       }
     } catch (error) {
       console.warn('Failed to translate freeform text:', { text, error });
     }
+    return text;
   }
 }
