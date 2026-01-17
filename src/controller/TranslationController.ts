@@ -17,7 +17,6 @@ export class Translator {
   private translationUrl: string;
   private ai: AIModule;
   private aiTranslationCache = new Map<string, string>();
-  private aiTranslationInFlight = new Set<string>();
 
   constructor(initialLanguage: string, translationUrl: string, ai: AIModule) {
     this.currentLanguage = initialLanguage;
@@ -57,7 +56,18 @@ export class Translator {
               translation: translations,
             },
           },
-          debug: window.location.hostname === 'localhost',
+          debug: false,
+          parseMissingKeyHandler: (key, defaultValue): string => {
+            if (this.isTranslationKey(key)) {
+              console.warn(`Translation key not found: ${key}`);
+              return defaultValue ?? '';
+            }
+            void this.fetchTranslation(key).then((translation) => {
+              this.i18n?.addResource(this.currentLanguage, 'translation', key, translation);
+              this.i18n?.emit('languageChanged'); // triggers re-render
+            });
+            return key;
+          },
         });
 
         await instance.init();
@@ -91,6 +101,14 @@ export class Translator {
     }
     this.i18n.use(plugin);
   }
+
+  public onLanguageChanged(callback: () => void): void {
+    if (!this.i18n) {
+      throw new Error('Translator is not initialized');
+    }
+    this.i18n.on('languageChanged', callback);
+  }
+
   /**
    * Fetch translations manually from the current domain
    * @param language - Language code to fetch
@@ -122,10 +140,6 @@ export class Translator {
    * @returns Translated string
    */
   t(key: string, options?: TOptions): string {
-    if (!this.isTranslationKey(key)) {
-      return this.translateFreeformText(key);
-    }
-
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
@@ -150,27 +164,14 @@ export class Translator {
     return /^[^\s.]+(\.[^\s.]+)+$/.test(key);
   }
 
-  private translateFreeformText(text: string): string {
+  async fetchTranslation(text: string, additionalInstructions?: string): Promise<string> {
     const cached = this.aiTranslationCache.get(text);
     if (cached) return cached;
-
-    if (!this.ai || this.aiTranslationInFlight.has(text)) {
-      return text;
-    }
-
-    this.aiTranslationInFlight.add(text);
-    void this.fetchAiTranslation(text).finally(() => {
-      this.aiTranslationInFlight.delete(text);
-    });
-
-    return text;
-  }
-
-  private async fetchAiTranslation(text: string): Promise<void> {
     try {
-      if (!this.ai) return;
+      // If the current language is English, don't translate
+      if (!this.ai || this.currentLanguage === 'en') return text;
       const response = await this.ai.getObject<{ translation: string }>({
-        behaviour: 'You are a translation engine. Return only the translated text.',
+        behaviour: 'You are a translation engine. Return only the translated text.' + additionalInstructions,
         instructions: `Translate the following text into ${this.currentLanguage}: ${text}`,
         tool: {
           translation: {
@@ -183,9 +184,11 @@ export class Translator {
       const translation = response?.translation;
       if (translation) {
         this.aiTranslationCache.set(text, translation);
+        return translation;
       }
     } catch (error) {
       console.warn('Failed to translate freeform text:', { text, error });
     }
+    return text;
   }
 }
