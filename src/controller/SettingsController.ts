@@ -126,8 +126,8 @@ export class SettingsController {
       .eq('is_guild_setting', isGuildSetting);
 
     const { data: updatedRows, error: updateError } = await (isGuildSetting
-      ? updateQuery.is('user_id', null).select('id')
-      : updateQuery.select('id'));
+      ? updateQuery.is('user_id', null).select()
+      : updateQuery.select());
 
     if (updateError) {
       if (updateError.code === '42501' || updateError.message?.includes('policy')) {
