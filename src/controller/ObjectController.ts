@@ -41,7 +41,12 @@ export interface ObjectRequest {
   instructions: string;
 }
 
-export async function generateObject<T = any>(backendUrl: string, request: ObjectRequest, token: string): Promise<T> {
+export async function generateObject<T = any>(
+  backendUrl: string,
+  request: ObjectRequest,
+  token: string,
+  cache = false,
+): Promise<T> {
   return await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
     body: JSON.stringify({
@@ -49,6 +54,7 @@ export async function generateObject<T = any>(backendUrl: string, request: Objec
       tool: request.tool,
       behaviour: request.behaviour,
       instructions: request.instructions,
+      cache,
     }),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   }).then((response) => response.json());
@@ -107,6 +113,7 @@ export async function streamObject<T = any>(
   request: ObjectRequest,
   onResult: OnStreamedObjectResult<T>,
   token: string,
+  cache = false,
 ): Promise<void> {
   const response = await fetch(`${backendUrl}/ai/llm-object`, {
     method: 'POST',
@@ -115,6 +122,7 @@ export async function streamObject<T = any>(
       tool: request.tool,
       behaviour: request.behaviour,
       instructions: request.instructions,
+      cache,
     }),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });

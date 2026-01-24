@@ -30,4 +30,5 @@ interface TTSRequest {
   voice: string;
   speed: number;
   language?: string;
+  cache?: boolean;
 }
