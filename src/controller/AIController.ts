@@ -13,10 +13,16 @@ export interface Message {
   toolCalls?: ToolInvocation[];
 }
 
-export async function generateText(backendUrl: string, messages: Message[], tools: Tool[], token: string) {
+export async function generateText(
+  backendUrl: string,
+  messages: Message[],
+  tools: Tool[],
+  token: string,
+  cache: boolean = false,
+) {
   const response = await fetch(`${backendUrl}/ai/llm`, {
     method: 'POST',
-    body: JSON.stringify({ messages, tools }),
+    body: JSON.stringify({ messages, tools, cache }),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
@@ -36,6 +42,7 @@ export async function streamChatGPT(
   tools: Tool[],
   onResponse: OnLLMResponse,
   token: string,
+  cache: boolean = false,
 ) {
   const messageId = Math.random().toString(36).substring(3);
   const currentMessages: Message[] = [...messages];
@@ -53,7 +60,7 @@ export async function streamChatGPT(
     try {
       const response = await fetch(`${backendUrl}/ai/llm`, {
         method: 'POST',
-        body: JSON.stringify({ messages: messagesForApi, tools, stream: true }),
+        body: JSON.stringify({ messages: messagesForApi, tools, stream: true, cache }),
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
 

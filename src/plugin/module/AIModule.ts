@@ -27,10 +27,11 @@ export class AIModule {
    * Generate text from messages using AI.
    * @param messages The messages to generate text from.
    * @param tools Optional tools to use for generation.
+   * @param cache Whether to cache the result (default: false).
    * @returns The generated text.
    */
-  async getText(messages: Message[], tools?: Tool[]): Promise<string> {
-    return generateText(this.backendUrl, messages, tools || [], this.token).then(
+  async getText(messages: Message[], tools?: Tool[], cache = false): Promise<string> {
+    return generateText(this.backendUrl, messages, tools || [], this.token, cache).then(
       ({ messages }) => messages[0].content[0].text,
     );
   }
@@ -40,9 +41,10 @@ export class AIModule {
    * @param messages The messages to generate text from.
    * @param onMessage Callback for each message chunk.
    * @param tools Optional tools to use for generation.
+   * @param cache Whether to cache the result (default: false).
    */
-  async getSteamedText(messages: Message[], onMessage: OnLLMResponse, tools?: Tool[]): Promise<void> {
-    streamChatGPT(this.backendUrl, messages, tools || [], onMessage, this.token);
+  async getSteamedText(messages: Message[], onMessage: OnLLMResponse, tools?: Tool[], cache = false): Promise<void> {
+    streamChatGPT(this.backendUrl, messages, tools || [], onMessage, this.token, cache);
   }
 
   /**
@@ -51,10 +53,11 @@ export class AIModule {
    * @param voice The voice to use (default: 'alloy').
    * @param speed The speed of the voice (default: 1).
    * @param language Optional language for the voice.
+   * @param cache Whether to cache the result (default: false).
    * @returns The generated audio as a Blob.
    */
-  async getVoice(text: string, voice = 'alloy', speed = 1, language?: string): Promise<Blob> {
-    return getTTSResponse(this.backendUrl, { input: text, voice, speed, language }, this.token);
+  async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
+    return getTTSResponse(this.backendUrl, { input: text, voice, speed, language, cache }, this.token);
   }
 
   /**
@@ -71,19 +74,21 @@ export class AIModule {
    * @param request The object generation request.
    * @returns The generated object.
    */
-  async getObject<T = any>(request: ObjectRequest): Promise<T> {
-    return generateObject<T>(this.backendUrl, request, this.token);
+  async getObject<T = any>(request: ObjectRequest, cache = false): Promise<T> {
+    return generateObject<T>(this.backendUrl, request, this.token, cache);
   }
 
   /**
    * Generate a streamed structured object from a request using AI.
    * @param request The object generation request.
    * @param onResult Callback for each result chunk.
+   * @param cache Whether to cache the result (default: false).
    */
   async getStreamedObject<T = any>(
     request: ObjectRequest,
     onResult: (result: T, isLoading: boolean) => void,
+    cache = false,
   ): Promise<void> {
-    return streamObject<T>(this.backendUrl, request, onResult, this.token);
+    return streamObject<T>(this.backendUrl, request, onResult, this.token, cache);
   }
 }
