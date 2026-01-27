@@ -158,14 +158,14 @@ export interface RimoriPluginConfig<T extends object = object> {
 
 // copied from llm edge function
 
+/**
+ * Tool definition for AI function calling.
+ * Used when the LLM needs to call external functions/APIs during generation.
+ */
 export interface Tool {
   name: string;
   description: string;
-  parameters: {
-    name: string;
-    description: string;
-    type: 'string' | 'number' | 'boolean';
-  }[];
+  parameters: FunctionToolParameter[];
   execute?: (args: Record<string, any>) => Promise<unknown> | unknown | void;
 }
 
@@ -232,4 +232,23 @@ type ToolParameterType =
  * Primitive data types supported by the LLM tool system.
  * These align with JSON schema primitive types and TypeScript basic types.
  */
-type PrimitiveType = 'string' | 'number' | 'boolean';
+export type PrimitiveType = 'string' | 'number' | 'boolean';
+
+/**
+ * Parameter for function calling tools (flat structure with name).
+ * Uses the same optional properties as ToolParameter but restricted to primitive types.
+ */
+export interface FunctionToolParameter {
+  /** The parameter name used in function calls */
+  name: string;
+  /** Human-readable description of the parameter's purpose and usage */
+  description: string;
+  /** The primitive data type of the parameter */
+  type: PrimitiveType;
+  /** Optional array of allowed values for enumerated parameters */
+  enum?: string[];
+  /** Whether the parameter is optional (defaults to required) */
+  optional?: boolean;
+  /** Whether the parameter is an array of the specified type */
+  isArray?: boolean;
+}

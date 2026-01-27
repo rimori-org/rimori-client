@@ -220,21 +220,20 @@ export class AIModule {
     cache?: boolean;
     tools?: Tool[];
   }): Promise<T> {
-    console.log('todo: move this function into the AI Module');
     const { messages, responseSchema, onResult = () => null, cache = false, tools = [] } = params;
     const chatMessages = messages.map((message, index) => ({
       ...message,
       id: `${index + 1}`,
     }));
     const response = await fetch(`${this.backendUrl}/ai/llm`, {
-      method: 'POST',
       body: JSON.stringify({
-        stream: true,
-        messages: chatMessages,
-        responseSchema,
         cache,
         tools,
+        stream: true,
+        responseSchema,
+        messages: chatMessages,
       }),
+      method: 'POST',
       headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
     });
 
