@@ -32,6 +32,12 @@ export interface PluginPage {
   action?: {
     key: string;
     parameters: ObjectTool;
+    supportive_tools?: {
+      key: string;
+      event: string;
+      description: string;
+      parameters?: ObjectTool;
+    }[];
   };
 }
 

@@ -1,6 +1,6 @@
 import { SettingsController, UserInfo } from '../../controller/SettingsController';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { AIObjectGenerator, Translator } from '../../controller/TranslationController';
+import { Translator } from '../../controller/TranslationController';
 import { ActivePlugin, Plugin } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
 import { AIModule } from './AIModule';
