@@ -91,42 +91,28 @@ export class SharedContentController {
 
   /**
    * Search for shared content by topic using RAG (semantic similarity).
+   * Returns the first matching content that hasn't been completed by the user.
    * @param tableName - Name of the shared content table
    * @param topic - Topic to search for
-   * @param limit - Maximum number of results
-   * @returns Array of similar shared content
+   * @param limit - Maximum number of results to return (default: 10)
+   * @returns Matching shared content
    */
   public async searchByTopic<T>(tableName: string, topic: string, limit = 10): Promise<SharedContent<T>[]> {
-    const fullTableName = this.getTableName(tableName);
-    const completedTableName = this.getCompletedTableName(tableName);
-
-    // Generate embedding for search topic
-    const response = await this.rimoriClient.runtime.fetchBackend('/ai/embedding', {
+    const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/get-by-topic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: topic }),
+      body: JSON.stringify({
+        tableName,
+        limit,
+        filter: { title: { filterType: 'rag', value: topic } },
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to generate embedding: ${response.statusText}`);
+      throw new Error(`Failed to search shared content: ${response.statusText}`);
     }
 
-    const { embedding } = await response.json();
-
-    // RPC call for vector similarity search with completion filtering
-    const { data, error } = await this.supabase.rpc('search_shared_content', {
-      p_table_name: fullTableName,
-      p_completed_table_name: completedTableName,
-      p_embedding: JSON.stringify(embedding),
-      p_limit: limit,
-    });
-
-    if (error) {
-      console.error('Error searching shared content:', error);
-      throw new Error('Error searching shared content');
-    }
-
-    return data || [];
+    return (await response.json()) as SharedContent<T>[];
   }
 
   /**
