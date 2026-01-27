@@ -1,8 +1,77 @@
-import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { generateText, Message, OnLLMResponse, streamChatGPT } from '../../controller/AIController';
-import { generateObject, ObjectRequest, streamObject } from '../../controller/ObjectController';
-import { getSTTResponse, getTTSResponse } from '../../controller/VoiceController';
 import { Tool } from '../../fromRimori/PluginTypes';
+import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
+import { getSTTResponse, getTTSResponse } from '../../controller/VoiceController';
+
+export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
+
+interface ToolResult {
+  toolCallId: string;
+  toolName: string;
+  args: any;
+}
+
+type PrimitiveType = 'string' | 'number' | 'boolean';
+
+// This is the type that can appear in the `type` property
+type ObjectToolParameterType =
+  | PrimitiveType
+  | { [key: string]: ObjectToolParameter } // for nested objects
+  | [{ [key: string]: ObjectToolParameter }]; // for arrays of objects (notice the tuple type)
+
+interface ObjectToolParameter {
+  type: ObjectToolParameterType;
+  description?: string;
+  enum?: string[];
+  optional?: boolean;
+}
+
+/**
+ * The tools that the AI can use.
+ *
+ * The key is the name of the tool.
+ * The value is the parameter of the tool.
+ *
+ */
+export type ObjectTool = {
+  [key: string]: ObjectToolParameter;
+};
+
+export interface ToolInvocation {
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, string>;
+}
+
+export interface Message {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  toolCalls?: ToolInvocation[];
+}
+
+export type OnLLMResponse = (
+  id: string,
+  response: string,
+  finished: boolean,
+  toolInvocations?: ToolInvocation[],
+) => void;
+
+export interface ObjectRequest {
+  /**
+   * The tools that the AI can use.
+   */
+  tool: ObjectTool;
+  /**
+   * High level instructions for the AI to follow. Behaviour, tone, restrictions, etc.
+   * Example: "Act like a recipe writer."
+   */
+  behaviour?: string;
+  /**
+   * The specific instruction for the AI to follow.
+   * Example: "Generate a recipe using chicken, rice and vegetables."
+   */
+  instructions: string;
+}
 
 /**
  * Controller for AI-related operations.
@@ -31,9 +100,18 @@ export class AIModule {
    * @returns The generated text.
    */
   async getText(messages: Message[], tools?: Tool[], cache = false): Promise<string> {
-    return generateText(this.backendUrl, messages, tools || [], this.token, cache).then(
-      ({ messages }) => messages[0].content[0].text,
-    );
+    const { result } = await this.streamObject<{ result: string }>({
+      cache,
+      tools,
+      messages,
+      responseSchema: {
+        result: {
+          type: 'string',
+        },
+      },
+    });
+
+    return result;
   }
 
   /**
@@ -44,7 +122,21 @@ export class AIModule {
    * @param cache Whether to cache the result (default: false).
    */
   async getSteamedText(messages: Message[], onMessage: OnLLMResponse, tools?: Tool[], cache = false): Promise<void> {
-    streamChatGPT(this.backendUrl, messages, tools || [], onMessage, this.token, cache);
+    const messageId = Math.random().toString(36).substring(3);
+
+    const { result } = await this.streamObject<{ result: string }>({
+      cache,
+      tools,
+      messages,
+      responseSchema: {
+        result: {
+          type: 'string',
+        },
+      },
+      onResult: ({ result }) => onMessage(messageId, result, false),
+    });
+
+    onMessage(messageId, result, true);
   }
 
   /**
@@ -69,13 +161,32 @@ export class AIModule {
     return getSTTResponse(this.backendUrl, file, this.token);
   }
 
+  private getChatMessage(systemPrompt: string, userPrompt?: string): Message[] {
+    const messages: Message[] = [{ role: 'system', content: systemPrompt }];
+    if (userPrompt) {
+      messages.push({ role: 'user', content: userPrompt } as Message);
+    }
+    return messages;
+  }
   /**
    * Generate a structured object from a request using AI.
    * @param request The object generation request.
    * @returns The generated object.
    */
-  async getObject<T = any>(request: ObjectRequest, cache = false): Promise<T> {
-    return generateObject<T>(this.backendUrl, request, this.token, cache);
+  async getObject<T = any>(params: {
+    systemPrompt: string;
+    responseSchema: ObjectTool;
+    userPrompt?: string;
+    cache?: boolean;
+    tools?: Tool[];
+  }): Promise<T> {
+    const { systemPrompt, responseSchema, userPrompt, cache = false, tools = [] } = params;
+    return await this.streamObject<T>({
+      responseSchema,
+      messages: this.getChatMessage(systemPrompt, userPrompt),
+      cache,
+      tools,
+    });
   }
 
   /**
@@ -84,11 +195,126 @@ export class AIModule {
    * @param onResult Callback for each result chunk.
    * @param cache Whether to cache the result (default: false).
    */
-  async getStreamedObject<T = any>(
-    request: ObjectRequest,
-    onResult: (result: T, isLoading: boolean) => void,
-    cache = false,
-  ): Promise<void> {
-    return streamObject<T>(this.backendUrl, request, onResult, this.token, cache);
+  async getStreamedObject<T = any>(params: {
+    systemPrompt: string;
+    responseSchema: ObjectTool;
+    userPrompt?: string;
+    onResult: OnStreamedObjectResult<T>;
+    cache?: boolean;
+    tools?: Tool[];
+  }): Promise<void> {
+    const { systemPrompt, responseSchema, userPrompt, onResult, cache = false, tools = [] } = params;
+    await this.streamObject<T>({
+      responseSchema,
+      messages: this.getChatMessage(systemPrompt, userPrompt),
+      onResult,
+      cache,
+      tools,
+    });
+  }
+
+  private async streamObject<T = any>(params: {
+    responseSchema: ObjectTool;
+    messages: Message[];
+    onResult?: OnStreamedObjectResult<T>;
+    cache?: boolean;
+    tools?: Tool[];
+  }): Promise<T> {
+    const { messages, responseSchema, onResult = () => null, cache = false, tools = [] } = params;
+    const chatMessages = messages.map((message, index) => ({
+      ...message,
+      id: `${index + 1}`,
+    }));
+    const response = await fetch(`${this.backendUrl}/ai/llm`, {
+      body: JSON.stringify({
+        cache,
+        tools,
+        stream: true,
+        responseSchema,
+        messages: chatMessages,
+      }),
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to stream object: ${response.status} ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
+    let currentObject: T = {} as T;
+
+    let isLoading = true;
+    while (isLoading) {
+      //wait 50ms to not overload the CPU
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      const { value, done: readerDone } = await reader.read();
+
+      if (readerDone) {
+        isLoading = false;
+        onResult(currentObject, false);
+        return currentObject;
+      }
+      //the check needs to be behind readerDone because in closed connections the value is undefined
+      if (!value) continue;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n').filter((line) => line.trim());
+
+      for (const line of lines) {
+        const command = line.substring(0, 5);
+        const dataStr = line.substring(5).trim();
+
+        if (dataStr === '[DONE]') {
+          isLoading = false;
+          onResult(currentObject, false);
+          return currentObject;
+        }
+
+        if (command === 'data:') {
+          currentObject = JSON.parse(dataStr) as T;
+          onResult(currentObject, true);
+        } else if (command === 'tool:') {
+          const { toolCallId, toolName, args } = JSON.parse(dataStr) as ToolResult;
+          const tool = tools.find((tool) => tool.name === toolName);
+
+          if (tool && tool.execute) {
+            const result = await tool.execute(args);
+            // Send the result to the backend
+            await this.sendToolResult(toolCallId, result);
+          } else if (tool && !tool.execute) {
+            console.error('Tool found but has no execute function:', toolName);
+          } else {
+            console.error('Tool not found:', toolName);
+          }
+        } else if (command === 'error') {
+          //error has 5 letters + the colon so we need to remove one character of the data string to get the error message
+          console.error('Error:', dataStr.substring(1));
+        } else if (command === 'info:') {
+          //ignore info messages
+        } else {
+          console.error('Unknown stream data:', line);
+        }
+      }
+    }
+    return currentObject;
+  }
+
+  private async sendToolResult(toolCallId: string, result: any): Promise<void> {
+    await fetch(`${this.backendUrl}/ai/llm/tool_result`, {
+      method: 'POST',
+      body: JSON.stringify({
+        toolCallId,
+        result: result ?? '[DONE]',
+      }),
+      headers: { Authorization: `Bearer ${this.token} `, 'Content-Type': 'application/json' },
+    });
   }
 }

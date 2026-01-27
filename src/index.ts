@@ -13,7 +13,7 @@ export type { TOptions } from 'i18next';
 export type { SharedContent, BasicSharedContent, ContentStatus } from './plugin/module/SharedContentController';
 export type { Exercise } from './plugin/module/ExerciseModule';
 export type { UserInfo, Language, UserRole } from './controller/SettingsController';
-export type { Message, ToolInvocation } from './controller/AIController';
+export type { Message, ToolInvocation } from './plugin/module/AIModule';
 export type { TriggerAction } from './plugin/module/ExerciseModule';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
 export type { EventBusMessage } from './fromRimori/EventBus';

@@ -1,8 +1,5 @@
 import { createInstance, ThirdPartyModule, TOptions, i18n as i18nType } from 'i18next';
-import { ObjectRequest } from './ObjectController';
 import { AIModule } from '../plugin/module/AIModule';
-
-export type AIObjectGenerator = <T>(request: ObjectRequest) => Promise<T>;
 
 type InitializationState = 'not-inited' | 'initing' | 'finished';
 
@@ -170,19 +167,17 @@ export class Translator {
     try {
       // If the current language is English, don't translate
       if (!this.ai || this.currentLanguage === 'en') return text;
-      const response = await this.ai.getObject<{ translation: string }>(
-        {
-          behaviour: 'You are a translation engine. Return only the translated text.' + additionalInstructions,
-          instructions: `Translate the following text into ${this.currentLanguage}: ${text}`,
-          tool: {
-            translation: {
-              type: 'string',
-              description: `The translation of the input text into ${this.currentLanguage}.`,
-            },
+      const response = await this.ai.getObject<{ translation: string }>({
+        systemPrompt: 'You are a translation engine. Return only the translated text.' + additionalInstructions,
+        userPrompt: `Translate the following text into ${this.currentLanguage}: ${text}`,
+        cache: true,
+        responseSchema: {
+          translation: {
+            type: 'string',
+            description: `The translation of the input text into ${this.currentLanguage}.`,
           },
         },
-        true, // cache: true - same text = same translation
-      );
+      });
 
       const translation = response?.translation;
       if (translation) {
