@@ -343,7 +343,9 @@ export class SharedContentController {
   }
 
   /**
-   * Update existing shared content.
+   * Update existing shared content via backend.
+   * If content was already validated (community/featured) and user is not a moderator,
+   * the status is reset to 'unverified'.
    * @param tableName - Name of the shared content table
    * @param contentId - ID of the content to update
    * @param updates - Updates to apply
@@ -354,21 +356,51 @@ export class SharedContentController {
     contentId: string,
     updates: Partial<SharedContent<T>>,
   ): Promise<SharedContent<T>> {
-    const fullTableName = this.getTableName(tableName);
+    const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tableName,
+        contentId,
+        updates,
+      }),
+    });
 
-    const { data, error } = await this.supabase
-      .from(fullTableName)
-      .update(updates)
-      .eq('id', contentId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating shared content:', error);
-      throw new Error('Error updating shared content');
+    if (!response.ok) {
+      console.error('Error updating shared content:', response.statusText);
+      throw new Error(`Failed to update shared content: ${response.statusText}`);
     }
 
-    return data as SharedContent<T>;
+    return (await response.json()) as SharedContent<T>;
+  }
+
+  /**
+   * Request validation for shared content.
+   * Triggers the backend verification process to potentially upgrade content_status to 'community'.
+   * Only the content creator can request validation.
+   * @param tableName - Name of the shared content table
+   * @param contentId - ID of the content to validate
+   * @returns Validation result with new content_status
+   */
+  public async validate(
+    tableName: string,
+    contentId: string,
+  ): Promise<{ success: boolean; content_status: ContentStatus; reason?: string }> {
+    const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tableName,
+        contentId,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Error validating shared content:', response.statusText);
+      throw new Error(`Failed to validate shared content: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 
   /**

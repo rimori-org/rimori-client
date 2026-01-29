@@ -114,8 +114,13 @@ export interface DbSharedContentTableDefinition {
   description: string;
   /** AI prompt for generating content. Supports placeholders like {{topic}}, {{level}}, etc. */
   instructions: string;
-  /** Optional AI prompt to verify content quality and set content_status to 'community' */
-  verification_prompt: string;
+  /** Verification settings for the content. */
+  verification: {
+    /** AI prompt to verify content quality. Supports placeholders like {{topic}}, {{level}}, etc. */
+    prompt: string;
+    /** Whether to automatically verify the content. If true, the content will be verified automatically when it is inserted and shared with the community. */
+    auto_verify: boolean;
+  };
   /** Column definitions for the table (excluding auto-generated columns) */
   columns: {
     [column_name: string]: DbColumnDefinition & {
