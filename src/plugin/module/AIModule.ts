@@ -1,6 +1,6 @@
 import { Tool } from '../../fromRimori/PluginTypes';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { getSTTResponse, getTTSResponse } from '../../controller/VoiceController';
+import { Language } from '../../controller/SettingsController';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
@@ -159,16 +159,38 @@ export class AIModule {
    * @returns The generated audio as a Blob.
    */
   async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
-    return getTTSResponse(this.backendUrl, { input: text, voice, speed, language, cache }, this.token);
+    return await fetch(`${this.backendUrl}/voice/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.token}`,
+      },
+      body: JSON.stringify({ input: text, voice, speed, language, cache }),
+    }).then((r) => r.blob());
   }
 
   /**
    * Convert voice audio to text using AI.
    * @param file The audio file to convert.
+   * @param language Optional language for the voice.
    * @returns The transcribed text.
    */
-  async getTextFromVoice(file: Blob): Promise<string> {
-    return getSTTResponse(this.backendUrl, file, this.token);
+  async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (language) {
+      formData.append('language', language.code);
+    }
+    return await fetch(`${this.backendUrl}/voice/stt`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.token}` },
+      body: formData,
+    })
+      .then((r) => r.json())
+      .then((r) => {
+        // console.log("STT response: ", r);
+        return r.text;
+      });
   }
 
   private getChatMessage(systemPrompt: string, userPrompt?: string): Message[] {
