@@ -1,5 +1,5 @@
 import { SettingsController, UserInfo } from '../../controller/SettingsController';
-import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
+import { Guild, RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 import { Translator } from '../../controller/TranslationController';
 import { ActivePlugin, Plugin } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
@@ -70,6 +70,18 @@ export class PluginModule {
    */
   getUserInfo(): UserInfo {
     return this.rimoriInfo.profile;
+  }
+
+  getGuildInfo(): {
+    id: string;
+    name: string;
+    description: string | null;
+  } {
+    return {
+      id: this.rimoriInfo.guild.id,
+      name: this.rimoriInfo.guild.name,
+      description: this.rimoriInfo.guild.description,
+    };
   }
 
   /**
