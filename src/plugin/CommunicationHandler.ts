@@ -107,16 +107,11 @@ export class RimoriCommunicationHandler {
           const { topic, sender, data: eventData, eventId } = event as EventBusMessage;
           if (sender !== this.pluginId) {
             EventBus.emit(sender, topic, eventData, eventId);
+          } else {
+            console.log('[PluginController] event from self', event);
           }
         }
       };
-
-      // Set theme from MessageChannel query params
-      if (!worker) {
-        // const theme = this.queryParams['rm_theme'];
-        // setTheme(theme);
-        // console.log('TODO: set theme from MessageChannel query params');
-      }
 
       // Forward plugin events to parent (only after MessageChannel is ready)
       EventBus.on('*', (ev) => {

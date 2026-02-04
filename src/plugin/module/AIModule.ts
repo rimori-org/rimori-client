@@ -1,6 +1,6 @@
 import { Tool } from '../../fromRimori/PluginTypes';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { getSTTResponse, getTTSResponse } from '../../controller/VoiceController';
+import { Language } from '../../controller/SettingsController';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
@@ -97,12 +97,14 @@ export class AIModule {
    * @param messages The messages to generate text from.
    * @param tools Optional tools to use for generation.
    * @param cache Whether to cache the result (default: false).
+   * @param model The model to use for generation.
    * @returns The generated text.
    */
-  async getText(messages: Message[], tools?: Tool[], cache = false): Promise<string> {
+  async getText(messages: Message[], tools?: Tool[], cache = false, model?: string): Promise<string> {
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
+      model,
       messages,
       responseSchema: {
         result: {
@@ -120,13 +122,21 @@ export class AIModule {
    * @param onMessage Callback for each message chunk.
    * @param tools Optional tools to use for generation.
    * @param cache Whether to cache the result (default: false).
+   * @param model The model to use for generation.
    */
-  async getSteamedText(messages: Message[], onMessage: OnLLMResponse, tools?: Tool[], cache = false): Promise<void> {
+  async getSteamedText(
+    messages: Message[],
+    onMessage: OnLLMResponse,
+    tools?: Tool[],
+    cache = false,
+    model?: string,
+  ): Promise<void> {
     const messageId = Math.random().toString(36).substring(3);
 
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
+      model,
       messages,
       responseSchema: {
         result: {
@@ -149,16 +159,38 @@ export class AIModule {
    * @returns The generated audio as a Blob.
    */
   async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
-    return getTTSResponse(this.backendUrl, { input: text, voice, speed, language, cache }, this.token);
+    return await fetch(`${this.backendUrl}/voice/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.token}`,
+      },
+      body: JSON.stringify({ input: text, voice, speed, language, cache }),
+    }).then((r) => r.blob());
   }
 
   /**
    * Convert voice audio to text using AI.
    * @param file The audio file to convert.
+   * @param language Optional language for the voice.
    * @returns The transcribed text.
    */
-  async getTextFromVoice(file: Blob): Promise<string> {
-    return getSTTResponse(this.backendUrl, file, this.token);
+  async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (language) {
+      formData.append('language', language.code);
+    }
+    return await fetch(`${this.backendUrl}/voice/stt`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.token}` },
+      body: formData,
+    })
+      .then((r) => r.json())
+      .then((r) => {
+        // console.log("STT response: ", r);
+        return r.text;
+      });
   }
 
   private getChatMessage(systemPrompt: string, userPrompt?: string): Message[] {
@@ -171,6 +203,12 @@ export class AIModule {
   /**
    * Generate a structured object from a request using AI.
    * @param request The object generation request.
+   * @param request.systemPrompt The system prompt to use for generation.
+   * @param request.responseSchema The response schema to use for generation.
+   * @param request.userPrompt The user prompt to use for generation.
+   * @param request.cache Whether to cache the result (default: false).
+   * @param request.tools The tools to use for generation.
+   * @param request.model The model to use for generation.
    * @returns The generated object.
    */
   async getObject<T = any>(params: {
@@ -179,21 +217,28 @@ export class AIModule {
     userPrompt?: string;
     cache?: boolean;
     tools?: Tool[];
+    model?: string;
   }): Promise<T> {
-    const { systemPrompt, responseSchema, userPrompt, cache = false, tools = [] } = params;
+    const { systemPrompt, responseSchema, userPrompt, cache = false, tools = [], model = undefined } = params;
     return await this.streamObject<T>({
       responseSchema,
       messages: this.getChatMessage(systemPrompt, userPrompt),
       cache,
       tools,
+      model,
     });
   }
 
   /**
    * Generate a streamed structured object from a request using AI.
    * @param request The object generation request.
-   * @param onResult Callback for each result chunk.
-   * @param cache Whether to cache the result (default: false).
+   * @param request.systemPrompt The system prompt to use for generation.
+   * @param request.responseSchema The response schema to use for generation.
+   * @param request.userPrompt The user prompt to use for generation.
+   * @param request.onResult Callback for each result chunk.
+   * @param request.cache Whether to cache the result (default: false).
+   * @param request.tools The tools to use for generation.
+   * @param request.model The model to use for generation.
    */
   async getStreamedObject<T = any>(params: {
     systemPrompt: string;
@@ -202,14 +247,16 @@ export class AIModule {
     onResult: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
+    model?: string;
   }): Promise<void> {
-    const { systemPrompt, responseSchema, userPrompt, onResult, cache = false, tools = [] } = params;
+    const { systemPrompt, responseSchema, userPrompt, onResult, cache = false, tools = [], model = undefined } = params;
     await this.streamObject<T>({
       responseSchema,
       messages: this.getChatMessage(systemPrompt, userPrompt),
       onResult,
       cache,
       tools,
+      model,
     });
   }
 
@@ -219,8 +266,9 @@ export class AIModule {
     onResult?: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
+    model?: string;
   }): Promise<T> {
-    const { messages, responseSchema, onResult = () => null, cache = false, tools = [] } = params;
+    const { messages, responseSchema, onResult = () => null, cache = false, tools = [], model = undefined } = params;
     const chatMessages = messages.map((message, index) => ({
       ...message,
       id: `${index + 1}`,
@@ -232,6 +280,7 @@ export class AIModule {
         stream: true,
         responseSchema,
         messages: chatMessages,
+        model,
       }),
       method: 'POST',
       headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
