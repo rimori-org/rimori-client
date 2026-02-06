@@ -21,6 +21,35 @@ export interface Language {
 
 export type UserRole = 'user' | 'plugin_moderator' | 'lang_moderator' | 'admin';
 
+export const LEARNING_REASONS = [
+  'work',
+  'partner',
+  'friends',
+  'study',
+  'living',
+  'culture',
+  'growth',
+  'citizenship',
+  'other',
+] as const;
+
+export type LearningReason = (typeof LEARNING_REASONS)[number];
+
+export const STUDY_METHODS = [
+  'solving_problems',
+  'explaining_to_others',
+  'watching_videos',
+  'listening_to_lessons',
+  'writing_summaries',
+  'flashcards',
+  'group_study',
+  'solo_study',
+  'building_something',
+  'testing_myself',
+] as const;
+
+export type StudyMethod = (typeof STUDY_METHODS)[number];
+
 export interface UserInfo {
   /**
    * The user's unique ID
@@ -32,10 +61,7 @@ export interface UserInfo {
   skill_level_speaking: LanguageLevel;
   skill_level_listening: LanguageLevel;
   skill_level_understanding: LanguageLevel;
-  goal_longterm: string;
-  goal_weekly: string;
   study_buddy: Buddy;
-  story_genre: string;
   study_duration: number;
   /**
    * The language the user speaks natively.
@@ -45,7 +71,18 @@ export interface UserInfo {
    * The language the user targets to learn.
    */
   target_language: Language;
-  motivation_type: string;
+  /**
+   * Why the user is learning the language
+   */
+  learning_reason: LearningReason;
+  /**
+   * How the user studies best
+   */
+  study_methods: StudyMethod[];
+  /**
+   * Free-text personal interests
+   */
+  personal_interests: string;
   onboarding_completed: boolean;
   context_menu_on_select: boolean;
   user_name?: string;
