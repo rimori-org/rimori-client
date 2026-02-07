@@ -35,21 +35,6 @@ export const LEARNING_REASONS = [
 
 export type LearningReason = (typeof LEARNING_REASONS)[number];
 
-export const STUDY_METHODS = [
-  'solving_problems',
-  'explaining_to_others',
-  'watching_videos',
-  'listening_to_lessons',
-  'writing_summaries',
-  'flashcards',
-  'group_study',
-  'solo_study',
-  'building_something',
-  'testing_myself',
-] as const;
-
-export type StudyMethod = (typeof STUDY_METHODS)[number];
-
 export interface UserInfo {
   /**
    * The user's unique ID
@@ -75,10 +60,6 @@ export interface UserInfo {
    * Why the user is learning the language
    */
   learning_reason: LearningReason;
-  /**
-   * How the user studies best
-   */
-  study_methods: StudyMethod[];
   /**
    * Free-text personal interests
    */
