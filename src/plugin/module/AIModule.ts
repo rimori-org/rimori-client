@@ -1,5 +1,4 @@
 import { Tool } from '../../fromRimori/PluginTypes';
-import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 import { Language } from '../../controller/SettingsController';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
@@ -32,7 +31,7 @@ interface ObjectToolParameter {
  * The value is the parameter of the tool.
  *
  */
-export type ObjectTool = {
+export type AIObjectTool = {
   [key: string]: ObjectToolParameter;
 };
 
@@ -60,7 +59,7 @@ export interface ObjectRequest {
   /**
    * The tools that the AI can use.
    */
-  tool: ObjectTool;
+  tool: AIObjectTool;
   /**
    * High level instructions for the AI to follow. Behaviour, tone, restrictions, etc.
    * Example: "Act like a recipe writer."
@@ -78,18 +77,12 @@ export interface ObjectRequest {
  * Provides access to text generation, voice synthesis, and object generation.
  */
 export class AIModule {
-  private communicationHandler: RimoriCommunicationHandler;
+  private getToken: () => string;
   private backendUrl: string;
-  private token: string;
 
-  constructor(communicationHandler: RimoriCommunicationHandler, info: RimoriInfo) {
-    this.token = info.token;
-    this.backendUrl = info.backendUrl;
-    this.communicationHandler = communicationHandler;
-
-    this.communicationHandler.onUpdate((updatedInfo) => {
-      this.token = updatedInfo.token;
-    });
+  constructor(backendUrl: string, getToken: () => string) {
+    this.backendUrl = backendUrl;
+    this.getToken = getToken;
   }
 
   /**
@@ -130,6 +123,7 @@ export class AIModule {
     tools?: Tool[],
     cache = false,
     model?: string,
+    knowledgeId?: string,
   ): Promise<void> {
     const messageId = Math.random().toString(36).substring(3);
 
@@ -138,6 +132,7 @@ export class AIModule {
       tools,
       model,
       messages,
+      knowledgeId,
       responseSchema: {
         result: {
           type: 'string',
@@ -163,7 +158,7 @@ export class AIModule {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.token}`,
+        Authorization: `Bearer ${this.getToken()}`,
       },
       body: JSON.stringify({ input: text, voice, speed, language, cache }),
     }).then((r) => r.blob());
@@ -183,7 +178,7 @@ export class AIModule {
     }
     return await fetch(`${this.backendUrl}/voice/stt`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.token}` },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
       body: formData,
     })
       .then((r) => r.json())
@@ -213,19 +208,29 @@ export class AIModule {
    */
   async getObject<T = any>(params: {
     systemPrompt: string;
-    responseSchema: ObjectTool;
+    responseSchema: AIObjectTool;
     userPrompt?: string;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
+    knowledgeId?: string;
   }): Promise<T> {
-    const { systemPrompt, responseSchema, userPrompt, cache = false, tools = [], model = undefined } = params;
+    const {
+      systemPrompt,
+      responseSchema,
+      userPrompt,
+      cache = false,
+      tools = [],
+      model = undefined,
+      knowledgeId,
+    } = params;
     return await this.streamObject<T>({
       responseSchema,
       messages: this.getChatMessage(systemPrompt, userPrompt),
       cache,
       tools,
       model,
+      knowledgeId,
     });
   }
 
@@ -239,17 +244,28 @@ export class AIModule {
    * @param request.cache Whether to cache the result (default: false).
    * @param request.tools The tools to use for generation.
    * @param request.model The model to use for generation.
+   * @param request.knowledgeId Optional knowledge entry ID to ground AI content in real facts.
    */
   async getStreamedObject<T = any>(params: {
     systemPrompt: string;
-    responseSchema: ObjectTool;
+    responseSchema: AIObjectTool;
     userPrompt?: string;
     onResult: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
+    knowledgeId?: string;
   }): Promise<void> {
-    const { systemPrompt, responseSchema, userPrompt, onResult, cache = false, tools = [], model = undefined } = params;
+    const {
+      systemPrompt,
+      responseSchema,
+      userPrompt,
+      onResult,
+      cache = false,
+      tools = [],
+      model = undefined,
+      knowledgeId,
+    } = params;
     await this.streamObject<T>({
       responseSchema,
       messages: this.getChatMessage(systemPrompt, userPrompt),
@@ -257,18 +273,28 @@ export class AIModule {
       cache,
       tools,
       model,
+      knowledgeId,
     });
   }
 
   private async streamObject<T = any>(params: {
-    responseSchema: ObjectTool;
+    responseSchema: AIObjectTool;
     messages: Message[];
     onResult?: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
+    knowledgeId?: string;
   }): Promise<T> {
-    const { messages, responseSchema, onResult = () => null, cache = false, tools = [], model = undefined } = params;
+    const {
+      messages,
+      responseSchema,
+      onResult = () => null,
+      cache = false,
+      tools = [],
+      model = undefined,
+      knowledgeId,
+    } = params;
     const chatMessages = messages.map((message, index) => ({
       ...message,
       id: `${index + 1}`,
@@ -281,9 +307,10 @@ export class AIModule {
         responseSchema,
         messages: chatMessages,
         model,
+        knowledge_id: knowledgeId,
       }),
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -363,7 +390,7 @@ export class AIModule {
         toolCallId,
         result: result ?? '[DONE]',
       }),
-      headers: { Authorization: `Bearer ${this.token} `, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${this.getToken()} `, 'Content-Type': 'application/json' },
     });
   }
 }
