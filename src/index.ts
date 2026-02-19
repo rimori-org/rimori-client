@@ -18,3 +18,4 @@ export type { TriggerAction } from './plugin/module/ExerciseModule';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
 export type { EventBusMessage } from './fromRimori/EventBus';
 export type { Theme, ApplicationMode } from './plugin/module/PluginModule';
+export * from './plugin/TTS/MessageSender';
