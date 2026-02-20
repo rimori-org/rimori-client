@@ -19,3 +19,4 @@ export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './c
 export type { EventBusMessage } from './fromRimori/EventBus';
 export type { Theme, ApplicationMode } from './plugin/module/PluginModule';
 export * from './plugin/TTS/MessageSender';
+export type { ExplicitUndefined } from './controller/SettingsController';

@@ -35,6 +35,10 @@ export const LEARNING_REASONS = [
 
 export type LearningReason = (typeof LEARNING_REASONS)[number];
 
+export type ExplicitUndefined<T> = {
+  [K in keyof T]-?: T[K] | undefined;
+};
+
 export interface UserInfo {
   /**
    * The user's unique ID
@@ -98,7 +102,7 @@ export class SettingsController {
    * Otherwise, fetches user-specific settings.
    * @returns The settings object or null if not found.
    */
-  private async fetchSettings(): Promise<any | null> {
+  private async fetchSettings<T>(): Promise<T | null> {
     const isGuildSetting = !this.guild.allowUserPluginSettings;
 
     const { data } = await this.supabase
@@ -184,8 +188,8 @@ export class SettingsController {
    * @param defaultSettings The default settings to use if no settings are found.
    * @returns The settings for the plugin.
    */
-  public async getSettings<T extends object>(defaultSettings: T): Promise<T> {
-    const storedSettings = (await this.fetchSettings()) as T | null;
+  public async getSettings<T>(defaultSettings: ExplicitUndefined<T>): Promise<ExplicitUndefined<T>> {
+    const storedSettings = await this.fetchSettings<T>();
 
     if (!storedSettings) {
       await this.setSettings(defaultSettings);
@@ -200,12 +204,12 @@ export class SettingsController {
       const validStoredSettings = Object.fromEntries(
         Object.entries(storedSettings).filter(([key]) => defaultKeys.includes(key)),
       );
-      const mergedSettings = { ...defaultSettings, ...validStoredSettings } as T;
+      const mergedSettings = { ...defaultSettings, ...validStoredSettings };
 
       await this.setSettings(mergedSettings);
       return mergedSettings;
     }
 
-    return storedSettings;
+    return storedSettings as ExplicitUndefined<T>;
   }
 }
