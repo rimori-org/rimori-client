@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "2.5.15",
+  "version": "2.5.16",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
