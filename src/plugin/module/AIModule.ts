@@ -1,5 +1,5 @@
+import { Language } from './PluginModule';
 import { Tool } from '../../fromRimori/PluginTypes';
-import { Language } from '../../controller/SettingsController';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 

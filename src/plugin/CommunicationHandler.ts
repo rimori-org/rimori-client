@@ -1,7 +1,7 @@
-import { UserInfo } from '../controller/SettingsController';
-import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
-import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
+import { UserInfo } from './module/PluginModule';
 import { PostgrestClient } from '@supabase/postgrest-js';
+import { ActivePlugin, Plugin } from '../fromRimori/PluginTypes';
+import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
 
 // Add declaration for WorkerGlobalScope
 declare const WorkerGlobalScope: any;
