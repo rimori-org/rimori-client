@@ -7,6 +7,7 @@ import { EventModule } from './module/EventModule';
 import { AIModule } from './module/AIModule';
 import { ExerciseModule } from './module/ExerciseModule';
 import { PostgrestClient } from '@supabase/postgrest-js';
+import { EventBus } from '../fromRimori/EventBus';
 
 export class RimoriClient {
   private static instance: RimoriClient;
@@ -22,7 +23,10 @@ export class RimoriClient {
     this.rimoriInfo = info;
     this.sharedContent = new SharedContentController(supabase, this);
     this.ai = new AIModule(info.backendUrl, () => this.rimoriInfo.token);
-    this.event = new EventModule(info.pluginId);
+    this.ai.setOnRateLimited((exercisesRemaining) => {
+      EventBus.emit(info.pluginId, 'global.quota.triggerExceeded', { exercises_remaining: exercisesRemaining });
+    });
+    this.event = new EventModule(info.pluginId, info.backendUrl, () => this.rimoriInfo.token, this.ai);
     this.db = new DbModule(supabase, controller, info);
     this.plugin = new PluginModule(supabase, controller, info, this.ai);
     this.exercise = new ExerciseModule(supabase, controller, info, this.event);

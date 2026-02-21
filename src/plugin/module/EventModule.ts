@@ -1,6 +1,7 @@
 import { MainPanelAction, SidebarAction } from '../../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../../controller/AccomplishmentController';
 import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
+import { AIModule } from './AIModule';
 
 /**
  * Event module for plugin event bus operations.
@@ -9,9 +10,15 @@ import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } 
 export class EventModule {
   private pluginId: string;
   private accomplishmentController: AccomplishmentController;
+  private aiModule: AIModule;
+  private backendUrl: string;
+  private getToken: () => string;
 
-  constructor(pluginId: string) {
+  constructor(pluginId: string, backendUrl: string, getToken: () => string, aiModule: AIModule) {
     this.pluginId = pluginId;
+    this.backendUrl = backendUrl;
+    this.getToken = getToken;
+    this.aiModule = aiModule;
     this.accomplishmentController = new AccomplishmentController(pluginId);
   }
 
@@ -108,7 +115,21 @@ export class EventModule {
    * Emit an accomplishment.
    * @param payload The payload to emit.
    */
-  emitAccomplishment(payload: AccomplishmentPayload): void {
+  async emitAccomplishment(payload: AccomplishmentPayload): Promise<void> {
+    if (payload.type === 'macro') {
+      const sessionId = this.aiModule.getSessionTokenId();
+      if (sessionId) {
+        try {
+          await fetch(`${this.backendUrl}/ai/session/${sessionId}/complete`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${this.getToken()}` },
+          });
+        } catch {
+          // non-fatal — session will expire naturally
+        }
+        this.aiModule.clearSessionToken();
+      }
+    }
     this.accomplishmentController.emitAccomplishment(payload);
   }
 

@@ -1,5 +1,5 @@
+import { Language } from './PluginModule';
 import { Tool } from '../../fromRimori/PluginTypes';
-import { Language } from '../../controller/SettingsController';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
@@ -79,10 +79,32 @@ export interface ObjectRequest {
 export class AIModule {
   private getToken: () => string;
   private backendUrl: string;
+  private sessionTokenId: string | null = null;
+  private onRateLimitedCb?: (exercisesRemaining: number) => void;
 
   constructor(backendUrl: string, getToken: () => string) {
     this.backendUrl = backendUrl;
     this.getToken = getToken;
+  }
+
+  /** Returns the current exercise session token ID (null if no active session). */
+  getSessionTokenId(): string | null {
+    return this.sessionTokenId;
+  }
+
+  /** Sets the session token ID (used by workers inheriting a session from the plugin). */
+  setSessionToken(id: string): void {
+    this.sessionTokenId = id;
+  }
+
+  /** Clears the stored session token (called after macro accomplishment). */
+  clearSessionToken(): void {
+    this.sessionTokenId = null;
+  }
+
+  /** Registers a callback invoked whenever a 429 rate-limit response is received. */
+  setOnRateLimited(cb: (exercisesRemaining: number) => void): void {
+    this.onRateLimitedCb = cb;
   }
 
   /**
@@ -160,7 +182,7 @@ export class AIModule {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getToken()}`,
       },
-      body: JSON.stringify({ input: text, voice, speed, language, cache }),
+      body: JSON.stringify({ input: text, voice, speed, language, cache, session_token_id: this.sessionTokenId ?? undefined }),
     }).then((r) => r.blob());
   }
 
@@ -175,6 +197,9 @@ export class AIModule {
     formData.append('file', file);
     if (language) {
       formData.append('language', language.code);
+    }
+    if (this.sessionTokenId) {
+      formData.append('session_token_id', this.sessionTokenId);
     }
     return await fetch(`${this.backendUrl}/voice/stt`, {
       method: 'POST',
@@ -308,12 +333,19 @@ export class AIModule {
         messages: chatMessages,
         model,
         knowledge_id: knowledgeId,
+        session_token_id: this.sessionTokenId ?? undefined,
       }),
       method: 'POST',
       headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        const body = await response.json().catch(() => ({}));
+        const remaining = body.exercises_remaining ?? 0;
+        this.onRateLimitedCb?.(remaining);
+        throw new Error(`Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`);
+      }
       throw new Error(`Failed to stream object: ${response.status} ${response.statusText}`);
     }
 
@@ -345,6 +377,19 @@ export class AIModule {
       const lines = chunk.split('\n').filter((line) => line.trim());
 
       for (const line of lines) {
+        // Handle token: line (session token issued by backend on first AI call)
+        if (line.startsWith('token:')) {
+          try {
+            const tokenData = JSON.parse(line.slice(6).trim());
+            if (tokenData.token_id) {
+              this.sessionTokenId = tokenData.token_id;
+            }
+          } catch {
+            console.error('Failed to parse token: line', line);
+          }
+          continue;
+        }
+
         const command = line.substring(0, 5);
         const dataStr = line.substring(5).trim();
 
