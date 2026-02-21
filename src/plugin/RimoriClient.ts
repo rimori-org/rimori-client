@@ -21,7 +21,7 @@ export class RimoriClient {
   private constructor(controller: RimoriCommunicationHandler, supabase: PostgrestClient, info: RimoriInfo) {
     this.rimoriInfo = info;
     this.sharedContent = new SharedContentController(supabase, this);
-    this.ai = new AIModule(controller, info);
+    this.ai = new AIModule(info.backendUrl, () => this.rimoriInfo.token);
     this.event = new EventModule(info.pluginId);
     this.db = new DbModule(supabase, controller, info);
     this.plugin = new PluginModule(supabase, controller, info, this.ai);
