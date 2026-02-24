@@ -263,8 +263,9 @@ export const LEARNING_REASONS = [
 
 export type LearningReason = (typeof LEARNING_REASONS)[number];
 
+// this requires that 
 export type ExplicitUndefined<T> = {
-  [K in keyof T]-?: T[K] | undefined;
+  [K in Exclude<keyof T, never>]-?: {} extends Pick<T, K> ? T[K] | undefined : T[K];
 };
 
 export interface UserInfo {
