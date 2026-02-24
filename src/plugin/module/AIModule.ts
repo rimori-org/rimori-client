@@ -102,6 +102,32 @@ export class AIModule {
     this.sessionTokenId = null;
   }
 
+  /**
+   * Ensures a session token exists, requesting one from the backend if needed.
+   * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
+   */
+  private async ensureSessionToken(): Promise<void> {
+    if (this.sessionTokenId) return;
+
+    const response = await fetch(`${this.backendUrl}/ai/session`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.getToken()}` },
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        const body = await response.json().catch(() => ({}));
+        const remaining = body.exercises_remaining ?? 0;
+        this.onRateLimitedCb?.(remaining);
+        throw new Error(`Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`);
+      }
+      throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
+    }
+
+    const { session_token_id } = await response.json();
+    this.sessionTokenId = session_token_id;
+  }
+
   /** Registers a callback invoked whenever a 429 rate-limit response is received. */
   setOnRateLimited(cb: (exercisesRemaining: number) => void): void {
     this.onRateLimitedCb = cb;
@@ -176,6 +202,7 @@ export class AIModule {
    * @returns The generated audio as a Blob.
    */
   async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
+    await this.ensureSessionToken();
     return await fetch(`${this.backendUrl}/voice/tts`, {
       method: 'POST',
       headers: {
@@ -193,6 +220,7 @@ export class AIModule {
    * @returns The transcribed text.
    */
   async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
+    await this.ensureSessionToken();
     const formData = new FormData();
     formData.append('file', file);
     if (language) {
