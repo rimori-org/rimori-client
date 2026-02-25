@@ -6,6 +6,7 @@ import { DbModule } from './module/DbModule';
 import { EventModule } from './module/EventModule';
 import { AIModule } from './module/AIModule';
 import { ExerciseModule } from './module/ExerciseModule';
+import { StorageModule } from './module/StorageModule';
 import { PostgrestClient } from '@supabase/postgrest-js';
 import { EventBus } from '../fromRimori/EventBus';
 
@@ -17,6 +18,8 @@ export class RimoriClient {
   public plugin: PluginModule;
   public ai: AIModule;
   public exercise: ExerciseModule;
+  /** Upload and manage images stored in Supabase via the backend. */
+  public storage: StorageModule;
   private rimoriInfo: RimoriInfo;
 
   private constructor(controller: RimoriCommunicationHandler, supabase: PostgrestClient, info: RimoriInfo) {
@@ -30,6 +33,7 @@ export class RimoriClient {
     this.db = new DbModule(supabase, controller, info);
     this.plugin = new PluginModule(supabase, controller, info, this.ai);
     this.exercise = new ExerciseModule(supabase, controller, info, this.event);
+    this.storage = new StorageModule(info.backendUrl, () => this.rimoriInfo.token);
 
     controller.onUpdate((updatedInfo) => {
       this.rimoriInfo = updatedInfo;
