@@ -73,37 +73,34 @@ export class ExerciseModule {
   }
 
   /**
-   * Creates a new exercise or multiple exercises via the backend API.
-   * When creating multiple exercises, all requests are made in parallel but only one event is emitted.
+   * Creates one or more exercises via the backend API.
+   * Multiple exercises are sent in a single bulk request to ensure atomicity —
+   * either all succeed or none are inserted.
    * @param params Exercise creation parameters (single or array).
    * @returns Created exercise objects.
    */
   async add(params: CreateExerciseParams | CreateExerciseParams[]): Promise<Exercise[]> {
     const exercises = Array.isArray(params) ? params : [params];
 
-    const responses = await Promise.all(
-      exercises.map(async (exercise) => {
-        const response = await fetch(`${this.backendUrl}/exercises`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.token}`,
-          },
-          body: JSON.stringify(exercise),
-        });
+    const response = await fetch(`${this.backendUrl}/exercises`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.token}`,
+      },
+      body: JSON.stringify({ exercises }),
+    });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to create exercise: ${errorText}`);
-        }
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create exercises: ${errorText}`);
+    }
 
-        return await response.json();
-      }),
-    );
+    const data: Exercise[] = await response.json();
 
     this.eventModule.emit('global.exercises.triggerChange');
 
-    return responses;
+    return data;
   }
 
   /**
