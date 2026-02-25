@@ -19,3 +19,4 @@ export type { Theme, ApplicationMode } from './plugin/module/PluginModule';
 export type { UserInfo, Language, UserRole, ExplicitUndefined } from './plugin/module/PluginModule';
 export type { SharedContent, BasicSharedContent, ContentStatus } from './plugin/module/SharedContentController';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
+export { StorageModule } from './plugin/module/StorageModule';

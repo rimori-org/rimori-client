@@ -3,7 +3,14 @@
 /**
  * Supported database column data types for table schema definitions.
  */
-type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid';
+/**
+ * 'markdown' is stored as `text` in the database.
+ * Marking a column as 'markdown' causes the migration system to:
+ *  1. Add an `updated_at` timestamp + trigger to the table.
+ *  2. Add an `updated_at` trigger so the image-sync cron can detect recently
+ *     modified entries. The cron derives which columns to scan from release.db_schema.
+ */
+type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid' | 'markdown';
 
 /**
  * Foreign key relationship configuration with cascade delete support.
