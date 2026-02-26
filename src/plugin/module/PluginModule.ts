@@ -137,7 +137,7 @@ export class PluginModule {
    * @param defaultSettings The default settings to use if no settings are found.
    * @returns The settings for the plugin.
    */
-  public async getSettings<T>(defaultSettings: ExplicitUndefined<T>): Promise<ExplicitUndefined<T>> {
+  public async getSettings<T extends BasePluginSettings>(defaultSettings: ExplicitUndefined<T>): Promise<ExplicitUndefined<T>> {
     const storedSettings = await this.fetchSettings<T>();
 
     if (!storedSettings) {
@@ -263,10 +263,16 @@ export const LEARNING_REASONS = [
 
 export type LearningReason = (typeof LEARNING_REASONS)[number];
 
-// this requires that 
+// this requires that
 export type ExplicitUndefined<T> = {
   [K in Exclude<keyof T, never>]-?: {} extends Pick<T, K> ? T[K] | undefined : T[K];
 };
+
+/**
+ * All plugin settings must include is_inited so rimori-main can detect
+ * plugins whose one-time worker init did not complete and re-trigger them.
+ */
+export type BasePluginSettings = { is_inited: boolean };
 
 export interface UserInfo {
   /**
