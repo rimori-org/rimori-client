@@ -32,7 +32,7 @@ export class EventModule {
     const topicParts = preliminaryTopic.split('.');
     if (topicParts.length === 3) {
       if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
-        throw new Error("The event topic must start with the plugin id or 'global'.");
+        throw new Error(`Invalid event topic '${preliminaryTopic}'. The topic must start with the plugin id, 'self' or 'global'.`);
       }
       return preliminaryTopic;
     } else if (topicParts.length > 3) {
