@@ -16,7 +16,7 @@ export { Translator } from './controller/TranslationController';
 export type { TriggerAction } from './plugin/module/ExerciseModule';
 export type { Message, ToolInvocation } from './plugin/module/AIModule';
 export type { Theme, ApplicationMode } from './plugin/module/PluginModule';
-export type { UserInfo, Language, UserRole, ExplicitUndefined } from './plugin/module/PluginModule';
+export type { UserInfo, Language, UserRole, ExplicitUndefined, BasePluginSettings } from './plugin/module/PluginModule';
 export type { SharedContent, BasicSharedContent, ContentStatus } from './plugin/module/SharedContentController';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
 export { StorageModule } from './plugin/module/StorageModule';

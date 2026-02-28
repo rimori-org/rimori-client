@@ -172,7 +172,7 @@ export class AIModule {
     cache = false,
     model?: string,
     knowledgeId?: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const messageId = Math.random().toString(36).substring(3);
 
     const { result } = await this.streamObject<{ result: string }>({
@@ -190,6 +190,7 @@ export class AIModule {
     });
 
     onMessage(messageId, result, true);
+    return result;
   }
 
   /**
@@ -308,7 +309,7 @@ export class AIModule {
     tools?: Tool[];
     model?: string;
     knowledgeId?: string;
-  }): Promise<void> {
+  }): Promise<T> {
     const {
       systemPrompt,
       responseSchema,
@@ -319,7 +320,7 @@ export class AIModule {
       model = undefined,
       knowledgeId,
     } = params;
-    await this.streamObject<T>({
+    return await this.streamObject<T>({
       responseSchema,
       messages: this.getChatMessage(systemPrompt, userPrompt),
       onResult,
