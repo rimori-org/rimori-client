@@ -32,7 +32,9 @@ export class EventModule {
     const topicParts = preliminaryTopic.split('.');
     if (topicParts.length === 3) {
       if (!topicParts[0].startsWith('pl') && topicParts[0] !== 'global') {
-        throw new Error(`Invalid event topic '${preliminaryTopic}'. The topic must start with the plugin id, 'self' or 'global'.`);
+        throw new Error(
+          `Invalid event topic '${preliminaryTopic}'. The topic must start with the plugin id, 'self' or 'global'.`,
+        );
       }
       return preliminaryTopic;
     } else if (topicParts.length > 3) {
@@ -66,9 +68,11 @@ export class EventModule {
    * @param data The data to request.
    * @returns The response from the event.
    */
-  request<T>(topic: string, data?: any): Promise<EventBusMessage<T>> {
+  async request<T>(topic: string, data?: any): Promise<EventBusMessage<T>> {
     const globalTopic = this.getGlobalEventTopic(topic);
-    return EventBus.request<T>(this.pluginId, globalTopic, data);
+    await this.aiModule.session.ensure();
+    const sessionToken = this.aiModule.session.get() ?? undefined;
+    return EventBus.request<T>(this.pluginId, globalTopic, data, sessionToken);
   }
 
   /**
@@ -81,7 +85,12 @@ export class EventModule {
     const topics = Array.isArray(topic) ? topic : [topic];
     return EventBus.on<T>(
       topics.map((t) => this.getGlobalEventTopic(t)),
-      callback,
+      (event) => {
+        if (event.ai_session_token && !this.aiModule.session.get()) {
+          this.aiModule.session.set(event.ai_session_token);
+        }
+        callback(event);
+      },
     );
   }
 
@@ -104,10 +113,31 @@ export class EventModule {
     data: EventPayload | ((data: EventBusMessage<T>) => EventPayload | Promise<EventPayload>),
   ): void {
     const topics = Array.isArray(topic) ? topic : [topic];
+    let wrappedData = data;
+    if (typeof data === 'function') {
+      wrappedData = async (event: EventBusMessage<T>) => {
+        const previousToken = this.aiModule.session.get();
+        if (event.ai_session_token) {
+          this.aiModule.session.set(event.ai_session_token);
+        }
+        try {
+          console.log('responding to event', event);
+          return await data(event);
+        } finally {
+          if (event.ai_session_token) {
+            if (previousToken) {
+              this.aiModule.session.set(previousToken);
+            } else {
+              this.aiModule.session.clear();
+            }
+          }
+        }
+      };
+    }
     EventBus.respond(
       this.pluginId,
       topics.map((t) => this.getGlobalEventTopic(t)),
-      data,
+      wrappedData,
     );
   }
 
@@ -117,7 +147,7 @@ export class EventModule {
    */
   async emitAccomplishment(payload: AccomplishmentPayload): Promise<void> {
     if (payload.type === 'macro') {
-      const sessionId = this.aiModule.getSessionTokenId();
+      const sessionId = this.aiModule.session.get();
       if (sessionId) {
         try {
           await fetch(`${this.backendUrl}/ai/session/${sessionId}/complete`, {
@@ -127,7 +157,7 @@ export class EventModule {
         } catch {
           // non-fatal — session will expire naturally
         }
-        this.aiModule.clearSessionToken();
+        this.aiModule.session.clear();
       }
     }
     this.accomplishmentController.emitAccomplishment(payload);

@@ -87,46 +87,49 @@ export class AIModule {
     this.getToken = getToken;
   }
 
-  /** Returns the current exercise session token ID (null if no active session). */
-  getSessionTokenId(): string | null {
-    return this.sessionTokenId;
-  }
+  /** Exercise session management. */
+  public readonly session = {
+    /** Returns the current exercise session token ID (null if no active session). */
+    get: (): string | null => this.sessionTokenId,
 
-  /** Sets the session token ID (used by workers inheriting a session from the plugin). */
-  setSessionToken(id: string): void {
-    this.sessionTokenId = id;
-  }
+    /** Sets the session token ID. */
+    set: (id: string): void => {
+      this.sessionTokenId = id;
+    },
 
-  /** Clears the stored session token (called after macro accomplishment). */
-  clearSessionToken(): void {
-    this.sessionTokenId = null;
-  }
+    /** Clears the stored session token. */
+    clear: (): void => {
+      this.sessionTokenId = null;
+    },
 
-  /**
-   * Ensures a session token exists, requesting one from the backend if needed.
-   * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
-   */
-  private async ensureSessionToken(): Promise<void> {
-    if (this.sessionTokenId) return;
+    /**
+     * Ensures a session token exists, creating one from the backend if needed.
+     * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
+     */
+    ensure: async (): Promise<void> => {
+      if (this.sessionTokenId) return;
 
-    const response = await fetch(`${this.backendUrl}/ai/session`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}` },
-    });
+      const response = await fetch(`${this.backendUrl}/ai/session`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.getToken()}` },
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        const body = await response.json().catch(() => ({}));
-        const remaining = body.exercises_remaining ?? 0;
-        this.onRateLimitedCb?.(remaining);
-        throw new Error(`Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`);
+      if (!response.ok) {
+        if (response.status === 429) {
+          const body = await response.json().catch(() => ({}));
+          const remaining = body.exercises_remaining ?? 0;
+          this.onRateLimitedCb?.(remaining);
+          throw new Error(
+            `Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`,
+          );
+        }
+        throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
       }
-      throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
-    }
 
-    const { session_token_id } = await response.json();
-    this.sessionTokenId = session_token_id;
-  }
+      const { session_token_id } = await response.json();
+      this.sessionTokenId = session_token_id;
+    },
+  };
 
   /** Registers a callback invoked whenever a 429 rate-limit response is received. */
   setOnRateLimited(cb: (exercisesRemaining: number) => void): void {
@@ -203,7 +206,7 @@ export class AIModule {
    * @returns The generated audio as a Blob.
    */
   async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
-    await this.ensureSessionToken();
+    await this.session.ensure();
     return await fetch(`${this.backendUrl}/voice/tts`, {
       method: 'POST',
       headers: {
@@ -221,7 +224,7 @@ export class AIModule {
    * @returns The transcribed text.
    */
   async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
-    await this.ensureSessionToken();
+    await this.session.ensure();
     const formData = new FormData();
     formData.append('file', file);
     if (language) {

@@ -21,6 +21,8 @@ export interface EventBusMessage<T = EventPayload> {
   data: T;
   //indicated if the debug mode is active
   debug: boolean;
+  /** Session token inherited from the calling plugin, used to attribute AI calls to the originating exercise session. */
+  ai_session_token?: string;
 }
 
 export type EventHandler<T = EventPayload> = (event: EventBusMessage<T>) => void | Promise<void>;
@@ -105,7 +107,13 @@ export class EventBusHandler {
     return id;
   }
 
-  private createEvent(sender: string, topic: string, data: EventPayload, eventId?: number): EventBusMessage {
+  private createEvent(
+    sender: string,
+    topic: string,
+    data: EventPayload,
+    eventId?: number,
+    aiSessionToken?: string,
+  ): EventBusMessage {
     const generatedEventId = eventId || this.generateUniqueId();
 
     return {
@@ -115,6 +123,7 @@ export class EventBusHandler {
       topic,
       data,
       debug: this.debugEnabled,
+      ai_session_token: aiSessionToken,
     };
   }
 
@@ -136,8 +145,8 @@ export class EventBusHandler {
    * - pl1234.card.delete
    * - pl1234.card.triggerBackup
    */
-  public emit<T = EventPayload>(sender: string, topic: string, data?: T, eventId?: number): void {
-    this.emitInternal(sender, topic, data || {}, eventId);
+  public emit<T = EventPayload>(sender: string, topic: string, data?: T, eventId?: number, aiSessionToken?: string): void {
+    this.emitInternal(sender, topic, data || {}, eventId, false, aiSessionToken);
   }
 
   private emitInternal(
@@ -146,13 +155,14 @@ export class EventBusHandler {
     data: EventPayload,
     eventId?: number,
     skipResponseTrigger = false,
+    aiSessionToken?: string,
   ): void {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(false, `Invalid topic: ` + topic);
       return;
     }
 
-    const event = this.createEvent(sender, topic, data, eventId);
+    const event = this.createEvent(sender, topic, data, eventId, aiSessionToken);
 
     const handlers = this.getMatchingHandlers(event.topic);
     handlers.forEach((handler) => {
@@ -333,12 +343,13 @@ export class EventBusHandler {
     sender: string,
     topic: string,
     data?: EventPayload,
+    aiSessionToken?: string,
   ): Promise<EventBusMessage<T>> {
     if (!this.validateTopic(topic)) {
       this.logAndThrowError(true, `Invalid topic: ` + topic);
     }
 
-    const event = this.createEvent(sender, topic, data || {});
+    const event = this.createEvent(sender, topic, data || {}, undefined, aiSessionToken);
 
     this.logIfDebug(`Requesting data from ` + topic, { event });
 
@@ -346,7 +357,7 @@ export class EventBusHandler {
       this.responseResolvers.set(event.eventId, (value: EventBusMessage<unknown>) =>
         resolve(value as EventBusMessage<T>),
       );
-      this.emitInternal(sender, topic, data || {}, event.eventId, true);
+      this.emitInternal(sender, topic, data || {}, event.eventId, true, aiSessionToken);
     });
   }
 

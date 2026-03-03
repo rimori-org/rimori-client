@@ -249,6 +249,14 @@ export interface Language {
 
 export type UserRole = 'user' | 'plugin_moderator' | 'lang_moderator' | 'admin';
 
+export type SubscriptionTier = 'anonymous' | 'free' | 'standard' | 'premium' | 'early_access';
+
+/** Ordered tiers from lowest to highest access level */
+export const TIER_ORDER: SubscriptionTier[] = ['anonymous', 'free', 'standard', 'premium', 'early_access'];
+
+/** Ordered roles from lowest to highest access level */
+export const ROLE_ORDER: UserRole[] = ['user', 'plugin_moderator', 'lang_moderator', 'admin'];
+
 export const LEARNING_REASONS = [
   'work',
   'partner',
@@ -318,4 +326,9 @@ export interface UserInfo {
    * The user's role: 'user', 'plugin_moderator', 'lang_moderator', or 'admin'
    */
   user_role: UserRole;
+  /**
+   * The user's subscription tier. Higher tiers include all privileges of lower tiers.
+   * Order (ascending): anonymous < free < standard < premium < early_access
+   */
+  subscription_tier: SubscriptionTier;
 }

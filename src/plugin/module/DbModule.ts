@@ -1,8 +1,5 @@
-import { PostgrestClientOptions, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import { SupabaseClient } from '../CommunicationHandler';
-// import { GenericSchema } from '@supabase/postgrest-js/dist/module/lib/types';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
-import { GenericSchema, GenericTable } from '@supabase/postgrest-js/dist/cjs/types/common/common';
 
 /**
  * Database module for plugin database operations.
@@ -34,18 +31,11 @@ export class DbModule {
    * @param relation The table name (without prefix for plugin tables, with 'global_' for global tables).
    * @returns A Postgrest query builder for the table.
    */
-  from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
-    relation: string,
-  ): PostgrestQueryBuilder<PostgrestClientOptions, GenericSchema, GenericTable, ViewName, View> {
+  from(relation: string) {
     const tableName = this.getTableName(relation);
-    // Use the schema determined by rimori-main based on release channel
-    // Global tables (starting with 'global_') remain in public schema
-    // Plugin tables use the schema provided by rimori-main (plugins or plugins_alpha)
     if (relation.startsWith('global_')) {
-      // Global tables stay in public schema
       return this.supabase.schema('public').from(tableName);
     }
-    // Plugin tables go to the schema provided by rimori-main
     return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName);
   }
 
