@@ -1,5 +1,44 @@
+import { PostgrestQueryBuilder, PostgrestClientOptions } from '@supabase/postgrest-js';
 import { SupabaseClient } from '../CommunicationHandler';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
+
+// GenericSchema, GenericTable, and GenericView are internal to @supabase/postgrest-js
+// and not exported from its public API. We define them locally to restore the generic
+// type parameter on from() that was removed in a recent rimori-client refactor.
+type GenericRelationship = {
+  foreignKeyName: string;
+  columns: string[];
+  isOneToOne?: boolean;
+  referencedRelation: string;
+  referencedColumns: string[];
+};
+type GenericTable = {
+  Row: Record<string, unknown>;
+  Insert: Record<string, unknown>;
+  Update: Record<string, unknown>;
+  Relationships: GenericRelationship[];
+};
+type GenericView = {
+  Row: Record<string, unknown>;
+  Relationships: GenericRelationship[];
+};
+type GenericSetofOption = {
+  isSetofReturn?: boolean;
+  isOneToOne?: boolean;
+  isNotNullable?: boolean;
+  to: string;
+  from: string;
+};
+type GenericFunction = {
+  Args: Record<string, unknown> | never;
+  Returns: unknown;
+  SetofOptions?: GenericSetofOption;
+};
+type GenericSchema = {
+  Tables: Record<string, GenericTable>;
+  Views: Record<string, GenericView>;
+  Functions: Record<string, GenericFunction>;
+};
 
 /**
  * Database module for plugin database operations.
@@ -31,12 +70,26 @@ export class DbModule {
    * @param relation The table name (without prefix for plugin tables, with 'global_' for global tables).
    * @returns A Postgrest query builder for the table.
    */
-  from(relation: string) {
+  from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
+    relation: string,
+  ): PostgrestQueryBuilder<PostgrestClientOptions, GenericSchema, GenericTable, ViewName, View> {
     const tableName = this.getTableName(relation);
     if (relation.startsWith('global_')) {
-      return this.supabase.schema('public').from(tableName);
+      return this.supabase.schema('public').from(tableName) as unknown as PostgrestQueryBuilder<
+        PostgrestClientOptions,
+        GenericSchema,
+        GenericTable,
+        ViewName,
+        View
+      >;
     }
-    return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName);
+    return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName) as unknown as PostgrestQueryBuilder<
+      PostgrestClientOptions,
+      GenericSchema,
+      GenericTable,
+      ViewName,
+      View
+    >;
   }
 
   /**
