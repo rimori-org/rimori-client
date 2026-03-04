@@ -390,6 +390,19 @@ export class AIModule {
 
     let currentObject: T = {} as T;
 
+    // Buffer for SSE lines that are split across network chunks.
+    // TCP/IP does not guarantee that each `read()` call delivers a complete
+    // logical line. For example, the `token:` line carrying the session token
+    // may arrive as two separate chunks:
+    //   chunk 1 → `token: {"token_id":`
+    //   chunk 2 → `"abc123"}\n`
+    // Without buffering, `JSON.parse` would throw on the partial line and the
+    // session token would be silently discarded, causing the next LLM call to
+    // start without a session (triggering an unnecessary extra round-trip via
+    // `session.ensure()`). By keeping the incomplete tail in `lineBuffer` and
+    // prepending it to the next chunk we always process whole lines.
+    let lineBuffer = '';
+
     let isLoading = true;
     while (isLoading) {
       //wait 50ms to not overload the CPU
@@ -406,7 +419,13 @@ export class AIModule {
       if (!value) continue;
 
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter((line) => line.trim());
+      // Prepend any incomplete line left over from the previous chunk, then
+      // split on newlines. `parts.pop()` removes (and saves) the last element
+      // which may be an incomplete line if the chunk did not end with '\n'.
+      const combined = lineBuffer + chunk;
+      const parts = combined.split('\n');
+      lineBuffer = parts.pop() ?? '';
+      const lines = parts.filter((line) => line.trim());
 
       for (const line of lines) {
         // Handle token: line (session token issued by backend on first AI call)
