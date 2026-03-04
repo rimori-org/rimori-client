@@ -1,43 +1,23 @@
-import { PostgrestQueryBuilder, PostgrestClientOptions } from '@supabase/postgrest-js';
+import { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 import { SupabaseClient } from '../CommunicationHandler';
 import { RimoriCommunicationHandler, RimoriInfo } from '../CommunicationHandler';
 
-// GenericSchema, GenericTable, and GenericView are internal to @supabase/postgrest-js
-// and not exported from its public API. We define them locally to restore the generic
-// type parameter on from() that was removed in a recent rimori-client refactor.
-type GenericRelationship = {
-  foreignKeyName: string;
-  columns: string[];
-  isOneToOne?: boolean;
-  referencedRelation: string;
-  referencedColumns: string[];
-};
-type GenericTable = {
-  Row: Record<string, unknown>;
-  Insert: Record<string, unknown>;
-  Update: Record<string, unknown>;
-  Relationships: GenericRelationship[];
-};
-type GenericView = {
-  Row: Record<string, unknown>;
-  Relationships: GenericRelationship[];
-};
-type GenericSetofOption = {
-  isSetofReturn?: boolean;
-  isOneToOne?: boolean;
-  isNotNullable?: boolean;
-  to: string;
-  from: string;
-};
-type GenericFunction = {
-  Args: Record<string, unknown> | never;
-  Returns: unknown;
-  SetofOptions?: GenericSetofOption;
-};
-type GenericSchema = {
-  Tables: Record<string, GenericTable>;
-  Views: Record<string, GenericView>;
-  Functions: Record<string, GenericFunction>;
+/**
+ * Wraps PostgrestQueryBuilder and overrides select() to always return Row[].
+ *
+ * postgrest-js's GetResult type can only infer row types from string literals.
+ * Dynamic select strings (e.g. `'col:' + getTableName('other') + '(id)'`) produce
+ * GenericStringError. This wrapper forces select() to return Row[] regardless of
+ * the query string, so callers using from<Row>() always get typed results.
+ */
+type DbQueryBuilder<Row extends Record<string, unknown>> = Omit<
+  PostgrestQueryBuilder<any, any, { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] }, string>,
+  'select'
+> & {
+  select(
+    columns?: string,
+    options?: { head?: boolean; count?: 'exact' | 'planned' | 'estimated' },
+  ): PostgrestFilterBuilder<any, any, Row, Row[], string, any, 'GET'>;
 };
 
 /**
@@ -67,29 +47,21 @@ export class DbModule {
    * Query a database table.
    * Global tables (starting with 'global_') remain in public schema.
    * Plugin tables use the schema provided by rimori-main (plugins or plugins_alpha).
+   *
+   * The generic parameter `Row` lets callers opt-in to typed row access:
+   *   client.db.from<{ id: string; name: string }>('decks')
+   * When omitted, row fields are inferred from the select() string (each field typed as `any`).
+   * Works with both literal and dynamic select strings.
+   *
    * @param relation The table name (without prefix for plugin tables, with 'global_' for global tables).
    * @returns A Postgrest query builder for the table.
    */
-  from<ViewName extends string & keyof GenericSchema['Views'], View extends GenericSchema['Views'][ViewName]>(
-    relation: string,
-  ): PostgrestQueryBuilder<PostgrestClientOptions, GenericSchema, GenericTable, ViewName, View> {
+  from<Row extends Record<string, unknown> = any>(relation: string): DbQueryBuilder<Row> {
     const tableName = this.getTableName(relation);
     if (relation.startsWith('global_')) {
-      return this.supabase.schema('public').from(tableName) as unknown as PostgrestQueryBuilder<
-        PostgrestClientOptions,
-        GenericSchema,
-        GenericTable,
-        ViewName,
-        View
-      >;
+      return this.supabase.schema('public').from(tableName) as unknown as DbQueryBuilder<Row>;
     }
-    return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName) as unknown as PostgrestQueryBuilder<
-      PostgrestClientOptions,
-      GenericSchema,
-      GenericTable,
-      ViewName,
-      View
-    >;
+    return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName) as unknown as DbQueryBuilder<Row>;
   }
 
   /**
