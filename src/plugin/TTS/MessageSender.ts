@@ -9,6 +9,7 @@ export class MessageSender {
   private voice: string;
   private voiceBackend: VoiceBackend;
   private cache: boolean;
+  private voiceSpeed: number = 1;
 
   constructor(voiceBackend: VoiceBackend, voice: string, cache = false) {
     if (voice?.split('_').length !== 2) {
@@ -64,7 +65,7 @@ export class MessageSender {
   }
 
   private async generateSpeech(sentence: string): Promise<ArrayBuffer> {
-    const blob = await this.voiceBackend(sentence, this.voice, 1.0, undefined, this.cache);
+    const blob = await this.voiceBackend(sentence, this.voice, this.voiceSpeed, undefined, this.cache);
     return await blob.arrayBuffer();
   }
 
@@ -98,5 +99,9 @@ export class MessageSender {
 
   public setOnEndOfSpeech(callback: () => void) {
     this.player.setOnEndOfSpeech(callback);
+  }
+
+  public setVoiceSpeed(speed: number) {
+    this.voiceSpeed = speed;
   }
 }

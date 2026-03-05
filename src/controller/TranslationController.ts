@@ -55,6 +55,7 @@ export class Translator {
           },
           debug: false,
           parseMissingKeyHandler: (key, defaultValue): string => {
+            if (!key.trim()) return '';
             if (this.isTranslationKey(key)) {
               console.warn(`Translation key not found: ${key}`);
               return defaultValue ?? '';

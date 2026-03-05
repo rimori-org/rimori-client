@@ -87,46 +87,49 @@ export class AIModule {
     this.getToken = getToken;
   }
 
-  /** Returns the current exercise session token ID (null if no active session). */
-  getSessionTokenId(): string | null {
-    return this.sessionTokenId;
-  }
+  /** Exercise session management. */
+  public readonly session = {
+    /** Returns the current exercise session token ID (null if no active session). */
+    get: (): string | null => this.sessionTokenId,
 
-  /** Sets the session token ID (used by workers inheriting a session from the plugin). */
-  setSessionToken(id: string): void {
-    this.sessionTokenId = id;
-  }
+    /** Sets the session token ID. */
+    set: (id: string): void => {
+      this.sessionTokenId = id;
+    },
 
-  /** Clears the stored session token (called after macro accomplishment). */
-  clearSessionToken(): void {
-    this.sessionTokenId = null;
-  }
+    /** Clears the stored session token. */
+    clear: (): void => {
+      this.sessionTokenId = null;
+    },
 
-  /**
-   * Ensures a session token exists, requesting one from the backend if needed.
-   * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
-   */
-  private async ensureSessionToken(): Promise<void> {
-    if (this.sessionTokenId) return;
+    /**
+     * Ensures a session token exists, creating one from the backend if needed.
+     * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
+     */
+    ensure: async (): Promise<void> => {
+      if (this.sessionTokenId) return;
 
-    const response = await fetch(`${this.backendUrl}/ai/session`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}` },
-    });
+      const response = await fetch(`${this.backendUrl}/ai/session`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.getToken()}` },
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        const body = await response.json().catch(() => ({}));
-        const remaining = body.exercises_remaining ?? 0;
-        this.onRateLimitedCb?.(remaining);
-        throw new Error(`Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`);
+      if (!response.ok) {
+        if (response.status === 429) {
+          const body = await response.json().catch(() => ({}));
+          const remaining = body.exercises_remaining ?? 0;
+          this.onRateLimitedCb?.(remaining);
+          throw new Error(
+            `Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`,
+          );
+        }
+        throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
       }
-      throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
-    }
 
-    const { session_token_id } = await response.json();
-    this.sessionTokenId = session_token_id;
-  }
+      const { session_token_id } = await response.json();
+      this.sessionTokenId = session_token_id;
+    },
+  };
 
   /** Registers a callback invoked whenever a 429 rate-limit response is received. */
   setOnRateLimited(cb: (exercisesRemaining: number) => void): void {
@@ -203,7 +206,7 @@ export class AIModule {
    * @returns The generated audio as a Blob.
    */
   async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
-    await this.ensureSessionToken();
+    await this.session.ensure();
     return await fetch(`${this.backendUrl}/voice/tts`, {
       method: 'POST',
       headers: {
@@ -221,7 +224,7 @@ export class AIModule {
    * @returns The transcribed text.
    */
   async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
-    await this.ensureSessionToken();
+    await this.session.ensure();
     const formData = new FormData();
     formData.append('file', file);
     if (language) {
@@ -387,6 +390,19 @@ export class AIModule {
 
     let currentObject: T = {} as T;
 
+    // Buffer for SSE lines that are split across network chunks.
+    // TCP/IP does not guarantee that each `read()` call delivers a complete
+    // logical line. For example, the `token:` line carrying the session token
+    // may arrive as two separate chunks:
+    //   chunk 1 → `token: {"token_id":`
+    //   chunk 2 → `"abc123"}\n`
+    // Without buffering, `JSON.parse` would throw on the partial line and the
+    // session token would be silently discarded, causing the next LLM call to
+    // start without a session (triggering an unnecessary extra round-trip via
+    // `session.ensure()`). By keeping the incomplete tail in `lineBuffer` and
+    // prepending it to the next chunk we always process whole lines.
+    let lineBuffer = '';
+
     let isLoading = true;
     while (isLoading) {
       //wait 50ms to not overload the CPU
@@ -403,7 +419,13 @@ export class AIModule {
       if (!value) continue;
 
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter((line) => line.trim());
+      // Prepend any incomplete line left over from the previous chunk, then
+      // split on newlines. `parts.pop()` removes (and saves) the last element
+      // which may be an incomplete line if the chunk did not end with '\n'.
+      const combined = lineBuffer + chunk;
+      const parts = combined.split('\n');
+      lineBuffer = parts.pop() ?? '';
+      const lines = parts.filter((line) => line.trim());
 
       for (const line of lines) {
         // Handle token: line (session token issued by backend on first AI call)
