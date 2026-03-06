@@ -205,7 +205,7 @@ export class AIModule {
    * @param cache Whether to cache the result (default: false).
    * @returns The generated audio as a Blob.
    */
-  async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false): Promise<Blob> {
+  async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false, instructions?: string): Promise<Blob> {
     await this.session.ensure();
     return await fetch(`${this.backendUrl}/voice/tts`, {
       method: 'POST',
@@ -213,7 +213,7 @@ export class AIModule {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getToken()}`,
       },
-      body: JSON.stringify({ input: text, voice, speed, language, cache, session_token_id: this.sessionTokenId ?? undefined }),
+      body: JSON.stringify({ input: text, voice, speed, language, cache, instructions, session_token_id: this.sessionTokenId ?? undefined }),
     }).then((r) => r.blob());
   }
 

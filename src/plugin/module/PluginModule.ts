@@ -331,4 +331,11 @@ export interface UserInfo {
    * Order (ascending): anonymous < free < standard < premium < early_access
    */
   subscription_tier: SubscriptionTier;
+  /**
+   * Regional dialect name for the user's target city (e.g. "Skånska", "Göteborgska").
+   * Only set when: subscription_tier >= premium AND skill_level_listening >= B1
+   *                AND dialect_enabled = true AND city has a dialect in DB.
+   * Undefined otherwise. Plugins decide how to use this on a per-feature basis.
+   */
+  dialect?: string;
 }
