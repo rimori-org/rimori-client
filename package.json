@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "2.5.21",
+  "version": "2.5.22",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
@@ -38,7 +38,7 @@
   "dependencies": {
     "@supabase/postgrest-js": "^2.98.0",
     "dotenv": "^16.5.0",
-    "i18next": "^25.8.14"
+    "i18next": "^25.8.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
