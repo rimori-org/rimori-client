@@ -54,6 +54,7 @@ export class Translator {
             },
           },
           debug: false,
+          showSupportNotice: false,
           parseMissingKeyHandler: (key, defaultValue): string => {
             if (!key.trim()) return '';
             if (this.isTranslationKey(key)) {
