@@ -1,6 +1,6 @@
 import { ChunkedAudioPlayer } from './ChunkedAudioPlayer';
 
-type VoiceBackend = (text: string, voice?: string, speed?: number, language?: string, cache?: boolean) => Promise<Blob>;
+type VoiceBackend = (text: string, voice?: string, speed?: number, language?: string, cache?: boolean, instructions?: string) => Promise<Blob>;
 
 export class MessageSender {
   private player = new ChunkedAudioPlayer();
@@ -10,6 +10,7 @@ export class MessageSender {
   private voiceBackend: VoiceBackend;
   private cache: boolean;
   private voiceSpeed: number = 1;
+  private instructions: string | undefined;
 
   constructor(voiceBackend: VoiceBackend, voice: string, cache = false) {
     if (voice?.split('_').length !== 2) {
@@ -64,8 +65,12 @@ export class MessageSender {
     }
   }
 
+  public setInstructions(instructions: string | undefined) {
+    this.instructions = instructions;
+  }
+
   private async generateSpeech(sentence: string): Promise<ArrayBuffer> {
-    const blob = await this.voiceBackend(sentence, this.voice, this.voiceSpeed, undefined, this.cache);
+    const blob = await this.voiceBackend(sentence, this.voice, this.voiceSpeed, undefined, this.cache, this.instructions);
     return await blob.arrayBuffer();
   }
 
