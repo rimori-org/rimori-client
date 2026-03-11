@@ -108,7 +108,7 @@ export class RimoriCommunicationHandler {
           if (sender !== this.pluginId) {
             EventBus.emit(sender, topic, eventData, eventId, ai_session_token);
           } else {
-            console.log('[PluginController] event from self', event);
+            // console.log('[PluginController] event from self', event);
           }
         }
       };

@@ -121,7 +121,7 @@ export class EventModule {
           this.aiModule.session.set(event.ai_session_token);
         }
         try {
-          console.log('responding to event', event);
+          // console.log('responding to event', event);
           return await data(event);
         } finally {
           if (event.ai_session_token) {
