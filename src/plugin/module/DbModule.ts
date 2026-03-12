@@ -20,6 +20,8 @@ type DbQueryBuilder<Row extends Record<string, unknown>> = Omit<
   ): PostgrestFilterBuilder<any, any, Row, Row[], string, any, 'GET'>;
 };
 
+export type PublicityLevel = 'own' | 'guild';
+
 /**
  * Database module for plugin database operations.
  * Provides access to plugin tables with automatic prefixing and schema management.
@@ -78,5 +80,32 @@ export class DbModule {
       return table.replace('global_', '');
     }
     return this.tablePrefix + '_' + table;
+  }
+
+  /**
+   * Sets the publicity level of a plugin DB entry via the backend.
+   *
+   * - 'own'  — visible only to the creator (created_by=uid, guild_id=null)
+   * - 'guild' — visible to all guild members (users: created_by=uid; moderators/admins: created_by=null; both with guild_id set)
+   *
+   * @param table The plugin table name (without prefix, e.g. 'pages')
+   * @param entryId The UUID of the entry to update
+   * @param publicity The desired publicity level
+   */
+  async setPublicity(table: string, entryId: string, publicity: PublicityLevel): Promise<void> {
+    const tableName = this.getTableName(table);
+    await fetch(`${this.rimoriInfo.backendUrl}/db-entry/publicity`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.rimoriInfo.token}`,
+      },
+      body: JSON.stringify({
+        table_name: tableName,
+        schema: this.rimoriInfo.dbSchema,
+        entry_id: entryId,
+        publicity,
+      }),
+    });
   }
 }
