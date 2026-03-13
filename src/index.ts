@@ -21,3 +21,4 @@ export { TIER_ORDER, ROLE_ORDER } from './plugin/module/PluginModule';
 export type { SharedContent, BasicSharedContent, ContentStatus } from './plugin/module/SharedContentController';
 export type { MacroAccomplishmentPayload, MicroAccomplishmentPayload } from './controller/AccomplishmentController';
 export { StorageModule } from './plugin/module/StorageModule';
+export type { PublicityLevel } from './plugin/module/DbModule';
