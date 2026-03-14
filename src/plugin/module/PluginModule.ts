@@ -175,11 +175,13 @@ export class PluginModule {
     id: string;
     name: string;
     description: string | null;
+    isShadowGuild: boolean;
   } {
     return {
       id: this.rimoriInfo.guild.id,
       name: this.rimoriInfo.guild.name,
       description: this.rimoriInfo.guild.description,
+      isShadowGuild: this.rimoriInfo.guild.isShadowGuild,
     };
   }
 

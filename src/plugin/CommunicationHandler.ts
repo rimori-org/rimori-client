@@ -15,6 +15,7 @@ export interface Guild {
   description: string | null;
   id: string;
   isPublic: boolean;
+  isShadowGuild: boolean;
   name: string;
   ownerId: string;
   primaryLanguage: string;
