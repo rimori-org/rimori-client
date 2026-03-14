@@ -20,7 +20,7 @@ export interface Exercise {
   plugin_id: string;
   start_date: string;
   end_date: string;
-  trigger_action: TriggerAction;
+  attributes: TriggerAction;
   achievement_topic: string;
   name: string;
   description: string;
@@ -63,7 +63,7 @@ export class ExerciseModule {
    * @returns Array of exercise objects.
    */
   async view(): Promise<Exercise[]> {
-    const { data, error } = await this.supabase.from('weekly_exercises').select('*');
+    const { data, error } = await this.supabase.schema('public').from('weekly_exercises').select('*');
 
     if (error) {
       throw new Error(`Failed to fetch weekly exercises: ${error.message}`);
