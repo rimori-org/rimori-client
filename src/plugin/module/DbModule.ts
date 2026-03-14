@@ -20,7 +20,7 @@ type DbQueryBuilder<Row extends Record<string, unknown>> = Omit<
   ): PostgrestFilterBuilder<any, any, Row, Row[], string, any, 'GET'>;
 };
 
-export type PublicityLevel = 'own' | 'guild';
+export type PublicityLevel = 'own' | 'guild' | 'lang';
 
 /**
  * Database module for plugin database operations.
