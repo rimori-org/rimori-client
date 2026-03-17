@@ -296,7 +296,6 @@ export interface UserInfo {
   skill_level_listening: LanguageLevel;
   skill_level_understanding: LanguageLevel;
   study_buddy: Buddy;
-  study_duration: number;
   /**
    * The language the user speaks natively.
    */
