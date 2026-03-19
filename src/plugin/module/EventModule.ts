@@ -186,6 +186,16 @@ export class EventModule {
   }
 
   /**
+   * Trigger an action that opens a plugin in the main panel and triggers an action.
+   * @param pluginId The id of the plugin to trigger the action for.
+   * @param actionKey The key of the action to trigger.
+   * @param params Optional additional parameters to pass to the action.
+   */
+  emitMainPanelAction(pluginId: string, actionKey: string, params?: Record<string, string>): void {
+    this.emit('global.mainPanel.triggerAction', { plugin_id: pluginId, action_key: actionKey, ...params });
+  }
+
+  /**
    * Subscribe to main panel actions triggered by the user from the dashboard.
    * @param callback Handler function that receives the action data when a matching action is triggered.
    * @param actionsToListen Optional filter to listen only to specific action keys. If empty or not provided, all actions will trigger the callback.
