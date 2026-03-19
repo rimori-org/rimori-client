@@ -26,6 +26,21 @@ export type PublicityLevel = 'own' | 'guild' | 'lang';
  * Database module for plugin database operations.
  * Provides access to plugin tables with automatic prefixing and schema management.
  */
+export interface VectorSearchParams {
+  /** Table name without plugin prefix (e.g. 'pages') */
+  tableName: string;
+  /** The text query to search for */
+  query: string;
+  /** Maximum number of results (default: 5) */
+  limit?: number;
+  /** Similarity threshold 0-1 (default: 0.5) */
+  threshold?: number;
+  /** Which columns to return (default: all) */
+  selectColumns?: string[];
+}
+
+export type VectorSearchResult<T = Record<string, unknown>> = Array<T & { similarity: number }>;
+
 export class DbModule {
   private supabase: SupabaseClient;
   private rimoriInfo: RimoriInfo;
@@ -107,5 +122,28 @@ export class DbModule {
         publicity,
       }),
     });
+  }
+
+  /**
+   * Search a plugin table using vector similarity (cosine distance).
+   * The table must have a vector column named 'embedding' defined in db.config.ts.
+   * @param params Search parameters
+   * @returns Matching rows sorted by similarity
+   */
+  async vectorSearch<T = Record<string, unknown>>(params: VectorSearchParams): Promise<VectorSearchResult<T>> {
+    const response = await fetch(`${this.rimoriInfo.backendUrl}/plugin-search/vector-search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.rimoriInfo.token}`,
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Vector search failed: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 }
