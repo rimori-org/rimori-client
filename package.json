@@ -1,6 +1,6 @@
 {
   "name": "@rimori/client",
-  "version": "2.5.26",
+  "version": "2.5.27",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
@@ -31,7 +31,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc -w  --preserveWatchOutput",
+    "dev": "git pull && tsc -w  --preserveWatchOutput",
     "lint": "eslint . --fix",
     "format": "prettier --write ."
   },

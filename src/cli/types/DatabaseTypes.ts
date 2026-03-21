@@ -10,7 +10,15 @@
  *  2. Add an `updated_at` trigger so the image-sync cron can detect recently
  *     modified entries. The cron derives which columns to scan from release.db_schema.
  */
-type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid' | 'markdown';
+/**
+ * 'vector' is stored as `vector(1536)` in the database (pgvector).
+ * Marking a column as 'vector' causes the migration system to:
+ *  1. Create the column as `vector(1536)` with nullable constraint.
+ *  2. Create an IVFFlat index for cosine similarity search.
+ *  3. The column MUST be named 'embedding' and only one per table is allowed.
+ *  4. Requires `source_column` — the column whose content is embedded async on insert.
+ */
+type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid' | 'markdown' | 'vector';
 
 /**
  * Foreign key relationship configuration with cascade delete support.
@@ -26,11 +34,11 @@ interface ForeignKeyRelation {
 }
 
 /**
- * Database column definition with support for types, constraints, and relationships.
+ * Regular (non-vector) database column definition with support for types, constraints, and relationships.
  */
-export interface DbColumnDefinition {
+interface DbRegularColumnDefinition {
   /** The data type of the column */
-  type: DbColumnType;
+  type: Exclude<DbColumnType, 'vector'>;
   /** Human-readable description of the column's purpose */
   description: string;
   /** Whether the column can contain null values */
@@ -41,6 +49,8 @@ export interface DbColumnDefinition {
   default_value?: string | number | boolean;
   /** Array of allowed values for enumerated columns */
   // enum?: string[];
+  /** Not allowed on non-vector columns */
+  source_column?: never;
   /** Foreign key relationship configuration */
   foreign_key?: ForeignKeyRelation;
   /** The name of the column before it was renamed. */
@@ -63,6 +73,41 @@ export interface DbColumnDefinition {
     // maintainer?: Partial<Omit<DbPermissionDefinition, 'delete'>>;
   };
 }
+
+/**
+ * Vector column definition for semantic search via pgvector.
+ * The column MUST be named 'embedding' and only one per table is allowed.
+ * The backend generates embeddings asynchronously from the source_column content.
+ */
+interface DbVectorColumnDefinition {
+  /** Must be 'vector' */
+  type: 'vector';
+  /** Human-readable description of the column's purpose */
+  description: string;
+  /** Vector columns must be nullable (embeddings are generated asynchronously) */
+  nullable: true;
+  /** The column whose content is embedded. Must reference an existing column in the same table. */
+  source_column: string;
+  /** Not applicable to vector columns */
+  unique?: never;
+  /** Not applicable to vector columns */
+  default_value?: never;
+  /** Not applicable to vector columns */
+  foreign_key?: never;
+  /** Not applicable to vector columns */
+  old_name?: never;
+  /** Not applicable to vector columns */
+  deprecated?: never;
+  /** Not applicable to vector columns */
+  restrict?: never;
+}
+
+/**
+ * Database column definition — discriminated union on `type`.
+ * Use `type: 'vector'` for embedding columns (enforces `nullable: true` and requires `source_column`).
+ * All other types forbid `source_column`.
+ */
+export type DbColumnDefinition = DbRegularColumnDefinition | DbVectorColumnDefinition;
 
 /**
  * Base table structure that all database tables inherit.

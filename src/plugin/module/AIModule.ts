@@ -64,11 +64,13 @@ export interface ObjectRequest {
    * High level instructions for the AI to follow. Behaviour, tone, restrictions, etc.
    * Example: "Act like a recipe writer."
    */
+  /** @deprecated Use server-side prompt definitions (prompt + variables) instead of building requests client-side. */
   behaviour?: string;
   /**
    * The specific instruction for the AI to follow.
    * Example: "Generate a recipe using chicken, rice and vegetables."
    */
+  /** @deprecated Use server-side prompt definitions (prompt + variables) instead of building requests client-side. */
   instructions: string;
 }
 
@@ -79,12 +81,28 @@ export interface ObjectRequest {
 export class AIModule {
   private getToken: () => string;
   private backendUrl: string;
+  private pluginId: string | undefined;
   private sessionTokenId: string | null = null;
   private onRateLimitedCb?: (exercisesRemaining: number) => void;
 
-  constructor(backendUrl: string, getToken: () => string) {
+  constructor(backendUrl: string, getToken: () => string, pluginId?: string) {
     this.backendUrl = backendUrl;
     this.getToken = getToken;
+    this.pluginId = pluginId;
+  }
+
+  /**
+   * Resolves a prompt name following the event naming convention:
+   * - 2-segment names (e.g. 'storytelling.story') get prefixed with pluginId → '<pluginId>.storytelling.story'
+   * - 3+ segment names starting with 'global.' (e.g. 'global.translator.translate') are sent as-is
+   */
+  private resolvePromptName(name: string): string {
+    if (name.startsWith('global.')) return name;
+    const segments = name.split('.');
+    if (segments.length === 2 && this.pluginId) {
+      return `${this.pluginId}.${name}`;
+    }
+    return name;
   }
 
   /** Exercise session management. */
@@ -150,11 +168,6 @@ export class AIModule {
       tools,
       model,
       messages,
-      responseSchema: {
-        result: {
-          type: 'string',
-        },
-      },
     });
 
     return result;
@@ -174,7 +187,10 @@ export class AIModule {
     tools?: Tool[],
     cache = false,
     model?: string,
+    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
     knowledgeId?: string,
+    prompt?: string,
+    variables?: Record<string, any>,
   ): Promise<string> {
     const messageId = Math.random().toString(36).substring(3);
 
@@ -184,11 +200,8 @@ export class AIModule {
       model,
       messages,
       knowledgeId,
-      responseSchema: {
-        result: {
-          type: 'string',
-        },
-      },
+      prompt,
+      variables,
       onResult: ({ result }) => onMessage(messageId, result, false),
     });
 
@@ -205,7 +218,14 @@ export class AIModule {
    * @param cache Whether to cache the result (default: false).
    * @returns The generated audio as a Blob.
    */
-  async getVoice(text: string, voice = 'alloy', speed = 1, language?: string, cache = false, instructions?: string): Promise<Blob> {
+  async getVoice(
+    text: string,
+    voice = 'alloy',
+    speed = 1,
+    language?: string,
+    cache = false,
+    instructions?: string,
+  ): Promise<Blob> {
     await this.session.ensure();
     return await fetch(`${this.backendUrl}/voice/tts`, {
       method: 'POST',
@@ -213,7 +233,15 @@ export class AIModule {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.getToken()}`,
       },
-      body: JSON.stringify({ input: text, voice, speed, language, cache, instructions, session_token_id: this.sessionTokenId ?? undefined }),
+      body: JSON.stringify({
+        input: text,
+        voice,
+        speed,
+        language,
+        cache,
+        instructions,
+        session_token_id: this.sessionTokenId ?? undefined,
+      }),
     }).then((r) => r.blob());
   }
 
@@ -245,6 +273,7 @@ export class AIModule {
       });
   }
 
+  /** @deprecated Used by legacy client-side prompt path. Will be removed once all plugins migrate to server-side prompt definitions. */
   private getChatMessage(systemPrompt: string, userPrompt?: string): Message[] {
     const messages: Message[] = [{ role: 'system', content: systemPrompt }];
     if (userPrompt) {
@@ -254,23 +283,27 @@ export class AIModule {
   }
   /**
    * Generate a structured object from a request using AI.
-   * @param request The object generation request.
-   * @param request.systemPrompt The system prompt to use for generation.
-   * @param request.responseSchema The response schema to use for generation.
-   * @param request.userPrompt The user prompt to use for generation.
    * @param request.cache Whether to cache the result (default: false).
    * @param request.tools The tools to use for generation.
    * @param request.model The model to use for generation.
+   * @param request.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param request.variables Variables for the server-side prompt template.
    * @returns The generated object.
    */
   async getObject<T = any>(params: {
-    systemPrompt: string;
-    responseSchema: AIObjectTool;
+    /** @deprecated Use prompt + variables instead of client-side system prompts. */
+    systemPrompt?: string;
+    /** @deprecated Use prompt + variables instead. Schema is loaded server-side from the prompt definition. */
+    responseSchema?: AIObjectTool;
+    /** @deprecated Use prompt + variables instead of client-side user prompts. */
     userPrompt?: string;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
+    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
     knowledgeId?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
   }): Promise<T> {
     const {
       systemPrompt,
@@ -280,38 +313,45 @@ export class AIModule {
       tools = [],
       model = undefined,
       knowledgeId,
+      prompt,
+      variables,
     } = params;
     return await this.streamObject<T>({
       responseSchema,
-      messages: this.getChatMessage(systemPrompt, userPrompt),
+      messages: systemPrompt ? this.getChatMessage(systemPrompt, userPrompt) : [],
       cache,
       tools,
       model,
       knowledgeId,
+      prompt,
+      variables,
     });
   }
 
   /**
    * Generate a streamed structured object from a request using AI.
-   * @param request The object generation request.
-   * @param request.systemPrompt The system prompt to use for generation.
-   * @param request.responseSchema The response schema to use for generation.
-   * @param request.userPrompt The user prompt to use for generation.
    * @param request.onResult Callback for each result chunk.
    * @param request.cache Whether to cache the result (default: false).
    * @param request.tools The tools to use for generation.
    * @param request.model The model to use for generation.
-   * @param request.knowledgeId Optional knowledge entry ID to ground AI content in real facts.
+   * @param request.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param request.variables Variables for the server-side prompt template.
    */
   async getStreamedObject<T = any>(params: {
-    systemPrompt: string;
-    responseSchema: AIObjectTool;
+    /** @deprecated Use prompt + variables instead of client-side system prompts. */
+    systemPrompt?: string;
+    /** @deprecated Use prompt + variables instead. Schema is loaded server-side from the prompt definition. */
+    responseSchema?: AIObjectTool;
+    /** @deprecated Use prompt + variables instead of client-side user prompts. */
     userPrompt?: string;
     onResult: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
+    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
     knowledgeId?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
   }): Promise<T> {
     const {
       systemPrompt,
@@ -322,26 +362,32 @@ export class AIModule {
       tools = [],
       model = undefined,
       knowledgeId,
+      prompt,
+      variables,
     } = params;
     return await this.streamObject<T>({
       responseSchema,
-      messages: this.getChatMessage(systemPrompt, userPrompt),
+      messages: systemPrompt ? this.getChatMessage(systemPrompt, userPrompt) : [],
       onResult,
       cache,
       tools,
       model,
       knowledgeId,
+      prompt,
+      variables,
     });
   }
 
   private async streamObject<T = any>(params: {
-    responseSchema: AIObjectTool;
+    responseSchema?: AIObjectTool;
     messages: Message[];
     onResult?: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
     knowledgeId?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
   }): Promise<T> {
     const {
       messages,
@@ -351,22 +397,33 @@ export class AIModule {
       tools = [],
       model = undefined,
       knowledgeId,
+      prompt,
+      variables,
     } = params;
     const chatMessages = messages.map((message, index) => ({
       ...message,
       id: `${index + 1}`,
     }));
+
+    const payload: Record<string, any> = {
+      cache,
+      tools,
+      stream: true,
+      messages: chatMessages,
+      model,
+      knowledge_id: knowledgeId,
+      session_token_id: this.sessionTokenId ?? undefined,
+    };
+
+    if (prompt) {
+      payload.prompt = { name: this.resolvePromptName(prompt), variables: variables ?? {} };
+    }
+    if (responseSchema) {
+      payload.responseSchema = responseSchema;
+    }
+
     const response = await fetch(`${this.backendUrl}/ai/llm`, {
-      body: JSON.stringify({
-        cache,
-        tools,
-        stream: true,
-        responseSchema,
-        messages: chatMessages,
-        model,
-        knowledge_id: knowledgeId,
-        session_token_id: this.sessionTokenId ?? undefined,
-      }),
+      body: JSON.stringify(payload),
       method: 'POST',
       headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': 'application/json' },
     });
@@ -376,7 +433,9 @@ export class AIModule {
         const body = await response.json().catch(() => ({}));
         const remaining = body.exercises_remaining ?? 0;
         this.onRateLimitedCb?.(remaining);
-        throw new Error(`Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`);
+        throw new Error(
+          `Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`,
+        );
       }
       throw new Error(`Failed to stream object: ${response.status} ${response.statusText}`);
     }
@@ -437,6 +496,21 @@ export class AIModule {
             }
           } catch {
             console.error('Failed to parse token: line', line);
+          }
+          continue;
+        }
+
+        // Handle debug: line (prompt resolution debug info, dev/local only)
+        if (line.startsWith('debug:')) {
+          try {
+            const debug = JSON.parse(line.slice(6).trim());
+            console.group(`[Rimori Prompt] ${debug.promptName}`);
+            console.log('System prompt:\n', debug.system);
+            console.log('User prompt:\n', debug.user);
+            console.log('Variables:', debug.variables);
+            console.groupEnd();
+          } catch {
+            // Ignore malformed debug lines
           }
           continue;
         }
