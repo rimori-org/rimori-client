@@ -31,7 +31,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "git pull && tsc -w  --preserveWatchOutput",
+    "dev": "tsc -w  --preserveWatchOutput",
     "lint": "eslint . --fix",
     "format": "prettier --write ."
   },
