@@ -4,6 +4,7 @@ export * from './plugin/RimoriClient';
 export * from './fromRimori/PluginTypes';
 export * from './plugin/StandaloneClient';
 export * from './cli/types/DatabaseTypes';
+export * from './cli/types/PromptTypes';
 export * from './plugin/TTS/MessageSender';
 export * from './utils/difficultyConverter';
 export * from './plugin/CommunicationHandler';

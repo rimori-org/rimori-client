@@ -170,15 +170,13 @@ export class Translator {
       // If the current language is English, don't translate
       if (!this.ai || this.currentLanguage === 'en') return text;
       const response = await this.ai.getObject<{ translation: string }>({
-        systemPrompt: 'You are a translation engine. Return only the translated text.' + additionalInstructions,
-        userPrompt: `Translate the following text into ${this.currentLanguage}: ${text}`,
-        cache: true,
-        responseSchema: {
-          translation: {
-            type: 'string',
-            description: `The translation of the input text into ${this.currentLanguage}.`,
-          },
+        prompt: 'global.translator.translate',
+        variables: {
+          additionalInstructions: additionalInstructions ?? '',
+          language: this.currentLanguage,
+          text,
         },
+        cache: true,
       });
 
       const translation = response?.translation;

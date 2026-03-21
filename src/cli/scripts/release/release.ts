@@ -16,6 +16,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import dbUpdate from './release-db-update.js';
+import promptsUpload from './release-prompts-upload.js';
 import { uploadDirectory } from './release-file-upload.js';
 import { releasePlugin, sendConfiguration } from './release-config-upload.js';
 
@@ -60,9 +61,13 @@ export type Config = typeof config;
 async function releaseProcess(): Promise<void> {
   try {
     console.log(`🚀 Releasing ${config.plugin_id} to ${config.release_channel}...`);
+    console.log(`📡 Deploying to: ${config.domain}`);
 
     // First send the configuration
     const release_id = await sendConfiguration(config);
+
+    // Upload prompts (if prompts.config.ts exists)
+    await promptsUpload(config, release_id);
 
     await dbUpdate(config, release_id);
 

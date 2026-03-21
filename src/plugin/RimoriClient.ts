@@ -25,7 +25,7 @@ export class RimoriClient {
   private constructor(controller: RimoriCommunicationHandler, supabase: PostgrestClient, info: RimoriInfo) {
     this.rimoriInfo = info;
     this.sharedContent = new SharedContentController(supabase, this);
-    this.ai = new AIModule(info.backendUrl, () => this.rimoriInfo.token);
+    this.ai = new AIModule(info.backendUrl, () => this.rimoriInfo.token, info.pluginId);
     this.ai.setOnRateLimited((exercisesRemaining) => {
       EventBus.emit(info.pluginId, 'global.quota.triggerExceeded', { exercises_remaining: exercisesRemaining });
     });
