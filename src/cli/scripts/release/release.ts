@@ -40,10 +40,6 @@ if (!releaseChannel) {
   process.exit(1);
 }
 
-if (process.env.RIMORI_BACKEND_URL) {
-  console.info('Using backend url:', process.env.RIMORI_BACKEND_URL);
-}
-
 const config = {
   version,
   release_channel: releaseChannel,
