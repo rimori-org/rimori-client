@@ -54,7 +54,7 @@ export class Translator {
             },
           },
           debug: false,
-          // showSupportNotice: false,  // TODO enable with next version of i18next
+          showSupportNotice: false,
           parseMissingKeyHandler: (key, defaultValue): string => {
             if (!key.trim()) return '';
             if (this.isTranslationKey(key)) {
