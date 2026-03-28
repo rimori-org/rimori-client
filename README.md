@@ -140,7 +140,7 @@ Helpers:
 The `client.ai` controller surfaces AI capabilities:
 
 - `getText(messages, tools?)` – chat completion (string result).
-- `getSteamedText(messages, onMessage, tools?)` – streamed responses.
+- `getStreamedText(messages, onMessage, tools?)` – streamed responses.
 - `getObject(request)` – structured JSON generation.
 - `getVoice(text, voice?, speed?, language?)` – text-to-speech (returns `Blob`).
 - `getTextFromVoice(file)` – speech-to-text transcription.

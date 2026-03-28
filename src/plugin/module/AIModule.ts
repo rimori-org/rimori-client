@@ -156,18 +156,30 @@ export class AIModule {
 
   /**
    * Generate text from messages using AI.
-   * @param messages The messages to generate text from.
-   * @param tools Optional tools to use for generation.
-   * @param cache Whether to cache the result (default: false).
-   * @param model The model to use for generation.
+   * @param params.messages The messages to generate text from.
+   * @param params.tools Optional tools to use for generation.
+   * @param params.cache Whether to cache the result (default: false).
+   * @param params.model The model to use for generation.
+   * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param params.variables Variables for the server-side prompt template.
    * @returns The generated text.
    */
-  async getText(messages: Message[], tools?: Tool[], cache = false, model?: string): Promise<string> {
+  async getText(params: {
+    messages: Message[];
+    tools?: Tool[];
+    cache?: boolean;
+    model?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
+  }): Promise<string> {
+    const { messages, tools, cache = false, model, prompt, variables } = params;
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
       model,
       messages,
+      prompt,
+      variables,
     });
 
     return result;
@@ -175,23 +187,35 @@ export class AIModule {
 
   /**
    * Stream text generation from messages using AI.
-   * @param messages The messages to generate text from.
-   * @param onMessage Callback for each message chunk.
-   * @param tools Optional tools to use for generation.
-   * @param cache Whether to cache the result (default: false).
-   * @param model The model to use for generation.
+   * @param params.messages The messages to generate text from.
+   * @param params.onMessage Callback for each message chunk.
+   * @param params.tools Optional tools to use for generation.
+   * @param params.cache Whether to cache the result (default: false).
+   * @param params.model The model to use for generation.
+   * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param params.variables Variables for the server-side prompt template.
    */
-  async getSteamedText(
-    messages: Message[],
-    onMessage: OnLLMResponse,
-    tools?: Tool[],
-    cache = false,
-    model?: string,
+  async getStreamedText(params: {
+    messages: Message[];
+    onMessage: OnLLMResponse;
+    tools?: Tool[];
+    cache?: boolean;
+    model?: string;
     /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
-    knowledgeId?: string,
-    prompt?: string,
-    variables?: Record<string, any>,
-  ): Promise<string> {
+    knowledgeId?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
+  }): Promise<string> {
+    const {
+      messages,
+      onMessage,
+      tools,
+      cache = false,
+      model,
+      knowledgeId,
+      prompt,
+      variables,
+    } = params;
     const messageId = Math.random().toString(36).substring(3);
 
     const { result } = await this.streamObject<{ result: string }>({
