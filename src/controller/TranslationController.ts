@@ -1,4 +1,4 @@
-import { createInstance, ThirdPartyModule, i18n as i18nType } from 'i18next';
+import { createInstance, ThirdPartyModule, i18n as i18nType, TOptions } from 'i18next';
 import { AIModule } from '../plugin/module/AIModule';
 
 type InitializationState = 'not-inited' | 'initing' | 'finished';
@@ -138,11 +138,12 @@ export class Translator {
    * @param options - Translation options
    * @returns Translated string
    */
-  t(...args: Parameters<i18nType['t']>): string {
+  t(key: string, options?: TOptions): string {
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
-    return this.i18n.t(...args);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    return this.i18n.t(key, options as any) as string;
   }
 
   /**
