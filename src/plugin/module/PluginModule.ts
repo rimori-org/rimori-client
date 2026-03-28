@@ -24,6 +24,11 @@ export class PluginModule {
   public releaseChannel: string;
   public applicationMode: ApplicationMode;
   public theme: Theme;
+   /**
+   * Whether text-to-speech is globally enabled (set in rimori-main navbar).
+   * Updated automatically when the user toggles TTS.
+   */
+   public ttsEnabled = true;
 
   constructor(
     supabase: SupabaseClient,
@@ -40,7 +45,11 @@ export class PluginModule {
     const currentPlugin = info.installedPlugins.find((plugin) => plugin.id === info.pluginId);
     this.translator = new Translator(info.interfaceLanguage, currentPlugin?.endpoint || '', ai);
 
-    this.communicationHandler.onUpdate((updatedInfo) => (this.rimoriInfo = updatedInfo));
+    this.ttsEnabled = info.ttsEnabled ?? true;
+    this.communicationHandler.onUpdate((updatedInfo) => {
+      this.rimoriInfo = updatedInfo;
+      this.ttsEnabled = updatedInfo.ttsEnabled ?? true;
+    });
     this.applicationMode = this.communicationHandler.getQueryParam('applicationMode') as ApplicationMode;
     this.theme = (this.communicationHandler.getQueryParam('rm_theme') as Theme) || 'light';
   }
