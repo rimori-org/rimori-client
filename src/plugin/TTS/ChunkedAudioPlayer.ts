@@ -93,6 +93,7 @@ export class ChunkedAudioPlayer {
     this.startedPlaying = false;
     this.shouldMonitorLoudness = false;
     cancelAnimationFrame(this.handle);
+    this.loudnessCallback(0);
   }
 
   public cleanup(): void {
