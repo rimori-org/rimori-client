@@ -1,4 +1,4 @@
-import { createInstance, ThirdPartyModule, TOptions, i18n as i18nType } from 'i18next';
+import { createInstance, ThirdPartyModule, i18n as i18nType, TOptions } from 'i18next';
 import { AIModule } from '../plugin/module/AIModule';
 
 type InitializationState = 'not-inited' | 'initing' | 'finished';
@@ -54,7 +54,7 @@ export class Translator {
             },
           },
           debug: false,
-          // showSupportNotice: false,  // TODO enable with next version of i18next
+          showSupportNotice: false,
           parseMissingKeyHandler: (key, defaultValue): string => {
             if (!key.trim()) return '';
             if (this.isTranslationKey(key)) {
@@ -142,7 +142,8 @@ export class Translator {
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
-    return this.i18n.t(key, options) as string;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    return this.i18n.t(key, options as any) as string;
   }
 
   /**

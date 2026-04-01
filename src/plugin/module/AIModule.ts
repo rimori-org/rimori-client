@@ -55,25 +55,6 @@ export type OnLLMResponse = (
   toolInvocations?: ToolInvocation[],
 ) => void;
 
-export interface ObjectRequest {
-  /**
-   * The tools that the AI can use.
-   */
-  tool: AIObjectTool;
-  /**
-   * High level instructions for the AI to follow. Behaviour, tone, restrictions, etc.
-   * Example: "Act like a recipe writer."
-   */
-  /** @deprecated Use server-side prompt definitions (prompt + variables) instead of building requests client-side. */
-  behaviour?: string;
-  /**
-   * The specific instruction for the AI to follow.
-   * Example: "Generate a recipe using chicken, rice and vegetables."
-   */
-  /** @deprecated Use server-side prompt definitions (prompt + variables) instead of building requests client-side. */
-  instructions: string;
-}
-
 /**
  * Controller for AI-related operations.
  * Provides access to text generation, voice synthesis, and object generation.
@@ -156,18 +137,30 @@ export class AIModule {
 
   /**
    * Generate text from messages using AI.
-   * @param messages The messages to generate text from.
-   * @param tools Optional tools to use for generation.
-   * @param cache Whether to cache the result (default: false).
-   * @param model The model to use for generation.
+   * @param params.messages The messages to generate text from.
+   * @param params.tools Optional tools to use for generation.
+   * @param params.cache Whether to cache the result (default: false).
+   * @param params.model The model to use for generation.
+   * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param params.variables Variables for the server-side prompt template.
    * @returns The generated text.
    */
-  async getText(messages: Message[], tools?: Tool[], cache = false, model?: string): Promise<string> {
+  async getText(params: {
+    messages: Message[];
+    tools?: Tool[];
+    cache?: boolean;
+    model?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
+  }): Promise<string> {
+    const { messages, tools, cache = false, model, prompt, variables } = params;
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
       model,
       messages,
+      prompt,
+      variables,
     });
 
     return result;
@@ -175,23 +168,32 @@ export class AIModule {
 
   /**
    * Stream text generation from messages using AI.
-   * @param messages The messages to generate text from.
-   * @param onMessage Callback for each message chunk.
-   * @param tools Optional tools to use for generation.
-   * @param cache Whether to cache the result (default: false).
-   * @param model The model to use for generation.
+   * @param params.messages The messages to generate text from.
+   * @param params.onMessage Callback for each message chunk.
+   * @param params.tools Optional tools to use for generation.
+   * @param params.cache Whether to cache the result (default: false).
+   * @param params.model The model to use for generation.
+   * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
+   * @param params.variables Variables for the server-side prompt template.
    */
-  async getSteamedText(
-    messages: Message[],
-    onMessage: OnLLMResponse,
-    tools?: Tool[],
-    cache = false,
-    model?: string,
-    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
-    knowledgeId?: string,
-    prompt?: string,
-    variables?: Record<string, any>,
-  ): Promise<string> {
+  async getStreamedText(params: {
+    messages: Message[];
+    onMessage: OnLLMResponse;
+    tools?: Tool[];
+    cache?: boolean;
+    model?: string;
+    prompt?: string;
+    variables?: Record<string, any>;
+  }): Promise<string> {
+    const {
+      messages,
+      onMessage,
+      tools,
+      cache = false,
+      model,
+      prompt,
+      variables,
+    } = params;
     const messageId = Math.random().toString(36).substring(3);
 
     const { result } = await this.streamObject<{ result: string }>({
@@ -199,7 +201,6 @@ export class AIModule {
       tools,
       model,
       messages,
-      knowledgeId,
       prompt,
       variables,
       onResult: ({ result }) => onMessage(messageId, result, false),
@@ -273,14 +274,6 @@ export class AIModule {
       });
   }
 
-  /** @deprecated Used by legacy client-side prompt path. Will be removed once all plugins migrate to server-side prompt definitions. */
-  private getChatMessage(systemPrompt: string, userPrompt?: string): Message[] {
-    const messages: Message[] = [{ role: 'system', content: systemPrompt }];
-    if (userPrompt) {
-      messages.push({ role: 'user', content: userPrompt } as Message);
-    }
-    return messages;
-  }
   /**
    * Generate a structured object from a request using AI.
    * @param request.cache Whether to cache the result (default: false).
@@ -291,38 +284,18 @@ export class AIModule {
    * @returns The generated object.
    */
   async getObject<T = any>(params: {
-    /** @deprecated Use prompt + variables instead of client-side system prompts. */
-    systemPrompt?: string;
-    /** @deprecated Use prompt + variables instead. Schema is loaded server-side from the prompt definition. */
-    responseSchema?: AIObjectTool;
-    /** @deprecated Use prompt + variables instead of client-side user prompts. */
-    userPrompt?: string;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
-    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
-    knowledgeId?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
-    const {
-      systemPrompt,
-      responseSchema,
-      userPrompt,
-      cache = false,
-      tools = [],
-      model = undefined,
-      knowledgeId,
-      prompt,
-      variables,
-    } = params;
+    const { cache = false, tools = [], model = undefined, prompt, variables } = params;
     return await this.streamObject<T>({
-      responseSchema,
-      messages: systemPrompt ? this.getChatMessage(systemPrompt, userPrompt) : [],
+      messages: [],
       cache,
       tools,
       model,
-      knowledgeId,
       prompt,
       variables,
     });
@@ -338,65 +311,40 @@ export class AIModule {
    * @param request.variables Variables for the server-side prompt template.
    */
   async getStreamedObject<T = any>(params: {
-    /** @deprecated Use prompt + variables instead of client-side system prompts. */
-    systemPrompt?: string;
-    /** @deprecated Use prompt + variables instead. Schema is loaded server-side from the prompt definition. */
-    responseSchema?: AIObjectTool;
-    /** @deprecated Use prompt + variables instead of client-side user prompts. */
-    userPrompt?: string;
     onResult: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
-    /** @deprecated Use uuid variable with resolver 'knowledgeEntry' in prompt definitions instead. */
-    knowledgeId?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
-    const {
-      systemPrompt,
-      responseSchema,
-      userPrompt,
-      onResult,
-      cache = false,
-      tools = [],
-      model = undefined,
-      knowledgeId,
-      prompt,
-      variables,
-    } = params;
+    const { onResult, cache = false, tools = [], model = undefined, prompt, variables } = params;
     return await this.streamObject<T>({
-      responseSchema,
-      messages: systemPrompt ? this.getChatMessage(systemPrompt, userPrompt) : [],
+      messages: [],
       onResult,
       cache,
       tools,
       model,
-      knowledgeId,
       prompt,
       variables,
     });
   }
 
   private async streamObject<T = any>(params: {
-    responseSchema?: AIObjectTool;
     messages: Message[];
     onResult?: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
     model?: string;
-    knowledgeId?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
     const {
       messages,
-      responseSchema,
       onResult = () => null,
       cache = false,
       tools = [],
       model = undefined,
-      knowledgeId,
       prompt,
       variables,
     } = params;
@@ -411,15 +359,11 @@ export class AIModule {
       stream: true,
       messages: chatMessages,
       model,
-      knowledge_id: knowledgeId,
       session_token_id: this.sessionTokenId ?? undefined,
     };
 
     if (prompt) {
       payload.prompt = { name: this.resolvePromptName(prompt), variables: variables ?? {} };
-    }
-    if (responseSchema) {
-      payload.responseSchema = responseSchema;
     }
 
     const response = await fetch(`${this.backendUrl}/ai/llm`, {

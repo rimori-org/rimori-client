@@ -47,6 +47,10 @@ export interface RimoriInfo {
    * - 'plugins' for beta and stable release channels
    */
   dbSchema: 'plugins' | 'plugins_alpha';
+  /**
+   * Whether text-to-speech is enabled globally (set in rimori-main navbar).
+   */
+  ttsEnabled: boolean;
 }
 
 export class RimoriCommunicationHandler {

@@ -13,6 +13,8 @@ export class ChunkedAudioPlayer {
   private startedPlaying = false;
   private onEndOfSpeech: () => void = () => {};
   private readonly backgroundNoiseLevel = 30; // Background noise level that should be treated as baseline (0)
+  private currentSource: AudioBufferSourceNode | null = null;
+  private stopped = false;
 
   constructor() {
     this.init();
@@ -35,12 +37,9 @@ export class ChunkedAudioPlayer {
   }
 
   public async addChunk(chunk: ArrayBuffer, position: number): Promise<void> {
+    if (this.stopped) return;
     console.log('Adding chunk', position, chunk);
     this.chunkQueue[position] = chunk;
-    // console.log("received chunk", {
-    //     chunkQueue: this.chunkQueue.length,
-    //     isPlaying: this.isPlaying,
-    // })
 
     if (position === 0 && !this.startedPlaying) {
       this.startedPlaying = true;
@@ -49,24 +48,24 @@ export class ChunkedAudioPlayer {
   }
 
   private playChunks(): void {
-    // console.log({ isPlaying: this.isPlaying });
-    if (this.isPlaying) return;
+    if (this.isPlaying || this.stopped) return;
     if (!this.chunkQueue[this.currentIndex]) {
       // wait until the correct chunk arrives
       setTimeout(() => this.playChunks(), 10);
+      return;
     }
     this.isPlaying = true;
 
     this.playChunk(this.chunkQueue[this.currentIndex]).then(() => {
       this.isPlaying = false;
+      if (this.stopped) return;
       this.currentIndex++;
       if (this.chunkQueue[this.currentIndex]) {
         this.shouldMonitorLoudness = true;
         this.playChunks();
       } else {
-        // console.log('Playback finished', { currentIndex: this.currentIndex, chunkQueue: this.chunkQueue });
         setTimeout(() => {
-          // console.log('Check again if really playback finished', { currentIndex: this.currentIndex, chunkQueue: this.chunkQueue });
+          if (this.stopped) return;
           if (this.chunkQueue.length > this.currentIndex) {
             this.playChunks();
           } else {
@@ -79,13 +78,22 @@ export class ChunkedAudioPlayer {
   }
 
   public stopPlayback(): void {
-    // console.log('Stopping playback');
-    // Implement logic to stop the current playback
+    this.stopped = true;
+    // Stop the currently playing audio source node
+    if (this.currentSource) {
+      try {
+        this.currentSource.stop();
+      } catch {
+        // already stopped
+      }
+      this.currentSource = null;
+    }
     this.isPlaying = false;
     this.chunkQueue = [];
     this.startedPlaying = false;
     this.shouldMonitorLoudness = false;
     cancelAnimationFrame(this.handle);
+    this.loudnessCallback(0);
   }
 
   public cleanup(): void {
@@ -100,15 +108,18 @@ export class ChunkedAudioPlayer {
   }
 
   private playChunk(chunk: ArrayBuffer): Promise<void> {
-    // console.log({queue: this.chunkQueue})
-    if (!chunk) {
+    if (!chunk || this.stopped) {
       return Promise.resolve();
     }
 
-    // console.log('Playing chunk', chunk);
     return new Promise((resolve) => {
       const source = this.audioContext.createBufferSource();
+      this.currentSource = source;
       this.audioContext.decodeAudioData(chunk.slice(0)).then((audioBuffer) => {
+        if (this.stopped) {
+          resolve();
+          return;
+        }
         source.buffer = audioBuffer;
 
         // Create a GainNode for volume control
@@ -121,10 +132,11 @@ export class ChunkedAudioPlayer {
         this.analyser.connect(this.audioContext.destination);
 
         source.start(0);
-        // console.log('Playing chunk', this.currentIndex);
         gainNode.gain.value = this.volume;
         source.onended = () => {
-          // console.log('Chunk ended');
+          if (this.currentSource === source) {
+            this.currentSource = null;
+          }
           resolve();
         };
 
@@ -202,11 +214,10 @@ export class ChunkedAudioPlayer {
     this.handle = requestAnimationFrame(() => this.monitorLoudness());
   }
   public reset() {
-    // console.log('Resetting player');
     this.stopPlayback();
+    this.stopped = false;
     this.currentIndex = 0;
     this.shouldMonitorLoudness = true;
-    //reset to the beginning when the class gets initialized
     this.isMonitoring = false;
     this.isPlaying = false;
     this.init();
