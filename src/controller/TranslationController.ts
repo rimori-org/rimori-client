@@ -84,14 +84,15 @@ export class Translator {
   }
 
   private getTranslationUrl(language: string): string {
+    const baseUrl = this.translationUrl || window.location.origin;
     // For localhost development, use local- prefix for non-English languages
-    if (window.location.hostname === 'localhost') {
+    if (window.location.hostname === 'localhost' || new URL(baseUrl).hostname === 'localhost') {
       const filename = language !== 'en' ? `local-${language}` : language;
 
-      return `${window.location.origin}/locales/${filename}.json`;
+      return `${baseUrl}/locales/${filename}.json`;
     }
 
-    return `${this.translationUrl}/locales/${language}.json`;
+    return `${baseUrl}/locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {

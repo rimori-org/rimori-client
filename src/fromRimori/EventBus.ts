@@ -47,8 +47,17 @@ export class EventBusHandler {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
-    //private constructor
     this.startIdCleanup();
+  }
+
+  /**
+   * Creates a new non-singleton EventBusHandler instance.
+   * Used in federation mode where each plugin needs its own isolated EventBus.
+   */
+  static create(name?: string): EventBusHandler {
+    const instance = new EventBusHandler();
+    if (name) instance.evName = name;
+    return instance;
   }
 
   static getInstance(name?: string) {
@@ -419,6 +428,19 @@ export class EventBusHandler {
     if (this.debugEnabled) {
       console.debug(`[${this.evName}] ` + args[0], ...args.slice(1));
     }
+  }
+
+  /**
+   * Destroys this EventBus instance, cleaning up all listeners and intervals.
+   */
+  public destroy(): void {
+    this.listeners.clear();
+    this.responseResolvers.clear();
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.generatedIds.clear();
   }
 
   private logAndThrowError(throwError: boolean, ...args: (string | EventPayload)[]) {

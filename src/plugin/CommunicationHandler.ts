@@ -128,7 +128,7 @@ export class RimoriCommunicationHandler {
       // Listen for updates from rimori-main (data changes, token refresh, etc.)
       // Topic format: {pluginId}.supabase.triggerUpdate
       EventBus.on(`${this.pluginId}.supabase.triggerUpdate`, (ev) => {
-        // console.log('[RimoriCommunicationHandler] Received update from rimori-main', ev.data);
+        // console.log('[RimoriCommunicationHandler] Received triggerUpdate via MessageChannel for', this.pluginId);
         this.handleRimoriInfoUpdate(ev.data as RimoriInfo);
       });
 
@@ -259,12 +259,14 @@ export class RimoriCommunicationHandler {
   /**
    * Handles updates to RimoriInfo from rimori-main.
    * Updates the cached info and Supabase client, then notifies all registered callbacks.
+   * Public so that federated mode can call it when the update event arrives via the plugin's isolated EventBus.
    */
-  private handleRimoriInfoUpdate(newInfo: RimoriInfo): void {
+  public handleRimoriInfoUpdate(newInfo: RimoriInfo): void {
     if (JSON.stringify(this.rimoriInfo) === JSON.stringify(newInfo)) {
-      // console.log('[RimoriCommunicationHandler] RimoriInfo update is the same as the cached info, skipping update');
+      // console.log('[RimoriCommunicationHandler] RimoriInfo update identical to cached info, skipping', this.pluginId);
       return;
     }
+    // console.log('[RimoriCommunicationHandler] Applying RimoriInfo update for', this.pluginId, '| ttsEnabled:', newInfo.ttsEnabled);
     // Update cached rimoriInfo
     this.rimoriInfo = newInfo;
 
