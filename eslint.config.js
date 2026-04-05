@@ -18,6 +18,9 @@ export default [
         ...globals.node,
       },
       sourceType: 'module',
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
