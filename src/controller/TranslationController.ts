@@ -143,7 +143,7 @@ export class Translator {
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.i18n.t(key, options as any) as string;
   }
 
