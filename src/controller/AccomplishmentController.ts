@@ -1,4 +1,4 @@
-import { EventBus, EventBusMessage } from '../fromRimori/EventBus';
+import { EventBus, EventBusHandler, EventBusMessage } from '../fromRimori/EventBus';
 
 export type AccomplishmentMessage = EventBusMessage<MicroAccomplishmentPayload>;
 
@@ -38,9 +38,11 @@ export type AccomplishmentPayload = MicroAccomplishmentPayload | MacroAccomplish
 
 export class AccomplishmentController {
   private pluginId: string;
+  private eventBus: EventBusHandler;
 
-  public constructor(pluginId: string) {
+  public constructor(pluginId: string, eventBus?: EventBusHandler) {
     this.pluginId = pluginId;
+    this.eventBus = eventBus ?? EventBus;
   }
 
   emitAccomplishment(payload: Omit<AccomplishmentPayload, 'type'>) {
@@ -57,7 +59,7 @@ export class AccomplishmentController {
 
     const topic = 'global.accomplishment.trigger' + (accomplishmentPayload.type === 'macro' ? 'Macro' : 'Micro');
 
-    EventBus.emit(this.pluginId, topic, sanitizedPayload);
+    this.eventBus.emit(this.pluginId, topic, sanitizedPayload);
   }
 
   private validateAccomplishment(payload: AccomplishmentPayload): boolean {
@@ -150,7 +152,7 @@ export class AccomplishmentController {
         );
       }
 
-      EventBus.on<AccomplishmentPayload>(
+      this.eventBus.on<AccomplishmentPayload>(
         ['global.accomplishment.triggerMicro', 'global.accomplishment.triggerMacro'],
         (event) => {
           const { plugin, skillCategory, accomplishmentKeyword } = this.getDecoupledTopic(accomplishmentTopic);

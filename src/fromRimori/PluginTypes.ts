@@ -127,6 +127,8 @@ export interface RimoriPluginConfig<T extends object = object> {
     sidebar: (SidebarPage & T)[];
     /** Optional path to the plugin's settings/configuration page */
     settings?: string;
+    /** When true, rimori-main loads this plugin via Module Federation instead of an iframe. */
+    federated?: boolean;
     /** Optional array of event topics the plugin pages can listen to for cross-plugin communication */
     topics?: string[];
   };

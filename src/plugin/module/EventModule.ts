@@ -1,6 +1,6 @@
 import { MainPanelAction, SidebarAction } from '../../fromRimori/PluginTypes';
 import { AccomplishmentController, AccomplishmentPayload } from '../../controller/AccomplishmentController';
-import { EventBus, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
+import { EventBus, EventBusHandler, EventBusMessage, EventHandler, EventPayload, EventListener } from '../../fromRimori/EventBus';
 import { AIModule } from './AIModule';
 
 /**
@@ -13,13 +13,15 @@ export class EventModule {
   private aiModule: AIModule;
   private backendUrl: string;
   private getToken: () => string;
+  private eventBus: EventBusHandler;
 
-  constructor(pluginId: string, backendUrl: string, getToken: () => string, aiModule: AIModule) {
+  constructor(pluginId: string, backendUrl: string, getToken: () => string, aiModule: AIModule, eventBus?: EventBusHandler) {
     this.pluginId = pluginId;
     this.backendUrl = backendUrl;
     this.getToken = getToken;
     this.aiModule = aiModule;
-    this.accomplishmentController = new AccomplishmentController(pluginId);
+    this.eventBus = eventBus ?? EventBus;
+    this.accomplishmentController = new AccomplishmentController(pluginId, this.eventBus);
   }
 
   public getGlobalEventTopic(preliminaryTopic: string): string {
@@ -59,7 +61,7 @@ export class EventModule {
    */
   emit(topic: string, data?: any, eventId?: number): void {
     const globalTopic = this.getGlobalEventTopic(topic);
-    EventBus.emit(this.pluginId, globalTopic, data, eventId);
+    this.eventBus.emit(this.pluginId, globalTopic, data, eventId);
   }
 
   /**
@@ -72,7 +74,7 @@ export class EventModule {
     const globalTopic = this.getGlobalEventTopic(topic);
     await this.aiModule.session.ensure();
     const sessionToken = this.aiModule.session.get() ?? undefined;
-    return EventBus.request<T>(this.pluginId, globalTopic, data, sessionToken);
+    return this.eventBus.request<T>(this.pluginId, globalTopic, data, sessionToken);
   }
 
   /**
@@ -83,7 +85,7 @@ export class EventModule {
    */
   on<T = EventPayload>(topic: string | string[], callback: EventHandler<T>): EventListener {
     const topics = Array.isArray(topic) ? topic : [topic];
-    return EventBus.on<T>(
+    return this.eventBus.on<T>(
       topics.map((t) => this.getGlobalEventTopic(t)),
       (event) => {
         if (event.ai_session_token && !this.aiModule.session.get()) {
@@ -100,7 +102,7 @@ export class EventModule {
    * @param callback The callback to call when the event is emitted.
    */
   once<T = EventPayload>(topic: string, callback: EventHandler<T>): void {
-    EventBus.once<T>(this.getGlobalEventTopic(topic), callback);
+    this.eventBus.once<T>(this.getGlobalEventTopic(topic), callback);
   }
 
   /**
@@ -134,7 +136,7 @@ export class EventModule {
         }
       };
     }
-    EventBus.respond(
+    this.eventBus.respond(
       this.pluginId,
       topics.map((t) => this.getGlobalEventTopic(t)),
       wrappedData,
@@ -239,15 +241,20 @@ export class EventModule {
    */
   onSidePanelAction(callback: (data: SidebarAction) => void, actionsToListen: string | string[] = []): EventListener {
     const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
-    // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
-    this.emit('action.requestSidebar');
-    return this.on<SidebarAction>('action.requestSidebar', ({ data }) => {
-      // console.log("eventHandler .onSidePanelAction", data);
-      // console.log('Received action for sidebar ' + data.action);
-      // console.log('Listening to actions', listeningActions);
+    // Register the listener BEFORE emitting the request, so the synchronous response
+    // from the bridge/responder is captured (emit → bridge outbound → host respond → bridge inbound is synchronous).
+    console.log('[EventModule] onSidePanelAction: setting up listener for', this.pluginId, 'listening to:', listeningActions);
+    const listener = this.on<SidebarAction>('action.requestSidebar', ({ data }) => {
+      console.log('[EventModule] onSidePanelAction: received event', { data, listeningActions });
       if (listeningActions.length === 0 || listeningActions.includes(data.action)) {
+        console.log('[EventModule] onSidePanelAction: action matched, calling callback');
         callback(data);
+      } else {
+        console.log('[EventModule] onSidePanelAction: action NOT matched. Got:', data.action, 'expected:', listeningActions);
       }
     });
+    console.log('[EventModule] onSidePanelAction: emitting action.requestSidebar for', this.pluginId);
+    this.emit('action.requestSidebar');
+    return listener;
   }
 }

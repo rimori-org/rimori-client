@@ -284,6 +284,7 @@ export type LearningReason = (typeof LEARNING_REASONS)[number];
 
 // this requires that
 export type ExplicitUndefined<T> = {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   [K in Exclude<keyof T, never>]-?: {} extends Pick<T, K> ? T[K] | undefined : T[K];
 };
 

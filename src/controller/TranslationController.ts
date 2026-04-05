@@ -84,14 +84,15 @@ export class Translator {
   }
 
   private getTranslationUrl(language: string): string {
+    const baseUrl = this.translationUrl || window.location.origin;
     // For localhost development, use local- prefix for non-English languages
-    if (window.location.hostname === 'localhost') {
+    if (window.location.hostname === 'localhost' || new URL(baseUrl).hostname === 'localhost') {
       const filename = language !== 'en' ? `local-${language}` : language;
 
-      return `${window.location.origin}/locales/${filename}.json`;
+      return `${baseUrl}/locales/${filename}.json`;
     }
 
-    return `${this.translationUrl}/locales/${language}.json`;
+    return `${baseUrl}/locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {
@@ -142,7 +143,7 @@ export class Translator {
     if (!this.i18n) {
       throw new Error('Translator is not initialized');
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return this.i18n.t(key, options as any) as string;
   }
 
