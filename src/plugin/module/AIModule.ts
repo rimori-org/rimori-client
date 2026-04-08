@@ -140,7 +140,6 @@ export class AIModule {
    * @param params.messages The messages to generate text from.
    * @param params.tools Optional tools to use for generation.
    * @param params.cache Whether to cache the result (default: false).
-   * @param params.model The model to use for generation.
    * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
    * @param params.variables Variables for the server-side prompt template.
    * @returns The generated text.
@@ -149,15 +148,13 @@ export class AIModule {
     messages: Message[];
     tools?: Tool[];
     cache?: boolean;
-    model?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<string> {
-    const { messages, tools, cache = false, model, prompt, variables } = params;
+    const { messages, tools, cache = false, prompt, variables } = params;
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
-      model,
       messages,
       prompt,
       variables,
@@ -172,7 +169,6 @@ export class AIModule {
    * @param params.onMessage Callback for each message chunk.
    * @param params.tools Optional tools to use for generation.
    * @param params.cache Whether to cache the result (default: false).
-   * @param params.model The model to use for generation.
    * @param params.prompt Server-side prompt name (e.g. 'writing.analysis').
    * @param params.variables Variables for the server-side prompt template.
    */
@@ -181,7 +177,6 @@ export class AIModule {
     onMessage: OnLLMResponse;
     tools?: Tool[];
     cache?: boolean;
-    model?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<string> {
@@ -190,7 +185,6 @@ export class AIModule {
       onMessage,
       tools,
       cache = false,
-      model,
       prompt,
       variables,
     } = params;
@@ -199,7 +193,6 @@ export class AIModule {
     const { result } = await this.streamObject<{ result: string }>({
       cache,
       tools,
-      model,
       messages,
       prompt,
       variables,
@@ -278,7 +271,6 @@ export class AIModule {
    * Generate a structured object from a request using AI.
    * @param request.cache Whether to cache the result (default: false).
    * @param request.tools The tools to use for generation.
-   * @param request.model The model to use for generation.
    * @param request.prompt Server-side prompt name (e.g. 'writing.analysis').
    * @param request.variables Variables for the server-side prompt template.
    * @returns The generated object.
@@ -286,16 +278,14 @@ export class AIModule {
   async getObject<T = any>(params: {
     cache?: boolean;
     tools?: Tool[];
-    model?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
-    const { cache = false, tools = [], model = undefined, prompt, variables } = params;
+    const { cache = false, tools = [], prompt, variables } = params;
     return await this.streamObject<T>({
       messages: [],
       cache,
       tools,
-      model,
       prompt,
       variables,
     });
@@ -306,7 +296,6 @@ export class AIModule {
    * @param request.onResult Callback for each result chunk.
    * @param request.cache Whether to cache the result (default: false).
    * @param request.tools The tools to use for generation.
-   * @param request.model The model to use for generation.
    * @param request.prompt Server-side prompt name (e.g. 'writing.analysis').
    * @param request.variables Variables for the server-side prompt template.
    */
@@ -314,17 +303,15 @@ export class AIModule {
     onResult: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
-    model?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
-    const { onResult, cache = false, tools = [], model = undefined, prompt, variables } = params;
+    const { onResult, cache = false, tools = [], prompt, variables } = params;
     return await this.streamObject<T>({
       messages: [],
       onResult,
       cache,
       tools,
-      model,
       prompt,
       variables,
     });
@@ -335,7 +322,6 @@ export class AIModule {
     onResult?: OnStreamedObjectResult<T>;
     cache?: boolean;
     tools?: Tool[];
-    model?: string;
     prompt?: string;
     variables?: Record<string, any>;
   }): Promise<T> {
@@ -344,7 +330,6 @@ export class AIModule {
       onResult = () => null,
       cache = false,
       tools = [],
-      model = undefined,
       prompt,
       variables,
     } = params;
@@ -358,7 +343,6 @@ export class AIModule {
       tools,
       stream: true,
       messages: chatMessages,
-      model,
       session_token_id: this.sessionTokenId ?? undefined,
     };
 
