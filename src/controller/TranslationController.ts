@@ -14,6 +14,7 @@ export class Translator {
   private translationUrl: string;
   private ai: AIModule;
   private aiTranslationCache = new Map<string, string>();
+  private aiTranslationPending = new Map<string, Promise<string>>();
 
   constructor(initialLanguage: string, translationUrl: string, ai: AIModule) {
     this.currentLanguage = initialLanguage;
@@ -168,27 +169,38 @@ export class Translator {
   async fetchTranslation(text: string, additionalInstructions?: string): Promise<string> {
     const cached = this.aiTranslationCache.get(text);
     if (cached) return cached;
-    try {
-      // If the current language is English, don't translate
-      if (!this.ai || this.currentLanguage === 'en') return text;
-      const response = await this.ai.getObject<{ translation: string }>({
-        prompt: 'global.translator.translate',
-        variables: {
-          additionalInstructions: additionalInstructions ?? '',
-          language: this.currentLanguage,
-          text,
-        },
-        cache: true,
-      });
 
-      const translation = response?.translation;
-      if (translation) {
-        this.aiTranslationCache.set(text, translation);
-        return translation;
+    const pending = this.aiTranslationPending.get(text);
+    if (pending) return pending;
+
+    if (!this.ai || this.currentLanguage === 'en') return text;
+
+    const promise = (async (): Promise<string> => {
+      try {
+        const response = await this.ai.getObject<{ translation: string }>({
+          prompt: 'global.translator.translate',
+          variables: {
+            additionalInstructions: additionalInstructions ?? '',
+            language: this.currentLanguage,
+            text,
+          },
+          cache: true,
+        });
+
+        const translation = response?.translation;
+        if (translation) {
+          this.aiTranslationCache.set(text, translation);
+          return translation;
+        }
+      } catch (error) {
+        console.warn('Failed to translate freeform text:', { text, error });
+      } finally {
+        this.aiTranslationPending.delete(text);
       }
-    } catch (error) {
-      console.warn('Failed to translate freeform text:', { text, error });
-    }
-    return text;
+      return text;
+    })();
+
+    this.aiTranslationPending.set(text, promise);
+    return promise;
   }
 }
