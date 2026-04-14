@@ -11,14 +11,10 @@ export class EventModule {
   private pluginId: string;
   private accomplishmentController: AccomplishmentController;
   private aiModule: AIModule;
-  private backendUrl: string;
-  private getToken: () => string;
   private eventBus: EventBusHandler;
 
-  constructor(pluginId: string, backendUrl: string, getToken: () => string, aiModule: AIModule, eventBus?: EventBusHandler) {
+  constructor(pluginId: string, aiModule: AIModule, eventBus?: EventBusHandler) {
     this.pluginId = pluginId;
-    this.backendUrl = backendUrl;
-    this.getToken = getToken;
     this.aiModule = aiModule;
     this.eventBus = eventBus ?? EventBus;
     this.accomplishmentController = new AccomplishmentController(pluginId, this.eventBus);

@@ -8,11 +8,10 @@
  * confirms images found in content, and deletes orphaned ones. No plugin-side
  * confirm or delete calls are needed.
  */
+import { RimoriCommunicationHandler } from '../CommunicationHandler';
+
 export class StorageModule {
-  constructor(
-    private readonly backendUrl: string,
-    private readonly getToken: () => string,
-  ) {}
+  constructor(private readonly controller: RimoriCommunicationHandler) {}
 
   /**
    * Upload a PNG image blob to Supabase storage via the backend.
@@ -29,9 +28,8 @@ export class StorageModule {
     const formData = new FormData();
     formData.append('file', pngBlob, 'image.png');
     try {
-      const response = await fetch(`${this.backendUrl}/plugin-images/upload`, {
+      const response = await this.controller.fetchBackend('/plugin-images/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${this.getToken()}` },
         body: formData,
       });
 

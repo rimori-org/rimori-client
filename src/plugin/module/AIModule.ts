@@ -1,5 +1,6 @@
 import { Language } from './PluginModule';
 import { Tool } from '../../fromRimori/PluginTypes';
+import { RimoriCommunicationHandler } from '../CommunicationHandler';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
@@ -60,16 +61,12 @@ export type OnLLMResponse = (
  * Provides access to text generation, voice synthesis, and object generation.
  */
 export class AIModule {
-  private getToken: () => string;
-  private backendUrl: string;
-  private pluginId: string | undefined;
+  private controller: RimoriCommunicationHandler;
   private sessionTokenId: string | null = null;
   private onRateLimitedCb?: (exercisesRemaining: number) => void;
 
-  constructor(backendUrl: string, getToken: () => string, pluginId?: string) {
-    this.backendUrl = backendUrl;
-    this.getToken = getToken;
-    this.pluginId = pluginId;
+  constructor(controller: RimoriCommunicationHandler) {
+    this.controller = controller;
   }
 
   /**
@@ -80,8 +77,8 @@ export class AIModule {
   private resolvePromptName(name: string): string {
     if (name.startsWith('global.')) return name;
     const segments = name.split('.');
-    if (segments.length === 2 && this.pluginId) {
-      return `${this.pluginId}.${name}`;
+    if (segments.length === 2 && this.controller.pluginId) {
+      return `${this.controller.pluginId}.${name}`;
     }
     return name;
   }
@@ -221,12 +218,8 @@ export class AIModule {
     instructions?: string,
   ): Promise<Blob> {
     await this.session.ensure();
-    return await fetch(`${this.backendUrl}/voice/tts`, {
+    return await this.controller.fetchBackend('/voice/tts', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify({
         input: text,
         voice,
@@ -255,9 +248,8 @@ export class AIModule {
     if (this.sessionTokenId) {
       formData.append('session_token_id', this.sessionTokenId);
     }
-    return await fetch(`${this.backendUrl}/voice/stt`, {
+    return await this.controller.fetchBackend('/voice/stt', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}` },
       body: formData,
     })
       .then((r) => r.json())
@@ -350,10 +342,9 @@ export class AIModule {
       payload.prompt = { name: this.resolvePromptName(prompt), variables: variables ?? {} };
     }
 
-    const response = await fetch(`${this.backendUrl}/ai/llm`, {
-      body: JSON.stringify(payload),
+    const response = await this.controller.fetchBackend('/ai/llm', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -482,13 +473,9 @@ export class AIModule {
   }
 
   private async sendToolResult(toolCallId: string, result: any): Promise<void> {
-    await fetch(`${this.backendUrl}/ai/llm/tool_result`, {
+    await this.controller.fetchBackend('/ai/llm/tool_result', {
       method: 'POST',
-      body: JSON.stringify({
-        toolCallId,
-        result: result ?? '[DONE]',
-      }),
-      headers: { Authorization: `Bearer ${this.getToken()} `, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toolCallId, result: result ?? '[DONE]' }),
     });
   }
 }

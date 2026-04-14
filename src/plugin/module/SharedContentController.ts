@@ -66,7 +66,6 @@ export class SharedContentController {
     // Generate new content via backend endpoint
     const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tableName: params.table,
         skillType: params.skillType,
@@ -100,7 +99,6 @@ export class SharedContentController {
   public async searchByTopic<T>(tableName: string, topic: string, limit = 10): Promise<SharedContent<T>[]> {
     const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/get-by-topic', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tableName,
         limit,
@@ -358,7 +356,6 @@ export class SharedContentController {
   ): Promise<SharedContent<T>> {
     const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/update', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tableName,
         contentId,
@@ -388,7 +385,6 @@ export class SharedContentController {
   ): Promise<{ success: boolean; content_status: ContentStatus; reason?: string }> {
     const response = await this.rimoriClient.runtime.fetchBackend('/shared-content/validate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tableName,
         contentId,

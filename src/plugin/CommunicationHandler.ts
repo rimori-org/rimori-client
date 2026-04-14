@@ -58,13 +58,11 @@ export class RimoriCommunicationHandler {
   private queryParams: Record<string, string> = {};
   private supabase: SupabaseClient | null = null;
   private rimoriInfo: RimoriInfo | null = null;
-  private pluginId: string;
   private isMessageChannelReady = false;
   private pendingRequests: Array<() => void> = [];
   private updateCallbacks: Set<(info: RimoriInfo) => void> = new Set();
 
-  public constructor(pluginId: string, standalone: boolean) {
-    this.pluginId = pluginId;
+  public constructor(public readonly pluginId: string, standalone: boolean) {
     this.getClient = this.getClient.bind(this);
 
     //no need to forward messages to parent in standalone mode or worker context
@@ -186,6 +184,7 @@ export class RimoriCommunicationHandler {
       headers: {
         apikey: key,
         Authorization: `Bearer ${token}`,
+        'plugin-id': this.pluginId,
       },
     }) as unknown as SupabaseClient;
   }
@@ -293,5 +292,35 @@ export class RimoriCommunicationHandler {
     return () => {
       this.updateCallbacks.delete(callback);
     };
+  }
+
+  /**
+   * Makes an authenticated fetch request to the Rimori backend.
+   * Automatically adds Authorization and plugin-id headers.
+   * Content-Type defaults to application/json when the body is a JSON string.
+   * Content-Type is omitted for FormData bodies so the browser sets the multipart boundary.
+   * Callers can override Content-Type by passing it in options.headers.
+   * @param url Path relative to the backend URL (e.g. '/ai/llm')
+   * @param options Standard RequestInit options (headers are merged, not replaced)
+   */
+  public fetchBackend(url: string, options: RequestInit = {}): Promise<Response> {
+    if (!this.rimoriInfo) {
+      throw new Error(`[CommunicationHandler:${this.pluginId}] fetchBackend called before rimoriInfo was initialized`);
+    }
+    
+    const { token, backendUrl } = this.rimoriInfo;
+    const defaultContentType: Record<string, string> = {}
+    
+    if(typeof options.body === 'string' ) {
+      defaultContentType['Content-Type'] = 'application/json';
+    }
+
+    const headers: Record<string, string> = {
+      ...defaultContentType,
+      ...(options.headers as Record<string, string>),
+      Authorization: `Bearer ${token}`,
+      'plugin-id': this.pluginId,
+    };
+    return fetch(backendUrl + url, { ...options, headers });
   }
 }

@@ -43,18 +43,17 @@ export type VectorSearchResult<T = Record<string, unknown>> = Array<T & { simila
 
 export class DbModule {
   private supabase: SupabaseClient;
-  private rimoriInfo: RimoriInfo;
+  private communicationHandler: RimoriCommunicationHandler;
   public tablePrefix: string;
   public schema: string;
 
   constructor(supabase: SupabaseClient, communicationHandler: RimoriCommunicationHandler, info: RimoriInfo) {
     this.supabase = supabase;
-    this.rimoriInfo = info;
+    this.communicationHandler = communicationHandler;
     this.tablePrefix = info.tablePrefix;
     this.schema = info.dbSchema;
 
     communicationHandler.onUpdate((updatedInfo) => {
-      this.rimoriInfo = updatedInfo;
       this.tablePrefix = updatedInfo.tablePrefix;
       this.schema = updatedInfo.dbSchema;
     });
@@ -78,7 +77,7 @@ export class DbModule {
     if (relation.startsWith('global_')) {
       return this.supabase.schema('public').from(tableName) as unknown as DbQueryBuilder<Row>;
     }
-    return this.supabase.schema(this.rimoriInfo.dbSchema).from(tableName) as unknown as DbQueryBuilder<Row>;
+    return this.supabase.schema(this.schema).from(tableName) as unknown as DbQueryBuilder<Row>;
   }
 
   /**
@@ -109,15 +108,11 @@ export class DbModule {
    */
   async setPublicity(table: string, entryId: string, publicity: PublicityLevel): Promise<void> {
     const tableName = this.getTableName(table);
-    await fetch(`${this.rimoriInfo.backendUrl}/db-entry/publicity`, {
+    await this.communicationHandler.fetchBackend('/db-entry/publicity', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.rimoriInfo.token}`,
-      },
       body: JSON.stringify({
         table_name: tableName,
-        schema: this.rimoriInfo.dbSchema,
+        schema: this.schema,
         entry_id: entryId,
         publicity,
       }),
@@ -131,12 +126,8 @@ export class DbModule {
    * @returns Matching rows sorted by similarity
    */
   async vectorSearch<T = Record<string, unknown>>(params: VectorSearchParams): Promise<VectorSearchResult<T>> {
-    const response = await fetch(`${this.rimoriInfo.backendUrl}/plugin-search/vector-search`, {
+    const response = await this.communicationHandler.fetchBackend('/plugin-search/vector-search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.rimoriInfo.token}`,
-      },
       body: JSON.stringify(params),
     });
 
