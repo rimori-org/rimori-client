@@ -37,24 +37,16 @@ export class ExerciseModule {
   private supabase: SupabaseClient;
   private communicationHandler: RimoriCommunicationHandler;
   private eventModule: EventModule;
-  private backendUrl: string;
-  private token: string;
 
   constructor(
     supabase: SupabaseClient,
     communicationHandler: RimoriCommunicationHandler,
-    info: RimoriInfo,
+    _info: RimoriInfo,
     eventModule: EventModule,
   ) {
     this.supabase = supabase;
     this.communicationHandler = communicationHandler;
     this.eventModule = eventModule;
-    this.token = info.token;
-    this.backendUrl = info.backendUrl;
-
-    this.communicationHandler.onUpdate((updatedInfo) => {
-      this.token = updatedInfo.token;
-    });
   }
 
   /**
@@ -82,12 +74,8 @@ export class ExerciseModule {
   async add(params: CreateExerciseParams | CreateExerciseParams[]): Promise<Exercise[]> {
     const exercises = Array.isArray(params) ? params : [params];
 
-    const response = await fetch(`${this.backendUrl}/exercises`, {
+    const response = await this.communicationHandler.fetchBackend('/exercises', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.token}`,
-      },
       body: JSON.stringify({ exercises }),
     });
 
@@ -109,11 +97,8 @@ export class ExerciseModule {
    * @returns Success status.
    */
   async delete(id: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${this.backendUrl}/exercises/${id}`, {
+    const response = await this.communicationHandler.fetchBackend(`/exercises/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      },
     });
 
     if (!response.ok) {

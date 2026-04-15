@@ -52,6 +52,7 @@ export class RimoriClient {
   public static createWithInfo(info: RimoriInfo): RimoriClient {
     const eventBus = EventBusHandler.create('Plugin EventBus ' + info.pluginId);
     const controller = new RimoriCommunicationHandler(info.pluginId, true);
+    controller.handleRimoriInfoUpdate(info);
     const supabase = new PostgrestClient(`${info.url}/rest/v1`, {
       schema: info.dbSchema,
       headers: {
