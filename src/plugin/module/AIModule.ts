@@ -208,6 +208,11 @@ export class AIModule {
    * @param language Optional language for the voice.
    * @param cache Whether to cache the result (default: false).
    * @returns The generated audio as a Blob.
+   *
+   * **Empty input:** If `text` is empty or whitespace-only, no network request is
+   * made and an empty `Blob` is returned immediately. This prevents a 400 error
+   * from the TTS backend while keeping the caller's workflow intact.
+   * A warning is logged to the console in this case.
    */
   async getVoice(
     text: string,
@@ -217,6 +222,10 @@ export class AIModule {
     cache = false,
     instructions?: string,
   ): Promise<Blob> {
+    if (!text.trim().length) {
+      console.warn('[rimori-client] getVoice called with empty text — skipping TTS request and returning empty Blob.');
+      return new Blob([], { type: 'audio/mpeg' });
+    }
     await this.session.ensure();
     return await this.controller.fetchBackend('/voice/tts', {
       method: 'POST',
