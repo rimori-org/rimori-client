@@ -18,6 +18,22 @@ export class EventModule {
     this.aiModule = aiModule;
     this.eventBus = eventBus ?? EventBus;
     this.accomplishmentController = new AccomplishmentController(pluginId, this.eventBus);
+
+    // Listen for session token broadcasts from rimori-main (ExerciseSessionManager).
+    // When an exercise starts: adopt the exercise token unconditionally.
+    // When an exercise ends (session_token: null): clear the current token.
+    // This runs on the raw eventBus to bypass the per-plugin token-gating in on().
+    this.eventBus.on<{ session_token: string | null }>(
+      ['global.session.triggerUpdate'],
+      (event) => {
+        if (event.data.session_token) {
+          this.aiModule.session.set(event.data.session_token);
+        } else {
+          this.aiModule.session.clear();
+        }
+      },
+    );
+
   }
 
   public getGlobalEventTopic(preliminaryTopic: string): string {
@@ -68,7 +84,6 @@ export class EventModule {
    */
   async request<T>(topic: string, data?: any): Promise<EventBusMessage<T>> {
     const globalTopic = this.getGlobalEventTopic(topic);
-    await this.aiModule.session.ensure();
     const sessionToken = this.aiModule.session.get() ?? undefined;
     return this.eventBus.request<T>(this.pluginId, globalTopic, data, sessionToken);
   }
@@ -144,20 +159,6 @@ export class EventModule {
    * @param payload The payload to emit.
    */
   async emitAccomplishment(payload: AccomplishmentPayload): Promise<void> {
-    if (payload.type === 'macro') {
-      const sessionId = this.aiModule.session.get();
-      if (sessionId) {
-        try {
-          await fetch(`${this.backendUrl}/ai/session/${sessionId}/complete`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${this.getToken()}` },
-          });
-        } catch {
-          // non-fatal — session will expire naturally
-        }
-        this.aiModule.session.clear();
-      }
-    }
     this.accomplishmentController.emitAccomplishment(payload);
   }
 
@@ -251,6 +252,9 @@ export class EventModule {
     });
     console.log('[EventModule] onSidePanelAction: emitting action.requestSidebar for', this.pluginId);
     this.emit('action.requestSidebar');
+    // Bridge is connected at this point — request current session token in case
+    // an exercise was already active before this sidebar plugin mounted.
+    this.eventBus.emit(this.pluginId, 'global.session.requestCurrent', {});
     return listener;
   }
 }

@@ -98,33 +98,6 @@ export class AIModule {
       this.sessionTokenId = null;
     },
 
-    /**
-     * Ensures a session token exists, creating one from the backend if needed.
-     * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
-     */
-    ensure: async (): Promise<void> => {
-      if (this.sessionTokenId) return;
-
-      const response = await fetch(`${this.backendUrl}/ai/session`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${this.getToken()}` },
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          const body = await response.json().catch(() => ({}));
-          const remaining = body.exercises_remaining ?? 0;
-          this.onRateLimitedCb?.(remaining);
-          throw new Error(
-            `Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`,
-          );
-        }
-        throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
-      }
-
-      const { session_token_id } = await response.json();
-      this.sessionTokenId = session_token_id;
-    },
   };
 
   /** Registers a callback invoked whenever a 429 rate-limit response is received. */
@@ -226,7 +199,6 @@ export class AIModule {
       console.warn('[rimori-client] getVoice called with empty text — skipping TTS request and returning empty Blob.');
       return new Blob([], { type: 'audio/mpeg' });
     }
-    await this.session.ensure();
     return await this.controller.fetchBackend('/voice/tts', {
       method: 'POST',
       body: JSON.stringify({
@@ -248,7 +220,6 @@ export class AIModule {
    * @returns The transcribed text.
    */
   async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
-    await this.session.ensure();
     const formData = new FormData();
     formData.append('file', file);
     if (language) {

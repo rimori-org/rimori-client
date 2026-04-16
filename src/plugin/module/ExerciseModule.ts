@@ -92,6 +92,40 @@ export class ExerciseModule {
   }
 
   /**
+   * Requests a new exercise session token from rimori-main.
+   * Use this for self-initiated exercises (user navigated to plugin via navbar and clicked Start).
+   * For dashboard-triggered exercises (onMainPanelAction), the token is provided automatically.
+   *
+   * Emits `global.exercise.triggerStart` and waits for rimori-main to respond with the
+   * session token via `global.session.triggerUpdate`. The token is then automatically
+   * available for AI calls.
+   *
+   * @param params.actionKey The action key identifying this exercise type.
+   * @param params.knowledgeId Optional knowledge ID for tracking what was studied.
+   */
+  async start(params: { actionKey: string; knowledgeId?: string }): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        listener.off();
+        reject(new Error('Exercise start timed out: rimori-main did not respond within 5s'));
+      }, 5000);
+
+      const listener = this.eventModule.on<{ session_token: string | null }>(
+        'global.session.triggerUpdate',
+        ({ data }) => {
+          if (data.session_token) {
+            clearTimeout(timeout);
+            listener.off();
+            resolve();
+          }
+        },
+      );
+
+      this.eventModule.emit('global.exercise.triggerStart', params);
+    });
+  }
+
+  /**
    * Deletes an exercise via the backend API.
    * @param id The exercise ID to delete.
    * @returns Success status.
