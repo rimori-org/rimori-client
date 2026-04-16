@@ -96,14 +96,6 @@ export class AccomplishmentController {
       throw new Error('The error ratio must be between 0 and 1');
     }
 
-    //regex check meta data key
-    if (payload.meta) {
-      payload.meta.forEach((meta) => {
-        if (!/^[a-z_]+$/.test(meta.key)) {
-          throw new Error('Invalid meta data key ' + meta.key + ', only lowercase letters and underscores are allowed');
-        }
-      });
-    }
     return true;
   }
 
@@ -112,6 +104,11 @@ export class AccomplishmentController {
 
     payload.meta?.forEach((meta) => {
       meta.description = meta.description.replace(/[^\x20-\x7E]/g, '');
+    });
+
+    //convert meta keys to snakecase
+    payload.meta?.forEach((meta) => {
+      meta.key = meta.key.replace(/([A-Z])/g, '_$1').toLowerCase();
     });
 
     return payload;
