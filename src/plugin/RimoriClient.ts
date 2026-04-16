@@ -12,6 +12,7 @@ import { EventBus, EventBusHandler } from '../fromRimori/EventBus';
 
 export class RimoriClient {
   private static instance: RimoriClient;
+  private controller: RimoriCommunicationHandler;
   public sharedContent: SharedContentController;
   public db: DbModule;
   public event: EventModule;
@@ -20,27 +21,22 @@ export class RimoriClient {
   public exercise: ExerciseModule;
   /** Upload and manage images stored in Supabase via the backend. */
   public storage: StorageModule;
-  private rimoriInfo: RimoriInfo;
   /** The EventBus instance used by this client. In federation mode this is a per-plugin instance. */
   public eventBus: EventBusHandler;
 
   private constructor(controller: RimoriCommunicationHandler, supabase: PostgrestClient, info: RimoriInfo, eventBus?: EventBusHandler) {
-    this.rimoriInfo = info;
+    this.controller = controller;
     this.eventBus = eventBus ?? EventBus;
     this.sharedContent = new SharedContentController(supabase, this);
-    this.ai = new AIModule(info.backendUrl, () => this.rimoriInfo.token, info.pluginId);
+    this.ai = new AIModule(controller);
     this.ai.setOnRateLimited((exercisesRemaining) => {
       this.eventBus.emit(info.pluginId, 'global.quota.triggerExceeded', { exercises_remaining: exercisesRemaining });
     });
-    this.event = new EventModule(info.pluginId, info.backendUrl, () => this.rimoriInfo.token, this.ai, this.eventBus);
+    this.event = new EventModule(info.pluginId, this.ai, this.eventBus);
     this.db = new DbModule(supabase, controller, info);
     this.plugin = new PluginModule(supabase, controller, info, this.ai);
     this.exercise = new ExerciseModule(supabase, controller, info, this.event);
-    this.storage = new StorageModule(info.backendUrl, () => this.rimoriInfo.token);
-
-    controller.onUpdate((updatedInfo) => {
-      this.rimoriInfo = updatedInfo;
-    });
+    this.storage = new StorageModule(controller);
 
     //only init logger in workers and on main plugin pages
     if (this.plugin.applicationMode !== 'sidebar') {
@@ -56,11 +52,13 @@ export class RimoriClient {
   public static createWithInfo(info: RimoriInfo): RimoriClient {
     const eventBus = EventBusHandler.create('Plugin EventBus ' + info.pluginId);
     const controller = new RimoriCommunicationHandler(info.pluginId, true);
+    controller.handleRimoriInfoUpdate(info);
     const supabase = new PostgrestClient(`${info.url}/rest/v1`, {
       schema: info.dbSchema,
       headers: {
         apikey: info.key,
         Authorization: `Bearer ${info.token}`,
+        'plugin-id': info.pluginId,
       },
     }) as unknown as PostgrestClient;
     const client = new RimoriClient(controller, supabase, info, eventBus);
@@ -95,14 +93,6 @@ export class RimoriClient {
   };
 
   public runtime = {
-    fetchBackend: async (url: string, options: RequestInit) => {
-      return fetch(this.rimoriInfo.backendUrl + url, {
-        ...options,
-        headers: {
-          ...options.headers,
-          Authorization: `Bearer ${this.rimoriInfo.token}`,
-        },
-      });
-    },
+    fetchBackend: (url: string, options: RequestInit = {}) => this.controller.fetchBackend(url, options),
   };
 }

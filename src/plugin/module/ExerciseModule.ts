@@ -37,24 +37,16 @@ export class ExerciseModule {
   private supabase: SupabaseClient;
   private communicationHandler: RimoriCommunicationHandler;
   private eventModule: EventModule;
-  private backendUrl: string;
-  private token: string;
 
   constructor(
     supabase: SupabaseClient,
     communicationHandler: RimoriCommunicationHandler,
-    info: RimoriInfo,
+    _info: RimoriInfo,
     eventModule: EventModule,
   ) {
     this.supabase = supabase;
     this.communicationHandler = communicationHandler;
     this.eventModule = eventModule;
-    this.token = info.token;
-    this.backendUrl = info.backendUrl;
-
-    this.communicationHandler.onUpdate((updatedInfo) => {
-      this.token = updatedInfo.token;
-    });
   }
 
   /**
@@ -82,12 +74,8 @@ export class ExerciseModule {
   async add(params: CreateExerciseParams | CreateExerciseParams[]): Promise<Exercise[]> {
     const exercises = Array.isArray(params) ? params : [params];
 
-    const response = await fetch(`${this.backendUrl}/exercises`, {
+    const response = await this.communicationHandler.fetchBackend('/exercises', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.token}`,
-      },
       body: JSON.stringify({ exercises }),
     });
 
@@ -104,16 +92,47 @@ export class ExerciseModule {
   }
 
   /**
+   * Requests a new exercise session token from rimori-main.
+   * Use this for self-initiated exercises (user navigated to plugin via navbar and clicked Start).
+   * For dashboard-triggered exercises (onMainPanelAction), the token is provided automatically.
+   *
+   * Emits `global.exercise.triggerStart` and waits for rimori-main to respond with the
+   * session token via `global.session.triggerUpdate`. The token is then automatically
+   * available for AI calls.
+   *
+   * @param params.actionKey The action key identifying this exercise type.
+   * @param params.knowledgeId Optional knowledge ID for tracking what was studied.
+   */
+  async start(params: { actionKey: string; knowledgeId?: string }): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        listener.off();
+        reject(new Error('Exercise start timed out: rimori-main did not respond within 5s'));
+      }, 5000);
+
+      const listener = this.eventModule.on<{ session_token: string | null }>(
+        'global.session.triggerUpdate',
+        ({ data }) => {
+          if (data.session_token) {
+            clearTimeout(timeout);
+            listener.off();
+            resolve();
+          }
+        },
+      );
+
+      this.eventModule.emit('global.exercise.triggerStart', params);
+    });
+  }
+
+  /**
    * Deletes an exercise via the backend API.
    * @param id The exercise ID to delete.
    * @returns Success status.
    */
   async delete(id: string): Promise<{ success: boolean; message: string }> {
-    const response = await fetch(`${this.backendUrl}/exercises/${id}`, {
+    const response = await this.communicationHandler.fetchBackend(`/exercises/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-      },
     });
 
     if (!response.ok) {

@@ -1,5 +1,6 @@
 import { Language } from './PluginModule';
 import { Tool } from '../../fromRimori/PluginTypes';
+import { RimoriCommunicationHandler } from '../CommunicationHandler';
 
 export type OnStreamedObjectResult<T = any> = (result: T, isLoading: boolean) => void;
 
@@ -60,16 +61,12 @@ export type OnLLMResponse = (
  * Provides access to text generation, voice synthesis, and object generation.
  */
 export class AIModule {
-  private getToken: () => string;
-  private backendUrl: string;
-  private pluginId: string | undefined;
+  private controller: RimoriCommunicationHandler;
   private sessionTokenId: string | null = null;
   private onRateLimitedCb?: (exercisesRemaining: number) => void;
 
-  constructor(backendUrl: string, getToken: () => string, pluginId?: string) {
-    this.backendUrl = backendUrl;
-    this.getToken = getToken;
-    this.pluginId = pluginId;
+  constructor(controller: RimoriCommunicationHandler) {
+    this.controller = controller;
   }
 
   /**
@@ -80,8 +77,8 @@ export class AIModule {
   private resolvePromptName(name: string): string {
     if (name.startsWith('global.')) return name;
     const segments = name.split('.');
-    if (segments.length === 2 && this.pluginId) {
-      return `${this.pluginId}.${name}`;
+    if (segments.length === 2 && this.controller.pluginId) {
+      return `${this.controller.pluginId}.${name}`;
     }
     return name;
   }
@@ -101,33 +98,6 @@ export class AIModule {
       this.sessionTokenId = null;
     },
 
-    /**
-     * Ensures a session token exists, creating one from the backend if needed.
-     * Mirrors the lazy-issuance pattern used by the AI/LLM endpoint.
-     */
-    ensure: async (): Promise<void> => {
-      if (this.sessionTokenId) return;
-
-      const response = await fetch(`${this.backendUrl}/ai/session`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${this.getToken()}` },
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          const body = await response.json().catch(() => ({}));
-          const remaining = body.exercises_remaining ?? 0;
-          this.onRateLimitedCb?.(remaining);
-          throw new Error(
-            `Rate limit exceeded: ${body.error ?? 'Daily exercise limit reached'}. exercises_remaining: ${remaining}`,
-          );
-        }
-        throw new Error(`Failed to create session: ${response.status} ${response.statusText}`);
-      }
-
-      const { session_token_id } = await response.json();
-      this.sessionTokenId = session_token_id;
-    },
   };
 
   /** Registers a callback invoked whenever a 429 rate-limit response is received. */
@@ -211,6 +181,11 @@ export class AIModule {
    * @param language Optional language for the voice.
    * @param cache Whether to cache the result (default: false).
    * @returns The generated audio as a Blob.
+   *
+   * **Empty input:** If `text` is empty or whitespace-only, no network request is
+   * made and an empty `Blob` is returned immediately. This prevents a 400 error
+   * from the TTS backend while keeping the caller's workflow intact.
+   * A warning is logged to the console in this case.
    */
   async getVoice(
     text: string,
@@ -220,13 +195,12 @@ export class AIModule {
     cache = false,
     instructions?: string,
   ): Promise<Blob> {
-    await this.session.ensure();
-    return await fetch(`${this.backendUrl}/voice/tts`, {
+    if (!text.trim().length) {
+      console.warn('[rimori-client] getVoice called with empty text — skipping TTS request and returning empty Blob.');
+      return new Blob([], { type: 'audio/mpeg' });
+    }
+    return await this.controller.fetchBackend('/voice/tts', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify({
         input: text,
         voice,
@@ -246,7 +220,6 @@ export class AIModule {
    * @returns The transcribed text.
    */
   async getTextFromVoice(file: Blob, language?: Language): Promise<string> {
-    await this.session.ensure();
     const formData = new FormData();
     formData.append('file', file);
     if (language) {
@@ -255,9 +228,8 @@ export class AIModule {
     if (this.sessionTokenId) {
       formData.append('session_token_id', this.sessionTokenId);
     }
-    return await fetch(`${this.backendUrl}/voice/stt`, {
+    return await this.controller.fetchBackend('/voice/stt', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}` },
       body: formData,
     })
       .then((r) => r.json())
@@ -350,10 +322,9 @@ export class AIModule {
       payload.prompt = { name: this.resolvePromptName(prompt), variables: variables ?? {} };
     }
 
-    const response = await fetch(`${this.backendUrl}/ai/llm`, {
-      body: JSON.stringify(payload),
+    const response = await this.controller.fetchBackend('/ai/llm', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.getToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -482,13 +453,9 @@ export class AIModule {
   }
 
   private async sendToolResult(toolCallId: string, result: any): Promise<void> {
-    await fetch(`${this.backendUrl}/ai/llm/tool_result`, {
+    await this.controller.fetchBackend('/ai/llm/tool_result', {
       method: 'POST',
-      body: JSON.stringify({
-        toolCallId,
-        result: result ?? '[DONE]',
-      }),
-      headers: { Authorization: `Bearer ${this.getToken()} `, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ toolCallId, result: result ?? '[DONE]' }),
     });
   }
 }
