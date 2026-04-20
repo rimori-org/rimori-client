@@ -3,10 +3,11 @@
     "outDir": "dist",
     "rootDir": "src",
     "module": "ESNext",
-    "target": "ES6",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "declaration": true,
     "jsx": "react-jsx",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true

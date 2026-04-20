@@ -219,15 +219,17 @@ export class EventModule {
    */
   onMainPanelAction(callback: (data: MainPanelAction) => void, actionsToListen: string | string[] = []): EventListener {
     const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
-    // this needs to be a emit and on because the main panel action is triggered by the user and not by the plugin
-    this.emit('action.requestMain');
-    return this.on<MainPanelAction>('action.requestMain', ({ data }) => {
-      // console.log('Received action for main panel ' + data.action_key);
-      // console.log('Listening to actions', listeningActions);
+    // Register the listener BEFORE emitting the request so that synchronous responses
+    // from the federated bridge (in-process, not postMessage) are captured.
+    // In iframe mode the bridge is async (postMessage) so order didn't matter before,
+    // but in federated mode the respond fires synchronously during emit.
+    const listener = this.on<MainPanelAction>('action.requestMain', ({ data }) => {
       if (listeningActions.length === 0 || listeningActions.includes(data.action_key)) {
         callback(data);
       }
     });
+    this.emit('action.requestMain');
+    return listener;
   }
 
   /**
