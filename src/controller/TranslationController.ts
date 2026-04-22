@@ -85,15 +85,9 @@ export class Translator {
   }
 
   private getTranslationUrl(language: string): string {
-    const baseUrl = this.translationUrl || window.location.origin;
-    // For localhost development, use local- prefix for non-English languages
-    if (window.location.hostname === 'localhost' || new URL(baseUrl).hostname === 'localhost') {
-      const filename = language !== 'en' ? `local-${language}` : language;
+    const baseUrl = (this.translationUrl || window.location.origin).replace(/\/+$/, '');
 
-      return `${baseUrl}/locales/${filename}.json`;
-    }
-
-    return `${baseUrl}/locales/${language}.json`;
+    return `${baseUrl}locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {
@@ -115,20 +109,31 @@ export class Translator {
    * @param language - Language code to fetch
    * @returns Promise with translation data
    */
-  private async fetchTranslations(language: string): Promise<Record<string, string>> {
+  private async fetchTranslations(language: string, attempt = 0): Promise<Record<string, string>> {
     try {
       const response = await fetch(this.getTranslationUrl(language));
       if (!response.ok) {
-        throw new Error(`Failed to fetch translations for ${language}`);
+        throw new Error(`Failed to fetch translations for ${language}: ${response.status}`);
       }
-      return (await response.json()) as Record<string, string>;
+      const data = (await response.json()) as Record<string, unknown>;
+      // If the result is empty, treat it as a failure and retry once to handle transient errors
+      if (Object.keys(data).length === 0 && attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return this.fetchTranslations(language, 1);
+      }
+      return data as Record<string, string>;
     } catch (error) {
+      if (attempt === 0) {
+        // Retry once after a short delay to handle transient network/CDN errors
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return this.fetchTranslations(language, 1);
+      }
       console.warn(`Failed to fetch translations for ${language}:`, error);
       if (language === 'en') return {};
 
       // Fallback to English
-      return this.fetchTranslations('en').catch((error) => {
-        console.error('Failed to fetch fallback translations:', error);
+      return this.fetchTranslations('en').catch((fallbackError) => {
+        console.error('Failed to fetch fallback translations:', fallbackError);
         return {};
       });
     }

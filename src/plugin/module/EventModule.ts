@@ -242,17 +242,11 @@ export class EventModule {
     const listeningActions = Array.isArray(actionsToListen) ? actionsToListen : [actionsToListen];
     // Register the listener BEFORE emitting the request, so the synchronous response
     // from the bridge/responder is captured (emit → bridge outbound → host respond → bridge inbound is synchronous).
-    console.log('[EventModule] onSidePanelAction: setting up listener for', this.pluginId, 'listening to:', listeningActions);
     const listener = this.on<SidebarAction>('action.requestSidebar', ({ data }) => {
-      console.log('[EventModule] onSidePanelAction: received event', { data, listeningActions });
       if (listeningActions.length === 0 || listeningActions.includes(data.action)) {
-        console.log('[EventModule] onSidePanelAction: action matched, calling callback');
         callback(data);
-      } else {
-        console.log('[EventModule] onSidePanelAction: action NOT matched. Got:', data.action, 'expected:', listeningActions);
       }
     });
-    console.log('[EventModule] onSidePanelAction: emitting action.requestSidebar for', this.pluginId);
     this.emit('action.requestSidebar');
     // Bridge is connected at this point — request current session token in case
     // an exercise was already active before this sidebar plugin mounted.
