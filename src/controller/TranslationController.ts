@@ -87,7 +87,7 @@ export class Translator {
   private getTranslationUrl(language: string): string {
     const baseUrl = (this.translationUrl || window.location.origin).replace(/\/+$/, '');
 
-    return `${baseUrl}locales/${language}.json`;
+    return `${baseUrl}/locales/${language}.json`;
   }
 
   public usePlugin(plugin: ThirdPartyModule): void {
@@ -128,7 +128,10 @@ export class Translator {
         await new Promise((resolve) => setTimeout(resolve, 300));
         return this.fetchTranslations(language, 1);
       }
-      console.warn(`Failed to fetch translations for ${language}:`, error);
+      console.warn(
+        `Fetching of ${language} translation not possible. Falling back to english. Error details: ` +
+          (error as Error).message,
+      );
       if (language === 'en') return {};
 
       // Fallback to English
