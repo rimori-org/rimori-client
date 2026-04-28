@@ -12,8 +12,6 @@ interface LogEntry {
     url: string;
     userAgent: string;
     browserInfo: BrowserInfo;
-    screenshot?: string;
-    mousePosition?: MousePosition;
   };
 }
 
@@ -24,12 +22,6 @@ interface BrowserInfo {
   onLine: boolean;
   screenResolution: string;
   windowSize: string;
-  timestamp: string;
-}
-
-interface MousePosition {
-  x: number;
-  y: number;
   timestamp: string;
 }
 
@@ -50,8 +42,6 @@ export class Logger {
     error: typeof console.error;
     debug: typeof console.debug;
   };
-  private mousePosition: MousePosition | null = null;
-
   private constructor(rimori: RimoriClient, isProduction?: boolean) {
     this.isProduction = this.validateIsProduction(isProduction);
 
@@ -67,9 +57,6 @@ export class Logger {
     // Override console methods globally
     this.overrideConsoleMethods();
 
-    // Track mouse position
-    this.trackMousePosition();
-
     // Expose logs to global scope for DevTools access
     this.exposeToDevTools();
 
@@ -77,7 +64,7 @@ export class Logger {
     this.setupNavigationClearing();
 
     rimori.event.respond('logging.requestPluginLogs', async () => {
-      this.addLogEntry(await this.createLogEntry('info', 'Screenshot capture', undefined, true));
+      this.addLogEntry(await this.createLogEntry('info', 'Log capture'));
       const logs = {
         logs: this.logs,
         pluginId: rimori.plugin.pluginId,
@@ -242,24 +229,6 @@ export class Logger {
   }
 
   /**
-   * Track mouse position for screenshot context.
-   */
-  private trackMousePosition(): void {
-    if (typeof window !== 'undefined') {
-      const updateMousePosition = (event: MouseEvent) => {
-        this.mousePosition = {
-          x: event.clientX,
-          y: event.clientY,
-          timestamp: new Date().toISOString(),
-        };
-      };
-
-      window.addEventListener('mousemove', updateMousePosition);
-      window.addEventListener('click', updateMousePosition);
-    }
-  }
-
-  /**
    * Handle console method calls and create log entries.
    * @param level - Log level
    * @param args - Console arguments
@@ -305,33 +274,6 @@ export class Logger {
   }
 
   /**
-   * Capture a screenshot of the current page.
-   * Dynamically imports html2canvas only in browser environments.
-   * @returns Promise resolving to base64 screenshot or null if failed
-   */
-  private async captureScreenshot(): Promise<string | null> {
-    // Only attempt to capture screenshot in browser environments
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return null;
-    }
-
-    try {
-      // Dynamically import html2canvas only when window is available
-      // html2canvas is an optional peer dependency - provided by @rimori/react-client
-      // In worker builds, this import should be marked as external to prevent bundling
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(document.body);
-      const screenshot = canvas.toDataURL('image/png');
-      // this.originalConsole.log("screenshot captured", screenshot)
-      return screenshot;
-    } catch (error) {
-      // html2canvas may not be available (e.g., in workers or when not installed)
-      // Silently fail to avoid breaking logging functionality
-      return null;
-    }
-  }
-
-  /**
    * Create a log entry with context information.
    * @param level - Log level
    * @param message - Log message
@@ -342,7 +284,6 @@ export class Logger {
     level: LogLevel,
     message: string,
     data?: any,
-    forceScreenshot?: boolean,
   ): Promise<LogEntry> {
     const context: Partial<LogEntry['context']> = {};
 
@@ -362,12 +303,6 @@ export class Logger {
     // Add browser info (this method now handles worker context internally)
     context.browserInfo = this.getBrowserInfo();
     context.userAgent = context.browserInfo.userAgent;
-
-    // Add screenshot and mouse position if level is error or warn
-    if (level === 'error' || level === 'warn' || forceScreenshot) {
-      context.screenshot = (await this.captureScreenshot()) || undefined;
-      context.mousePosition = this.mousePosition || undefined;
-    }
 
     return {
       id: `log_${++this.logIdCounter}_${Date.now()}`,
