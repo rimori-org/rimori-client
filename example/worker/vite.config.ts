@@ -13,10 +13,9 @@ export default defineConfig({
     },
     outDir: path.resolve(__dirname, '../public'),
     emptyOutDir: false,
-    rollupOptions: {
+    rolldownOptions: {
       // Exclude DOM-only libraries that can't run in workers
       output: {
-        inlineDynamicImports: true,
         entryFileNames: 'web-worker.js',
       },
     },
