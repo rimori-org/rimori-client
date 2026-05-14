@@ -214,6 +214,31 @@ export class AIModule {
   }
 
   /**
+   * Generate an image from a text prompt using AI.
+   * @param params.prompt The prompt describing the image to generate.
+   * @param params.cache Whether to cache the result by prompt hash (default: true).
+   * @returns `{ url, cached }` where `url` is either a data URL or a stored CDN URL.
+   */
+  async getImage(params: {
+    prompt: string;
+    cache?: boolean;
+  }): Promise<{ url: string; cached: boolean }> {
+    const { prompt, cache = true } = params;
+    const response = await this.controller.fetchBackend('/ai/image', {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt,
+        cache,
+        session_token_id: this.sessionTokenId ?? undefined,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to generate image: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  /**
    * Convert voice audio to text using AI.
    * @param file The audio file to convert.
    * @param language Optional language for the voice.
