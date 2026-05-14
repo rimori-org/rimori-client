@@ -20,14 +20,8 @@
  */
 /**
  * 'image', 'audio', 'video' and 'file' are stored as `text` (URL) in the database.
- * Marking a column with one of these types causes the migration system to:
- *  1. Add an `updated_at` timestamp + trigger to the table.
- *  2. Register the column for the asset-refs cron, which links rows to bucket
- *     files (in the `plugin-assets` Supabase bucket) and deletes orphans when
- *     the row is deleted, the column is replaced, or the value is cleared.
- *
- * Use these types instead of `text` for any column whose value is a URL into the
- * `plugin-assets` bucket — that way the file is automatically cleaned up.
+ * The migration system adds an `updated_at` trigger and registers the column for
+ * the asset-refs cron, which links rows to bucket files and deletes orphans.
  */
 type DbColumnType = 'decimal' | 'integer' | 'text' | 'boolean' | 'json' | 'timestamp' | 'uuid' | 'markdown' | 'vector' | 'image' | 'audio' | 'video' | 'file';
 
