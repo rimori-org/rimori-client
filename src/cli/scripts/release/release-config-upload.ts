@@ -58,7 +58,7 @@ export async function sendConfiguration(config: Config): Promise<string> {
 
     console.log(`🚀 Sending configuration...`);
 
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       config: configObject,
       version: config.version,
       plugin_id: config.plugin_id,
@@ -66,6 +66,9 @@ export async function sendConfiguration(config: Config): Promise<string> {
       rimori_client_version: config.rimori_client_version,
       provided_languages: availableLanguages.join(','),
     };
+    if (config.dev_sync) {
+      requestBody.update_existing = true;
+    }
 
     try {
       const response = await fetch(`${config.domain}/release`, {

@@ -34,9 +34,15 @@ if (!pluginId) {
   process.exit(1);
 }
 
-const [releaseChannel] = process.argv.slice(2);
+const cliArgs = process.argv.slice(2);
+const devSync = cliArgs.includes('--dev-sync');
+const releaseChannel = cliArgs.find((a) => !a.startsWith('--'));
 if (!releaseChannel) {
-  console.error('Usage: rimori-release <release_channel>');
+  console.error('Usage: rimori-release <release_channel> [--dev-sync]');
+  process.exit(1);
+}
+if (devSync && releaseChannel !== 'alpha') {
+  console.error('--dev-sync is only allowed with the alpha channel');
   process.exit(1);
 }
 
@@ -47,6 +53,7 @@ const config = {
   token: RIMORI_TOKEN,
   domain: process.env.RIMORI_BACKEND_URL || 'https://api.rimori.se',
   rimori_client_version: packageJson.dependencies['@rimori/client'].replace('^', ''),
+  dev_sync: devSync,
 };
 
 export type Config = typeof config;
@@ -56,7 +63,11 @@ export type Config = typeof config;
  */
 async function releaseProcess(): Promise<void> {
   try {
-    console.log(`🚀 Releasing ${config.plugin_id} to ${config.release_channel}...`);
+    if (config.dev_sync) {
+      console.log(`⚡ Dev-sync ${config.plugin_id} → existing alpha release`);
+    } else {
+      console.log(`🚀 Releasing ${config.plugin_id} to ${config.release_channel}...`);
+    }
     console.log(`📡 Deploying to: ${config.domain}`);
 
     // First send the configuration
@@ -66,6 +77,12 @@ async function releaseProcess(): Promise<void> {
     await promptsUpload(config, release_id);
 
     await dbUpdate(config, release_id);
+
+    // Dev-sync only pushes metadata — skip bundle upload and finalize.
+    if (config.dev_sync) {
+      console.log('✅ Dev-sync complete');
+      return;
+    }
 
     // Then upload the files
     await uploadDirectory(config, release_id);
