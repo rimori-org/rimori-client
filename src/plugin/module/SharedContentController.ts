@@ -1,10 +1,19 @@
 import { ObjectTool } from '../../fromRimori/PluginTypes';
 import { SupabaseClient } from '../CommunicationHandler';
 import { RimoriClient } from '../RimoriClient';
+import { LanguageLevel } from '../../utils/difficultyConverter';
 
 export type SharedContent<T> = BasicSharedContent & T;
 
 export type ContentStatus = 'featured' | 'community' | 'unverified';
+
+export type SharedContentSkillType =
+  | 'grammar'
+  | 'reading'
+  | 'writing'
+  | 'speaking'
+  | 'listening'
+  | 'understanding';
 
 export interface BasicSharedContent {
   id: string;
@@ -15,6 +24,7 @@ export interface BasicSharedContent {
   created_at: string;
   guild_id: string | null;
   lang_id: string | null;
+  skill_level: LanguageLevel;
 }
 
 export interface SharedContentCompletionState {
@@ -54,7 +64,7 @@ export class SharedContentController {
    */
   public async getNew<T>(params: {
     table: string;
-    skillType: 'grammar' | 'reading' | 'writing' | 'speaking' | 'listening' | 'understanding';
+    skillType: SharedContentSkillType;
     placeholders?: Record<string, string>;
     filter?: Record<string, { filterType: 'rag' | 'exact' | 'exclude'; value: string }>;
     customFields?: Record<string, string | number | boolean | null>;
@@ -320,17 +330,29 @@ export class SharedContentController {
 
   /**
    * Create new shared content manually.
+   * Auto-fills `skill_level` from the user's current `skill_level_{skillType}` setting
+   * so callers don't have to wire it up themselves (the column is NOT NULL on every
+   * shared-content table).
    * @param tableName - Name of the shared content table
+   * @param skillType - Skill this content trains; selects which user skill level to record
    * @param content - Content to create
    * @returns Created content
    */
   public async create<T = any>(
     tableName: string,
-    content: Omit<SharedContent<T>, 'id' | 'created_at' | 'created_by'>,
+    skillType: SharedContentSkillType,
+    content: Omit<SharedContent<T>, 'id' | 'created_at' | 'created_by' | 'skill_level'>,
   ): Promise<SharedContent<T>> {
     const fullTableName = this.getTableName(tableName);
 
-    const { data, error } = await this.supabase.from(fullTableName).insert(content).select().single();
+    const userInfo = this.rimoriClient.plugin.getUserInfo();
+    const skillLevel = userInfo[`skill_level_${skillType}`];
+
+    const { data, error } = await this.supabase
+      .from(fullTableName)
+      .insert({ ...content, skill_level: skillLevel })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error creating shared content:', error);
