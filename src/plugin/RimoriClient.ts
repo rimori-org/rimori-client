@@ -7,6 +7,7 @@ import { EventModule } from './module/EventModule';
 import { AIModule } from './module/AIModule';
 import { ExerciseModule } from './module/ExerciseModule';
 import { StorageModule } from './module/StorageModule';
+import { AssetsModule } from './module/AssetsModule';
 import { PostgrestClient } from '@supabase/postgrest-js';
 import { EventBus, EventBusHandler } from '../fromRimori/EventBus';
 
@@ -21,6 +22,8 @@ export class RimoriClient {
   public exercise: ExerciseModule;
   /** Upload and manage images stored in Supabase via the backend. */
   public storage: StorageModule;
+  /** Upload assets (image/audio/video/file) backing asset-typed db.config columns. */
+  public assets: AssetsModule;
   /** The EventBus instance used by this client. In federation mode this is a per-plugin instance. */
   public eventBus: EventBusHandler;
 
@@ -37,6 +40,7 @@ export class RimoriClient {
     this.plugin = new PluginModule(supabase, controller, info, this.ai);
     this.exercise = new ExerciseModule(supabase, controller, info, this.event);
     this.storage = new StorageModule(controller);
+    this.assets = new AssetsModule(controller);
 
     //only init logger in workers and on main plugin pages
     if (this.plugin.applicationMode !== 'sidebar') {
